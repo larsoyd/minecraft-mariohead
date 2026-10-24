@@ -7,16 +7,14 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
 // he turns up in plain view, so the player watches him arrive and say hello
 public final class HeadSpawner {
-	private static final int TRIES = 48;
-	private static final float VIEW_HALF_ANGLE = 35.0f;
-	private static final double FLOOR_DROP = 8.0;
+	private static final int TRIES = 64;
+	private static final double VIEW_HALF_ANGLE = 30.0;
 
 	private HeadSpawner() {
 	}
@@ -25,13 +23,17 @@ public final class HeadSpawner {
 		ServerLevel level = player.level();
 		RandomSource random = player.getRandom();
 		Vec3 eye = player.getEyePosition();
+		Vec3 look = player.getLookAngle();
+		double cos = Math.cos(Math.toRadians(VIEW_HALF_ANGLE));
 		for (int i = 0; i < TRIES; i++) {
-			float yaw = player.getYRot() + (random.nextFloat() * 2.0f - 1.0f) * VIEW_HALF_ANGLE;
-			double distance = Mth.lerp(random.nextDouble(), HeadTuning.SPAWN_MIN, HeadTuning.SPAWN_MAX);
-			double x = eye.x - Mth.sin(yaw * Mth.DEG_TO_RAD) * distance;
-			double z = eye.z + Mth.cos(yaw * Mth.DEG_TO_RAD) * distance;
-			Vec3 centre = spot(level, player, x, z);
-			if (centre != null && clear(level, player, eye, centre)) {
+			float yaw = player.getYRot() + (float) ((random.nextDouble() * 2.0 - 1.0) * VIEW_HALF_ANGLE);
+			float pitch = Mth.clamp(player.getXRot() + (float) ((random.nextDouble() * 2.0 - 1.0) * VIEW_HALF_ANGLE), -90.0f, 90.0f);
+			Vec3 dir = Vec3.directionFromRotation(pitch, yaw);
+			if (dir.dot(look) < cos) {
+				continue;
+			}
+			Vec3 centre = eye.add(dir.scale(Mth.lerp(random.nextDouble(), HeadTuning.SPAWN_MIN, HeadTuning.SPAWN_MAX)));
+			if (open(level, player, eye, centre)) {
 				TheHead head = HeadEntities.THE_HEAD.create(level, EntitySpawnReason.COMMAND);
 				if (head == null) {
 					return null;
@@ -45,19 +47,8 @@ public final class HeadSpawner {
 		return null;
 	}
 
-	private static @Nullable Vec3 spot(ServerLevel level, ServerPlayer player, double x, double z) {
-		Vec3 top = new Vec3(x, player.getEyeY() + 1.0, z);
-		HitResult floor = level.clip(new ClipContext(top, top.add(0.0, -FLOOR_DROP, 0.0),
-			ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-		if (floor.getType() == HitResult.Type.MISS) {
-			return null;
-		}
-		return new Vec3(x, floor.getLocation().y + HeadTuning.HOVER, z);
-	}
-
-	private static boolean clear(ServerLevel level, ServerPlayer player, Vec3 eye, Vec3 centre) {
-		AABB box = HeadRoom.box(centre.x, centre.y, centre.z, 1.0f);
-		return level.noCollision(box) && level.clip(new ClipContext(eye, centre,
+	private static boolean open(ServerLevel level, ServerPlayer player, Vec3 eye, Vec3 centre) {
+		return level.noCollision(HeadRoom.box(centre.x, centre.y, centre.z, 1.0f)) && level.clip(new ClipContext(eye, centre,
 			ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player)).getType() == HitResult.Type.MISS;
 	}
 }

@@ -158,6 +158,47 @@ public class HeadGameTests {
 			() -> helper.assertFalse(level.isPositionEntityTicking(last[0]), "his chunk still ticks at " + last[0])));
 	}
 
+	private static List<TheHead> summon(GameTestHelper helper, ServerPlayer player) {
+		var server = helper.getLevel().getServer();
+		server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "mariohead summon " + player.getScoreboardName());
+		return helper.getLevel().getEntities(HeadEntities.THE_HEAD, player.getBoundingBox().inflate(16.0), h -> h.chased() == player);
+	}
+
+	private static void summonsWhereLooking(GameTestHelper helper, float pitch, boolean open, boolean expectHead) {
+		if (open) {
+			fill(helper, 0, 8, 0, 19, 8, 19, Blocks.AIR.defaultBlockState());
+		} else {
+			fill(helper, 6, 0, 0, 6, 7, 19, Blocks.STONE.defaultBlockState());
+		}
+		ServerPlayer target = player(helper, GameType.CREATIVE, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		target.setXRot(pitch);
+		helper.runAtTickTime(2, () -> {
+			List<TheHead> heads = summon(helper, target);
+			helper.assertTrue(heads.size() == (expectHead ? 1 : 0), "pitch " + pitch + " open " + open + " gave " + heads.size() + " heads");
+			for (TheHead head : heads) {
+				Vec3 to = head.centre().subtract(target.getEyePosition()).normalize();
+				double angle = Math.toDegrees(Math.acos(to.dot(target.getLookAngle())));
+				helper.assertTrue(angle <= 35.0, "pitch " + pitch + ": head " + angle + " degrees off the view");
+			}
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 20)
+	public void summonsAboveWhenLookingUp(GameTestHelper helper) {
+		summonsWhereLooking(helper, -75.0f, true, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 20)
+	public void refusesWhenLookingAtTheFloor(GameTestHelper helper) {
+		summonsWhereLooking(helper, 80.0f, true, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 20)
+	public void refusesWhenAWallBlocksTheView(GameTestHelper helper) {
+		summonsWhereLooking(helper, 0.0f, false, false);
+	}
+
 	enum Loss { DISCONNECT, DEATH, OTHER_DIMENSION, SPECTATOR }
 
 	private static void lose(GameTestHelper helper, ServerPlayer target, Loss loss) {
