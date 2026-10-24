@@ -29,7 +29,9 @@ public final class HeadCommand {
 	private static int summon(CommandContext<CommandSourceStack> c, Collection<ServerPlayer> targets) throws CommandSyntaxException {
 		int spawned = 0;
 		for (ServerPlayer player : targets) {
-			if (HeadSpawner.summonFor(player) != null) {
+			if (player.isCreative() || player.isSpectator()) {
+				c.getSource().sendFailure(Component.translatable("commands.mariohead.summon.not_survival", player.getDisplayName()));
+			} else if (HeadSpawner.summonFor(player) != null) {
 				spawned++;
 			} else {
 				c.getSource().sendFailure(Component.translatable("commands.mariohead.summon.no_room", player.getDisplayName()));

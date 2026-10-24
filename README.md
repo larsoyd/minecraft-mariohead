@@ -36,7 +36,8 @@ LAN with cheats allowed.
 
 - `/mariohead summon` puts him in view of you, 7 to 12 blocks away, somewhere open with a clear
   line of sight. `/mariohead summon <players>` does it for others. He refuses when there is no room
-  in view, for example when you stare at the floor or a wall.
+  in view, for example when you stare at the floor or a wall, and for players in creative or
+  spectator.
 - The Floating Mario Head Spawn Egg is in the Spawn Eggs tab of the creative inventory. A head
   from an egg chases the nearest player in survival or adventure within 32 blocks.
 
@@ -47,11 +48,14 @@ The command needs operator rights (permission level 2).
 - He floats about two blocks above the floor and plans his way along it, through doors, up stairs
   and around walls. When he cannot walk there he flies straight at you.
 - He is about three blocks wide and shrinks to squeeze through doors, caves and gaps down to one
-  block, then swells back. He never pokes through blocks. A gap under one block stops him.
+  block, then swells back. He never pokes through blocks. A gap under one block stops him. Leaves,
+  grass and flowers do not stop him at all.
 - He cannot be hurt. `/kill` removes him. He leaves on Peaceful.
 - Before he says hello he will go after whoever else is near if his player leaves. After hello
   the chase belongs to that player, and he vanishes when they die, leave, change dimension or
-  turn spectator.
+  turn creative or spectator.
+- A catch kills through armour, shields and Resistance. A Totem of Undying saves you once, and he
+  is gone either way.
 - He keeps the chunks around him loaded while he chases, so outrunning him only delays him.
 - He is not saved with the world. Logging out or reloading ends the chase.
 - His voice gets louder the closer he is to you and uses the Hostile Creatures volume slider.

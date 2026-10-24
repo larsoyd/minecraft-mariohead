@@ -170,7 +170,7 @@ public class HeadGameTests {
 		} else {
 			fill(helper, 6, 0, 0, 6, 7, 19, Blocks.STONE.defaultBlockState());
 		}
-		ServerPlayer target = player(helper, GameType.CREATIVE, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
 		target.setXRot(pitch);
 		helper.runAtTickTime(2, () -> {
 			List<TheHead> heads = summon(helper, target);
@@ -197,6 +197,18 @@ public class HeadGameTests {
 	@GameTest(structure = ARENA, maxTicks = 20)
 	public void refusesWhenAWallBlocksTheView(GameTestHelper helper) {
 		summonsWhereLooking(helper, 0.0f, false, false);
+	}
+
+	// he would only drop a creative or spectating player again, so the command says so instead
+	@GameTest(structure = ARENA, maxTicks = 20)
+	public void refusesToSummonForCreativeOrSpectator(GameTestHelper helper) {
+		ServerPlayer creative = player(helper, GameType.CREATIVE, new Vec3(2.5, 0.0, 6.5), -90.0f);
+		ServerPlayer spectator = player(helper, GameType.SPECTATOR, new Vec3(2.5, 0.0, 14.5), -90.0f);
+		helper.runAtTickTime(2, () -> {
+			helper.assertTrue(summon(helper, creative).isEmpty(), "summoned for a creative player");
+			helper.assertTrue(summon(helper, spectator).isEmpty(), "summoned for a spectator");
+			helper.succeed();
+		});
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 40)
@@ -727,7 +739,7 @@ public class HeadGameTests {
 
 	@GameTest(structure = ARENA, maxTicks = 40)
 	public void summonsInViewOfThePlayer(GameTestHelper helper) {
-		ServerPlayer target = player(helper, GameType.CREATIVE, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
 		helper.runAtTickTime(2, () -> {
 			var server = helper.getLevel().getServer();
 			var source = server.createCommandSourceStack();

@@ -6,5 +6,6 @@
 	"subtitles.mariohead.the_head.hello": "Floating Mario Head says hello",
 	"subtitles.mariohead.the_head.hum": "Floating Mario Head hums",
 	"commands.mariohead.summon.success": "Summoned the Floating Mario Head for %s player(s)",
-	"commands.mariohead.summon.no_room": "No open space in view of %s for the Floating Mario Head"
+	"commands.mariohead.summon.no_room": "No open space in view of %s for the Floating Mario Head",
+	"commands.mariohead.summon.not_survival": "%s must be in survival or adventure for the Floating Mario Head"
 }
