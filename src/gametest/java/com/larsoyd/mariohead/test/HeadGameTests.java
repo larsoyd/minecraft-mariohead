@@ -158,6 +158,108 @@ public class HeadGameTests {
 			() -> helper.assertFalse(level.isPositionEntityTicking(last[0]), "his chunk still ticks at " + last[0])));
 	}
 
+	enum Loss { DISCONNECT, DEATH, OTHER_DIMENSION, SPECTATOR }
+
+	private static void lose(GameTestHelper helper, ServerPlayer target, Loss loss) {
+		switch (loss) {
+			case DISCONNECT -> leave(helper, target);
+			case DEATH -> {
+				target.setHealth(0.0f);
+				target.die(target.damageSources().genericKill());
+			}
+			case OTHER_DIMENSION -> {
+				var nether = helper.getLevel().getServer().getLevel(net.minecraft.world.level.Level.NETHER);
+				target.teleportTo(nether, 0.5, 64.0, 0.5, java.util.Set.of(), 0.0f, 0.0f, true);
+			}
+			case SPECTATOR -> target.setGameMode(GameType.SPECTATOR);
+		}
+	}
+
+	// before hello he turns to whoever else is near, after it the chase was theirs and it ends with them
+	private static void loseTarget(GameTestHelper helper, Loss loss, int atTick, boolean introduced) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		ServerPlayer other = player(helper, GameType.SURVIVAL, new Vec3(7.5, 0.0, 4.5), -90.0f);
+		TheHead head = head(helper, new Vec3(10.5, 0.5, 10.5), target);
+		helper.runAtTickTime(atTick, () -> {
+			HeadPhase phase = head.phase();
+			helper.assertTrue(introduced == (phase == HeadPhase.TALK || phase == HeadPhase.CHARGE), "phase " + phase + " at " + atTick);
+			lose(helper, target, loss);
+		});
+		helper.runAtTickTime(Math.max(atTick + 3, 12), () -> {
+			if (introduced) {
+				helper.assertTrue(head.isRemoved(), loss + " in " + head.phase() + " left him in the world");
+			} else {
+				helper.assertTrue(!head.isRemoved() && head.chased() == other, loss + " before hello: chasing " + head.chased());
+			}
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void disconnectWhileLooking(GameTestHelper helper) {
+		loseTarget(helper, Loss.DISCONNECT, 12, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void deathWhileLooking(GameTestHelper helper) {
+		loseTarget(helper, Loss.DEATH, 12, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void dimensionChangeWhileLooking(GameTestHelper helper) {
+		loseTarget(helper, Loss.OTHER_DIMENSION, 12, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void spectatorWhileLooking(GameTestHelper helper) {
+		loseTarget(helper, Loss.SPECTATOR, 12, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void disconnectWhileSpawning(GameTestHelper helper) {
+		loseTarget(helper, Loss.DISCONNECT, 4, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 60)
+	public void disconnectWhileTalking(GameTestHelper helper) {
+		loseTarget(helper, Loss.DISCONNECT, 30, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 60)
+	public void deathWhileTalking(GameTestHelper helper) {
+		loseTarget(helper, Loss.DEATH, 30, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 60)
+	public void dimensionChangeWhileTalking(GameTestHelper helper) {
+		loseTarget(helper, Loss.OTHER_DIMENSION, 30, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 60)
+	public void spectatorWhileTalking(GameTestHelper helper) {
+		loseTarget(helper, Loss.SPECTATOR, 30, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void disconnectWhileCharging(GameTestHelper helper) {
+		loseTarget(helper, Loss.DISCONNECT, 80, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void deathWhileCharging(GameTestHelper helper) {
+		loseTarget(helper, Loss.DEATH, 80, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void dimensionChangeWhileCharging(GameTestHelper helper) {
+		loseTarget(helper, Loss.OTHER_DIMENSION, 80, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void spectatorWhileCharging(GameTestHelper helper) {
+		loseTarget(helper, Loss.SPECTATOR, 80, true);
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 20, required = false)
 	public void failsOnPurposeSoTeardownIsChecked(GameTestHelper helper) {
 		player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), 0.0f);
