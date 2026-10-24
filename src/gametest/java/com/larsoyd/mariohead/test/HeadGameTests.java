@@ -199,6 +199,20 @@ public class HeadGameTests {
 		summonsWhereLooking(helper, 0.0f, false, false);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void eggHeadPicksTheSurvivalPlayer(GameTestHelper helper) {
+		var egg = new net.minecraft.world.item.ItemStack(com.larsoyd.mariohead.HeadItems.SPAWN_EGG);
+		helper.assertTrue(net.minecraft.world.item.SpawnEggItem.getType(egg) == HeadEntities.THE_HEAD, "egg spawns " + net.minecraft.world.item.SpawnEggItem.getType(egg));
+		ServerPlayer creative = player(helper, GameType.CREATIVE, new Vec3(12.5, 0.0, 10.5), 90.0f);
+		ServerPlayer survivor = player(helper, GameType.SURVIVAL, new Vec3(4.5, 0.0, 10.5), -90.0f);
+		TheHead head = HeadEntities.THE_HEAD.spawn(helper.getLevel(), helper.absolutePos(new BlockPos(14, 0, 10)), net.minecraft.world.entity.EntitySpawnReason.SPAWN_ITEM_USE);
+		helper.assertTrue(head != null && head.chased() == null, "egg head starts with a target");
+		helper.runAtTickTime(15, () -> {
+			helper.assertTrue(head.chased() == survivor, "egg head chases " + head.chased() + " not the survivor, creative was " + creative.getScoreboardName());
+			helper.succeed();
+		});
+	}
+
 	enum Loss { DISCONNECT, DEATH, OTHER_DIMENSION, SPECTATOR }
 
 	private static void lose(GameTestHelper helper, ServerPlayer target, Loss loss) {

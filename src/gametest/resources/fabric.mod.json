@@ -6,7 +6,8 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": ["com.larsoyd.mariohead.test.HeadTestSetup"],
-		"fabric-gametest": ["com.larsoyd.mariohead.test.HeadGameTests"]
+		"fabric-gametest": ["com.larsoyd.mariohead.test.HeadGameTests"],
+		"fabric-client-gametest": ["com.larsoyd.mariohead.test.HeadClientGameTest"]
 	},
 	"depends": {
 		"mariohead": "*"

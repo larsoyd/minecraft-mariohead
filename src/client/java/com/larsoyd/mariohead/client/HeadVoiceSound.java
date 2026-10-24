@@ -1,0 +1,67 @@
+package com.larsoyd.mariohead.client;
+
+import com.larsoyd.mariohead.HeadSounds;
+import com.larsoyd.mariohead.MarioHead;
+import com.larsoyd.mariohead.entity.HeadCue;
+import com.larsoyd.mariohead.entity.TheHead;
+import com.larsoyd.mariohead.entity.VoiceCurve;
+import java.util.concurrent.atomic.AtomicInteger;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
+import net.minecraft.client.resources.sounds.SoundInstance;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
+
+// his voice follows him, as loud as his distance to whoever is listening says
+public final class HeadVoiceSound extends AbstractTickableSoundInstance {
+	// his words are mixed quieter than his hums, so they get twice the curve
+	private static final float HELLO_GAIN = 2.0f;
+	private static final AtomicInteger STARTED = new AtomicInteger();
+	private final TheHead head;
+	private final float gain;
+
+	private HeadVoiceSound(TheHead head, HeadCue cue) {
+		super(HeadSounds.of(cue), SoundSource.HOSTILE, SoundInstance.createUnseededRandom());
+		this.head = head;
+		this.gain = cue == HeadCue.HELLO ? HELLO_GAIN : 1.0f;
+		this.attenuation = SoundInstance.Attenuation.NONE;
+		this.looping = false;
+		this.delay = 0;
+		this.follow();
+	}
+
+	public static void play(TheHead head, HeadCue cue) {
+		Minecraft minecraft = Minecraft.getInstance();
+		minecraft.getSoundManager().play(new HeadVoiceSound(head, cue));
+		MarioHead.LOG.debug("[head] voice cue={} head={} started={}", cue, head.getId(), STARTED.incrementAndGet());
+	}
+
+	public static int started() {
+		return STARTED.get();
+	}
+
+	@Override
+	public boolean canStartSilent() {
+		return true;
+	}
+
+	@Override
+	public void tick() {
+		if (this.head.isRemoved()) {
+			this.stop();
+			return;
+		}
+		this.follow();
+	}
+
+	private void follow() {
+		Vec3 c = this.head.centre();
+		this.x = c.x;
+		this.y = c.y;
+		this.z = c.z;
+		Player listener = Minecraft.getInstance().player;
+		double distance = listener == null ? Double.MAX_VALUE : listener.getEyePosition().distanceTo(c);
+		this.volume = Math.min(1.0f, VoiceCurve.volume(distance) * this.gain);
+	}
+}
