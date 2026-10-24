@@ -37,7 +37,7 @@ fetch() {
 		return 0
 	fi
 	say "downloading $(basename "$file")"
-	timeout 300 curl -fsSL --retry 2 -o "$file.part" "$url" || die "download failed: $url"
+	timeout --foreground 300 curl -fsSL --retry 2 -o "$file.part" "$url" || die "download failed: $url"
 	got=$(sha1sum "$file.part" | cut -d' ' -f1)
 	if [ "$got" != "$sha" ]; then
 		rm -f "$file.part"
@@ -48,7 +48,7 @@ fetch() {
 
 build() {
 	say "building the mod"
-	(cd "$root" && timeout 1200 ./gradlew --console=plain -q jar) || die "build failed"
+	(cd "$root" && timeout --foreground 1200 ./gradlew --console=plain jar </dev/null) || die "build failed"
 	jar="$root/build/libs/mariohead-$(sed -n 's/^version=//p' "$root/gradle.properties").jar"
 	[ -f "$jar" ] || die "no jar at $jar"
 }
@@ -63,7 +63,7 @@ install() {
 	installer="$cache/fabric-installer-$INSTALLER_VERSION.jar"
 	fetch "$MAVEN/fabric-installer/$INSTALLER_VERSION/fabric-installer-$INSTALLER_VERSION.jar" "$installer" "$INSTALLER_SHA1"
 	say "installing Fabric Loader $LOADER_VERSION for Minecraft $MC_VERSION"
-	timeout 600 java -jar "$installer" client -dir "$mc" -mcversion "$MC_VERSION" -loader "$LOADER_VERSION" \
+	timeout --foreground 600 java -jar "$installer" client -dir "$mc" -mcversion "$MC_VERSION" -loader "$LOADER_VERSION" \
 		|| die "the Fabric installer failed"
 	api="$mc/mods/fabric-api-$FABRIC_API_VERSION.jar"
 	fetch "$MAVEN/fabric-api/fabric-api/$FABRIC_API_VERSION/fabric-api-$FABRIC_API_VERSION.jar" "$api" "$FABRIC_API_SHA1"
