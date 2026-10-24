@@ -16,7 +16,21 @@ He does not give up. If he touches you, you die.
 
 ## Install
 
-Put `mariohead-0.1.0.jar` and Fabric API in the `mods` folder of a Fabric 26.3 profile.
+From a checkout, with the Minecraft Launcher started at least once:
+
+```
+sh play.sh
+```
+
+It builds the mod, installs Fabric Loader 0.20.1 for 26.3 (the profile `fabric-loader-26.3`), puts
+Fabric API and the mod in `~/.minecraft/mods`, and opens the launcher. Pick `fabric-loader-26.3` and
+press Play. `sh play.sh install` skips opening the launcher, `sh play.sh dev` runs a throwaway client
+with an offline player and installs nothing, `sh play.sh help` lists these.
+
+By hand: put `mariohead-0.1.0.jar` and Fabric API in the `mods` folder of a Fabric 26.3 profile.
+
+To use `/mariohead summon` in singleplayer, create the world with Allow Commands on, or open it to
+LAN with cheats allowed.
 
 ## Calling him
 
