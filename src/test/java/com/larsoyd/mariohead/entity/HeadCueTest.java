@@ -10,11 +10,20 @@ class HeadCueTest {
 	@Test
 	void packRoundTrips() {
 		for (HeadCue cue : HeadCue.values()) {
-			for (int seq : new int[] { 0, 1, 7, 1000, 0x7FFFFFF }) {
-				int packed = HeadCue.pack(cue, seq);
+			for (long time : new long[] { 0L, 1L, 7L, 24000L, 1L << 40, (1L << 60) - 1 }) {
+				long packed = HeadCue.pack(cue, time);
 				assertSame(cue, HeadCue.cueOf(packed));
-				assertEquals(seq, HeadCue.seqOf(packed));
+				assertEquals(time, HeadCue.timeOf(packed));
 			}
+		}
+	}
+
+	@Test
+	void phasesPackWithTheirStart() {
+		for (HeadPhase phase : HeadPhase.values()) {
+			long packed = HeadPhase.pack(phase, 123456789L);
+			assertSame(phase, HeadPhase.phaseOf(packed));
+			assertEquals(123456789L, HeadPhase.timeOf(packed));
 		}
 	}
 

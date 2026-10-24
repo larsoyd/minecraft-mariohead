@@ -2,7 +2,7 @@ package com.larsoyd.mariohead.entity;
 
 import org.jspecify.annotations.Nullable;
 
-// what his voice is doing, with a counter so the same cue twice still reads as new
+// what his voice is doing
 public enum HeadCue {
 	NONE,
 	HELLO,
@@ -29,15 +29,15 @@ public enum HeadCue {
 		return HUMS[Math.floorMod(rev, HUMS.length)];
 	}
 
-	public static int pack(HeadCue cue, int seq) {
-		return seq << CUE_BITS | cue.ordinal();
+	public static long pack(HeadCue cue, long time) {
+		return time << CUE_BITS | cue.ordinal();
 	}
 
-	public static HeadCue cueOf(int packed) {
-		return BY_ID[(packed & (1 << CUE_BITS) - 1) % BY_ID.length];
+	public static HeadCue cueOf(long packed) {
+		return BY_ID[(int) (packed & (1 << CUE_BITS) - 1) % BY_ID.length];
 	}
 
-	public static int seqOf(int packed) {
+	public static long timeOf(long packed) {
 		return packed >>> CUE_BITS;
 	}
 }

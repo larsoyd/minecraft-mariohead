@@ -37,8 +37,9 @@ public class TheHead extends Monster {
 	public static final float WIDTH = HeadShape.WIDTH;
 	public static final float HEIGHT = HeadShape.HEIGHT;
 	private static final double DT = 0.05;
-	private static final EntityDataAccessor<Byte> DATA_PHASE = SynchedEntityData.defineId(TheHead.class, EntityDataSerializers.BYTE);
-	private static final EntityDataAccessor<Integer> DATA_CUE = SynchedEntityData.defineId(TheHead.class, EntityDataSerializers.INT);
+	// each carries its start time, so late watchers keep in step and a repeat still reads as new
+	private static final EntityDataAccessor<Long> DATA_PHASE = SynchedEntityData.defineId(TheHead.class, EntityDataSerializers.LONG);
+	private static final EntityDataAccessor<Long> DATA_CUE = SynchedEntityData.defineId(TheHead.class, EntityDataSerializers.LONG);
 	private static final EntityDataAccessor<Float> DATA_SQUEEZE = SynchedEntityData.defineId(TheHead.class, EntityDataSerializers.FLOAT);
 	private static final double[] LOOKAHEAD = { 0.6, 1.2, 1.8 };
 	// the client plays his voice through this, the common side cannot see sound instances
@@ -48,7 +49,6 @@ public class TheHead extends Monster {
 	private @Nullable Player chased;
 	private int phaseTicks = -1;
 	private int cueTicks = -1;
-	private int cueSeq;
 	private int revs;
 	private double chargeSpeed;
 	private double moveSpeed;
@@ -64,8 +64,6 @@ public class TheHead extends Monster {
 	private @Nullable Vec3 escape;
 	private @Nullable ChunkPos ticketChunk;
 
-	private int clientPhaseTick;
-	private int clientCueTick;
 	private float roll;
 	private float rollO;
 
@@ -92,8 +90,8 @@ public class TheHead extends Monster {
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 		super.defineSynchedData(builder);
-		builder.define(DATA_PHASE, (byte) HeadPhase.SPAWN.ordinal());
-		builder.define(DATA_CUE, HeadCue.pack(HeadCue.NONE, 0));
+		builder.define(DATA_PHASE, HeadPhase.pack(HeadPhase.SPAWN, 0L));
+		builder.define(DATA_CUE, HeadCue.pack(HeadCue.NONE, 0L));
 		builder.define(DATA_SQUEEZE, 1.0f);
 	}
 
@@ -123,7 +121,7 @@ public class TheHead extends Monster {
 	}
 
 	public HeadPhase phase() {
-		return HeadPhase.byId(this.entityData.get(DATA_PHASE));
+		return HeadPhase.phaseOf(this.entityData.get(DATA_PHASE));
 	}
 
 	public HeadCue cue() {
@@ -152,13 +150,12 @@ public class TheHead extends Monster {
 	}
 
 	private void setPhase(HeadPhase phase) {
-		this.entityData.set(DATA_PHASE, (byte) phase.ordinal());
+		this.entityData.set(DATA_PHASE, HeadPhase.pack(phase, this.level().getGameTime()));
 		this.phaseTicks = -1;
 	}
 
 	private void setCue(HeadCue cue) {
-		this.cueSeq++;
-		this.entityData.set(DATA_CUE, HeadCue.pack(cue, this.cueSeq));
+		this.entityData.set(DATA_CUE, HeadCue.pack(cue, this.level().getGameTime()));
 		this.cueTicks = -1;
 	}
 
@@ -515,23 +512,20 @@ public class TheHead extends Monster {
 		}
 		if (DATA_SQUEEZE.equals(accessor)) {
 			this.refreshDimensions();
-		} else if (DATA_PHASE.equals(accessor)) {
-			this.clientPhaseTick = this.tickCount;
 		} else if (DATA_CUE.equals(accessor)) {
-			this.clientCueTick = this.tickCount;
 			HeadCue cue = this.cue();
-			if (cue.clip() != null && this.tickCount > 0) {
+			if (cue.clip() != null && HeadClock.voiceOnTime(this.level().getGameTime(), HeadCue.timeOf(this.entityData.get(DATA_CUE)))) {
 				voiceListener.accept(this, cue);
 			}
 		}
 	}
 
-	public double clientPhaseSeconds(float partialTick) {
-		return (this.tickCount - this.clientPhaseTick + partialTick) * DT;
+	public double phaseSeconds(float partialTick) {
+		return HeadClock.seconds(this.level().getGameTime(), HeadPhase.timeOf(this.entityData.get(DATA_PHASE)), partialTick);
 	}
 
-	public double clientCueSeconds(float partialTick) {
-		return (this.tickCount - this.clientCueTick + partialTick) * DT;
+	public double cueSeconds(float partialTick) {
+		return HeadClock.seconds(this.level().getGameTime(), HeadCue.timeOf(this.entityData.get(DATA_CUE)), partialTick);
 	}
 
 	public float roll(float partialTick) {
