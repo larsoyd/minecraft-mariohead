@@ -53,6 +53,9 @@ public final class HeadTuning {
 	public static final float PITCH_MAX = HeadShape.PITCH_MAX;
 	public static final float PITCH_RATE = 2.637f;
 	public static final double LOD_DISTANCE = 24.0;
+	// radius 4 keeps two rings of chunks around his own loaded and ticking before he flies into them
+	public static final int TICKET_RADIUS = 4;
+	public static final int TICKET_REFRESH = 20;
 
 	// a 0.32 squeeze makes his box just under a block wide, the narrowest gap he follows a player into
 	public static final float MIN_SQUEEZE = 0.32f;

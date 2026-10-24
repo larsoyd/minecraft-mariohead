@@ -5,6 +5,7 @@ import static com.larsoyd.mariohead.entity.HeadTuning.*;
 import com.larsoyd.mariohead.HeadEntities;
 import com.larsoyd.mariohead.HeadSounds;
 import java.util.function.BiConsumer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -24,6 +25,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
@@ -59,6 +61,7 @@ public class TheHead extends Monster {
 	private boolean climbing;
 	private boolean planning;
 	private boolean wedged;
+	private @Nullable ChunkPos ticketChunk;
 
 	private int clientPhaseTick;
 	private int clientCueTick;
@@ -215,8 +218,9 @@ public class TheHead extends Monster {
 			}
 			case CHARGE -> this.charge(level, target);
 		}
-		if (target != null && this.tickCount % 20 == 0) {
-			level.getChunkSource().addTicketWithRadius(HeadEntities.CHASE_TICKET, this.chunkPosition(), 2);
+		if (target != null && (this.tickCount % TICKET_REFRESH == 0 || !this.chunkPosition().equals(this.ticketChunk))) {
+			this.ticketChunk = this.chunkPosition();
+			level.getChunkSource().addTicketWithRadius(HeadEntities.CHASE_TICKET, this.ticketChunk, TICKET_RADIUS);
 		}
 	}
 
@@ -382,6 +386,11 @@ public class TheHead extends Monster {
 	// blocks stop him, unless something was built into him and he has to drift out of it
 	private void body(double dx, double dy, double dz) {
 		Vec3 before = this.position();
+		// a chunk still loading would stop him ticking for good, so he waits at its edge
+		if (!((ServerLevel) this.level()).isPositionEntityTicking(BlockPos.containing(before.x + dx, before.y + dy, before.z + dz))) {
+			dx = 0.0;
+			dz = 0.0;
+		}
 		this.noPhysics = this.wedged;
 		this.move(MoverType.SELF, new Vec3(dx, dy, dz));
 		this.noPhysics = false;

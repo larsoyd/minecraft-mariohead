@@ -32,7 +32,7 @@ public final class HeadEntities {
 	public static final TicketType CHASE_TICKET = Registry.register(
 		BuiltInRegistries.TICKET_TYPE,
 		MarioHead.id("the_head"),
-		new TicketType(40L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION)
+		new TicketType(100L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION)
 	);
 
 	private HeadEntities() {

@@ -8,12 +8,16 @@ import com.larsoyd.mariohead.entity.RevSpring;
 import com.larsoyd.mariohead.entity.TheHead;
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.embedded.EmbeddedChannel;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.GameTestInfo;
+import net.minecraft.gametest.framework.GameTestListener;
+import net.minecraft.gametest.framework.GameTestRunner;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,7 +31,7 @@ public class HeadGameTests {
 	private static final String ARENA = "mariohead-gametest:arena";
 
 	private static ServerPlayer player(GameTestHelper helper, GameType mode, Vec3 relative, float yaw) {
-		var cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), "ht" + UUID.randomUUID().toString().substring(0, 12)), false);
+		var cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), HeadTestSetup.PLAYER_PREFIX + UUID.randomUUID().toString().substring(0, 12)), false);
 		var player = new ServerPlayer(helper.getLevel().getServer(), helper.getLevel(), cookie.gameProfile(), cookie.clientInformation());
 		var connection = new Connection(PacketFlow.SERVERBOUND);
 		new EmbeddedChannel(connection);
@@ -35,11 +39,44 @@ public class HeadGameTests {
 		player.setGameMode(mode);
 		Vec3 at = helper.absoluteVec(relative);
 		player.teleportTo(helper.getLevel(), at.x, at.y, at.z, java.util.Set.of(), yaw, 0.0f, true);
+		testInfo(helper).addListener(new GameTestListener() {
+			@Override
+			public void testStructureLoaded(GameTestInfo info) {
+			}
+
+			@Override
+			public void testPassed(GameTestInfo info, GameTestRunner runner) {
+				leave(helper, player);
+			}
+
+			@Override
+			public void testFailed(GameTestInfo info, GameTestRunner runner) {
+				leave(helper, player);
+			}
+
+			@Override
+			public void testAddedForRerun(GameTestInfo original, GameTestInfo copy, GameTestRunner runner) {
+			}
+		});
 		return player;
 	}
 
+	// the helper keeps its test private, and only the test can say when it is over
+	private static GameTestInfo testInfo(GameTestHelper helper) {
+		try {
+			Field field = GameTestHelper.class.getDeclaredField("testInfo");
+			field.setAccessible(true);
+			return (GameTestInfo) field.get(helper);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("no test info on the helper", e);
+		}
+	}
+
 	private static void leave(GameTestHelper helper, ServerPlayer player) {
-		helper.getLevel().getServer().getPlayerList().remove(player);
+		var players = helper.getLevel().getServer().getPlayerList();
+		if (players.getPlayer(player.getUUID()) == player) {
+			players.remove(player);
+		}
 	}
 
 	// his box holds the whole visible head, so it must never meet a block
@@ -72,6 +109,59 @@ public class HeadGameTests {
 				+ " squeeze " + head.squeeze() + " phase " + head.phase());
 			leave(helper, target);
 		});
+	}
+
+	// alone in its own dimension, so only his own ticket can keep the chunks he flies into ticking
+	@GameTest(structure = ARENA, maxTicks = 2000, dimension = "minecraft:the_nether")
+	public void keepsFlyingWhenThePlayerOutrunsTheLoadedWorld(GameTestHelper helper) {
+		var level = helper.getLevel();
+		// the test server ticks flat out while chunks load on the clock, so pace it to a fifth of real time
+		helper.onEachTick(() -> {
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		});
+		fill(helper, -1, 0, 0, -1, 7, 19, Blocks.AIR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), 90.0f);
+		TheHead head = head(helper, new Vec3(14.5, 0.5, 10.5), target);
+		Vec3 away = helper.absoluteVec(new Vec3(-700.5, 0.0, 10.5));
+		helper.runAtTickTime(90, () -> target.teleportTo(level, away.x, away.y, away.z, java.util.Set.of(), 90.0f, 0.0f, true));
+		List<Double> xs = new ArrayList<>();
+		int[] missed = { 0 };
+		int[] lastTicks = { -1 };
+		helper.onEachTick(() -> {
+			if (head.isRemoved() || helper.getTick() < 100) {
+				return;
+			}
+			if (lastTicks[0] >= 0 && head.tickCount != lastTicks[0] + 1) {
+				missed[0]++;
+			}
+			lastTicks[0] = head.tickCount;
+			if (helper.getTick() % 100 == 0) {
+				xs.add(helper.relativeVec(head.position()).x);
+			}
+		});
+		BlockPos[] last = new BlockPos[1];
+		helper.runAtTickTime(1300, () -> {
+			helper.assertTrue(missed[0] == 0, "he missed " + missed[0] + " ticks, x " + xs);
+			for (int i = 1; i < xs.size(); i++) {
+				helper.assertTrue(xs.get(i) < xs.get(i - 1) - 5.0, "stalled between samples " + (i - 1) + " and " + i + ": " + xs);
+			}
+			helper.assertTrue(xs.getLast() < -150.0, "only reached x " + xs.getLast());
+			last[0] = head.blockPosition();
+			leave(helper, target);
+		});
+		helper.runAtTickTime(1310, () -> helper.assertTrue(head.isRemoved(), "head stayed after the target left"));
+		helper.runAtTickTime(1300 + HeadEntities.CHASE_TICKET.timeout(), () -> helper.succeedWhen(
+			() -> helper.assertFalse(level.isPositionEntityTicking(last[0]), "his chunk still ticks at " + last[0])));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 20, required = false)
+	public void failsOnPurposeSoTeardownIsChecked(GameTestHelper helper) {
+		player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), 0.0f);
+		helper.runAtTickTime(2, () -> helper.fail("this optional test fails on purpose"));
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 1200)

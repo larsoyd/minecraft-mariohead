@@ -5,6 +5,7 @@
 	"name": "Mario Head game tests",
 	"environment": "*",
 	"entrypoints": {
+		"main": ["com.larsoyd.mariohead.test.HeadTestSetup"],
 		"fabric-gametest": ["com.larsoyd.mariohead.test.HeadGameTests"]
 	},
 	"depends": {
