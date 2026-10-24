@@ -61,6 +61,7 @@ public class TheHead extends Monster {
 	private boolean climbing;
 	private boolean planning;
 	private boolean wedged;
+	private @Nullable Vec3 escape;
 	private @Nullable ChunkPos ticketChunk;
 
 	private int clientPhaseTick;
@@ -279,8 +280,15 @@ public class TheHead extends Monster {
 		float here = HeadRoom.at(this, c.x, c.z, c.y);
 		this.wedged = here <= 0.0f;
 		if (this.wedged) {
+			if (now > MIN_SQUEEZE) {
+				this.setSqueeze(MIN_SQUEEZE);
+			}
+			if (this.escape == null || !HeadRoom.fits(this, this.escape.x, this.escape.y, this.escape.z, MIN_SQUEEZE)) {
+				this.escape = HeadRoom.nearestRoom(this, this.centre());
+			}
 			return;
 		}
+		this.escape = null;
 		float want = here;
 		if (moving) {
 			double yaw = Math.toRadians(this.moveYaw);
@@ -383,9 +391,17 @@ public class TheHead extends Monster {
 		this.body(0.0, Mth.clamp(this.hoverHeight(Double.NaN) - this.centre().y, -CLIMB, CLIMB), 0.0);
 	}
 
-	// blocks stop him, unless something was built into him and he has to drift out of it
+	// blocks stop him, unless something was built into him and he squirms out to the nearest open air
 	private void body(double dx, double dy, double dz) {
 		Vec3 before = this.position();
+		if (this.wedged) {
+			Vec3 way = this.escape == null ? Vec3.ZERO : this.escape.subtract(this.centre());
+			double step = Math.min(way.length(), ESCAPE_SPEED);
+			way = step > 1e-6 ? way.normalize().scale(step) : Vec3.ZERO;
+			dx = way.x;
+			dy = way.y;
+			dz = way.z;
+		}
 		// a chunk still loading would stop him ticking for good, so he waits at its edge
 		if (!((ServerLevel) this.level()).isPositionEntityTicking(BlockPos.containing(before.x + dx, before.y + dy, before.z + dz))) {
 			dx = 0.0;

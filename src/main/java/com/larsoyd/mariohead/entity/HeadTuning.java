@@ -64,6 +64,8 @@ public final class HeadTuning {
 	public static final float SQUEEZE_STEP = 0.04f;
 	public static final float SHRINK_RATE = 0.15f;
 	public static final float GROW_RATE = 0.04f;
+	public static final double ESCAPE_REACH = 6.0;
+	public static final double ESCAPE_SPEED = 0.15;
 
 	private HeadTuning() {
 	}

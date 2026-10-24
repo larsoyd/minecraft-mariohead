@@ -464,6 +464,66 @@ public class HeadGameTests {
 		caughtWithin(helper, target, head);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void squeezesThroughAHoleInAWall(GameTestHelper helper) {
+		fill(helper, 9, 0, 0, 9, 7, 19, Blocks.STONE.defaultBlockState());
+		helper.setBlock(new BlockPos(9, 0, 10), Blocks.AIR);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		float[] smallest = { 1.0f };
+		helper.onEachTick(() -> smallest[0] = Math.min(smallest[0], head.squeeze()));
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + helper.relativeVec(head.position()) + " squeeze " + head.squeeze());
+			helper.assertTrue(smallest[0] <= 0.34f, "never squeezed below " + smallest[0]);
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void fitsUnderASlabCeiling(GameTestHelper helper) {
+		var stone = Blocks.STONE.defaultBlockState();
+		var slab = Blocks.STONE_SLAB.defaultBlockState().setValue(net.minecraft.world.level.block.SlabBlock.TYPE, net.minecraft.world.level.block.state.properties.SlabType.TOP);
+		fill(helper, 9, 0, 0, 9, 7, 19, stone);
+		fill(helper, 7, 0, 8, 11, 1, 8, stone);
+		fill(helper, 7, 0, 12, 11, 1, 12, stone);
+		fill(helper, 7, 1, 9, 11, 1, 11, slab);
+		fill(helper, 7, 2, 8, 11, 7, 12, stone);
+		fill(helper, 9, 0, 9, 9, 0, 11, Blocks.AIR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	// buried by a player he squirms out to the nearest open air, never on through a wall to his target
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void escapesBeingBuriedButNotThroughAWall(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		fill(helper, 9, 0, 0, 9, 7, 19, Blocks.GLASS.defaultBlockState());
+		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(14.5, 0.5, 10.5));
+		head.chase(target);
+		boolean[] buried = { false };
+		int[] freeAt = { -1 };
+		helper.runAtTickTime(80, () -> {
+			fill(helper, 10, 0, 7, 18, 5, 14, Blocks.STONE.defaultBlockState());
+			buried[0] = true;
+		});
+		helper.onEachTick(() -> {
+			helper.assertTrue(helper.relativeVec(head.position()).x > 9.0, "through the glass at " + helper.relativeVec(head.position()));
+			boolean clear = helper.getLevel().noCollision(head, head.getBoundingBox().deflate(1e-6));
+			if (buried[0] && freeAt[0] < 0 && clear) {
+				freeAt[0] = (int) helper.getTick();
+			}
+			if (freeAt[0] >= 0) {
+				helper.assertTrue(clear, "clips again at " + helper.relativeVec(head.position()) + " after getting free at " + freeAt[0]);
+			}
+		});
+		helper.runAtTickTime(290, () -> {
+			helper.assertTrue(freeAt[0] >= 0 && freeAt[0] < 140, "free at " + freeAt[0] + ", head " + helper.relativeVec(head.position()));
+			helper.assertFalse(target.isDeadOrDying(), "caught through glass");
+			helper.succeed();
+		});
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 700)
 	public void crossesAPool(GameTestHelper helper) {
 		fill(helper, 6, 0, 0, 13, 0, 19, Blocks.WATER.defaultBlockState());
