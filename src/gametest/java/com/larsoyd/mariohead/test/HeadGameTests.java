@@ -213,7 +213,7 @@ public class HeadGameTests {
 		});
 	}
 
-	enum Loss { DISCONNECT, DEATH, OTHER_DIMENSION, SPECTATOR }
+	enum Loss { DISCONNECT, DEATH, OTHER_DIMENSION, SPECTATOR, CREATIVE }
 
 	private static void lose(GameTestHelper helper, ServerPlayer target, Loss loss) {
 		switch (loss) {
@@ -227,6 +227,7 @@ public class HeadGameTests {
 				target.teleportTo(nether, 0.5, 64.0, 0.5, java.util.Set.of(), 0.0f, 0.0f, true);
 			}
 			case SPECTATOR -> target.setGameMode(GameType.SPECTATOR);
+			case CREATIVE -> target.setGameMode(GameType.CREATIVE);
 		}
 	}
 
@@ -313,6 +314,77 @@ public class HeadGameTests {
 	@GameTest(structure = ARENA, maxTicks = 100)
 	public void spectatorWhileCharging(GameTestHelper helper) {
 		loseTarget(helper, Loss.SPECTATOR, 80, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void creativeWhileLooking(GameTestHelper helper) {
+		loseTarget(helper, Loss.CREATIVE, 12, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 60)
+	public void creativeWhileTalking(GameTestHelper helper) {
+		loseTarget(helper, Loss.CREATIVE, 30, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void creativeWhileCharging(GameTestHelper helper) {
+		loseTarget(helper, Loss.CREATIVE, 80, true);
+	}
+
+	// a catch is a death that only a totem can turn away, and he is gone either way
+	private static void caughtThrough(GameTestHelper helper, java.util.function.Consumer<ServerPlayer> guard) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		guard.accept(target);
+		TheHead head = head(helper, new Vec3(12.5, 0.5, 10.5), target);
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive at " + target.getHealth() + " health, head removed " + head.isRemoved());
+			helper.assertTrue(head.isRemoved(), "head stayed after the catch");
+			leave(helper, target);
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void catchGoesThroughARaisedShield(GameTestHelper helper) {
+		caughtThrough(helper, p -> {
+			p.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.SHIELD));
+			p.startUsingItem(net.minecraft.world.InteractionHand.OFF_HAND);
+			helper.onEachTick(() -> {
+				if (!p.isDeadOrDying()) {
+					p.setYHeadRot(p.getYRot());
+					p.doTick();
+				}
+			});
+			helper.runAtTickTime(40, () -> helper.assertTrue(p.isBlocking(), "shield not raised"));
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void catchGoesThroughResistance(GameTestHelper helper) {
+		caughtThrough(helper, p -> p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.RESISTANCE, 2000, 4)));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void catchGoesThroughArmourAndAbsorption(GameTestHelper helper) {
+		caughtThrough(helper, p -> {
+			p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.NETHERITE_HELMET));
+			p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.NETHERITE_CHESTPLATE));
+			p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.LEGS, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.NETHERITE_LEGGINGS));
+			p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.NETHERITE_BOOTS));
+			p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.ABSORPTION, 2000, 20));
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void totemSavesThePlayerOnceAndHeIsGone(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		target.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.TOTEM_OF_UNDYING));
+		TheHead head = head(helper, new Vec3(12.5, 0.5, 10.5), target);
+		helper.succeedWhen(() -> {
+			helper.assertTrue(head.isRemoved(), "head not gone yet, at " + helper.relativeVec(head.position()));
+			helper.assertFalse(target.isDeadOrDying(), "totem did not save the player");
+			helper.assertTrue(target.getMainHandItem().isEmpty(), "totem not used up: " + target.getMainHandItem());
+			leave(helper, target);
+		});
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 20, required = false)

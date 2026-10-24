@@ -466,7 +466,7 @@ public class TheHead extends Monster {
 
 	private @Nullable Player validTarget(ServerLevel level) {
 		Player p = this.chased;
-		if (p == null || p.isRemoved() || !p.isAlive() || p.isSpectator() || p.level() != level) {
+		if (p == null || p.isRemoved() || !p.isAlive() || p.isSpectator() || p.isCreative() || p.level() != level) {
 			this.chased = null;
 			return null;
 		}
