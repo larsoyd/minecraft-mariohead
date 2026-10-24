@@ -1,0 +1,10 @@
+{
+	"entity.mariohead.the_head": "Floating Mario Head",
+	"item.mariohead.the_head_spawn_egg": "Floating Mario Head Spawn Egg",
+	"death.attack.mariohead.the_head": "%1$s let %2$s fly for them",
+	"subtitles.mariohead.the_head.appear": "Floating Mario Head appears",
+	"subtitles.mariohead.the_head.hello": "Floating Mario Head says hello",
+	"subtitles.mariohead.the_head.hum": "Floating Mario Head hums",
+	"commands.mariohead.summon.success": "Summoned the Floating Mario Head for %s player(s)",
+	"commands.mariohead.summon.no_room": "No open space in view of %s for the Floating Mario Head"
+}

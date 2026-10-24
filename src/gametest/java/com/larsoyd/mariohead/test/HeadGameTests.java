@@ -1,0 +1,268 @@
+package com.larsoyd.mariohead.test;
+
+import com.larsoyd.mariohead.HeadEntities;
+import com.larsoyd.mariohead.entity.HeadCue;
+import com.larsoyd.mariohead.entity.HeadPhase;
+import com.larsoyd.mariohead.entity.HeadTuning;
+import com.larsoyd.mariohead.entity.RevSpring;
+import com.larsoyd.mariohead.entity.TheHead;
+import com.mojang.authlib.GameProfile;
+import io.netty.channel.embedded.EmbeddedChannel;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
+public class HeadGameTests {
+	private static final String ARENA = "mariohead-gametest:arena";
+
+	private static ServerPlayer player(GameTestHelper helper, GameType mode, Vec3 relative, float yaw) {
+		var cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), "ht" + UUID.randomUUID().toString().substring(0, 12)), false);
+		var player = new ServerPlayer(helper.getLevel().getServer(), helper.getLevel(), cookie.gameProfile(), cookie.clientInformation());
+		var connection = new Connection(PacketFlow.SERVERBOUND);
+		new EmbeddedChannel(connection);
+		helper.getLevel().getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
+		player.setGameMode(mode);
+		Vec3 at = helper.absoluteVec(relative);
+		player.teleportTo(helper.getLevel(), at.x, at.y, at.z, java.util.Set.of(), yaw, 0.0f, true);
+		return player;
+	}
+
+	private static void leave(GameTestHelper helper, ServerPlayer player) {
+		helper.getLevel().getServer().getPlayerList().remove(player);
+	}
+
+	// his box holds the whole visible head, so it must never meet a block
+	private static TheHead head(GameTestHelper helper, Vec3 relative, ServerPlayer target) {
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, relative);
+		head.chase(target);
+		helper.onEachTick(() -> {
+			if (!head.isRemoved()) {
+				AABB box = head.getBoundingBox().deflate(1e-6);
+				helper.assertTrue(helper.getLevel().noCollision(head, box),
+					"head clips a block at " + helper.relativeVec(head.position()) + " squeeze " + head.squeeze() + " phase " + head.phase());
+			}
+		});
+		return head;
+	}
+
+	private static void fill(GameTestHelper helper, int x0, int y0, int z0, int x1, int y1, int z1, net.minecraft.world.level.block.state.BlockState state) {
+		for (int x = x0; x <= x1; x++) {
+			for (int y = y0; y <= y1; y++) {
+				for (int z = z0; z <= z1; z++) {
+					helper.setBlock(new BlockPos(x, y, z), state);
+				}
+			}
+		}
+	}
+
+	private static void caughtWithin(GameTestHelper helper, ServerPlayer target, TheHead head) {
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + helper.relativeVec(head.position())
+				+ " squeeze " + head.squeeze() + " phase " + head.phase());
+			leave(helper, target);
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1200)
+	public void squeezesThroughAWindingCave(GameTestHelper helper) {
+		var stone = Blocks.STONE.defaultBlockState();
+		var air = Blocks.AIR.defaultBlockState();
+		fill(helper, 4, 0, 6, 16, 4, 14, stone);
+		fill(helper, 12, 0, 10, 16, 1, 10, air);
+		fill(helper, 12, 0, 8, 12, 1, 10, air);
+		fill(helper, 7, 0, 8, 12, 1, 8, air);
+		fill(helper, 7, 0, 8, 7, 1, 12, air);
+		fill(helper, 4, 0, 12, 7, 1, 12, air);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 12.5), 90.0f);
+		TheHead head = head(helper, new Vec3(18.5, 0.5, 10.5), target);
+		float[] smallest = { 1.0f };
+		helper.onEachTick(() -> smallest[0] = Math.min(smallest[0], head.squeeze()));
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + helper.relativeVec(head.position()) + " squeeze " + head.squeeze());
+			helper.assertTrue(smallest[0] <= 0.34f, "never squeezed below " + smallest[0]);
+			leave(helper, target);
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void ducksUnderACanopy(GameTestHelper helper) {
+		var leaves = Blocks.OAK_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true);
+		fill(helper, 6, 2, 0, 12, 3, 19, leaves);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void climbsStairs(GameTestHelper helper) {
+		var stone = Blocks.STONE.defaultBlockState();
+		fill(helper, 0, 0, 0, 4, 2, 19, stone);
+		fill(helper, 5, 0, 0, 5, 1, 19, stone);
+		fill(helper, 6, 0, 0, 6, 0, 19, stone);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 3.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void crossesAPool(GameTestHelper helper) {
+		fill(helper, 6, 0, 0, 13, 0, 19, Blocks.WATER.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(17.5, 0.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 120)
+	public void phasesFollowHisVoice(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.CREATIVE, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(17.5, 0.5, 10.5), target);
+		List<String> seen = new ArrayList<>();
+		helper.onEachTick(() -> {
+			String now = head.phase() + "/" + head.cue();
+			if (seen.isEmpty() || !seen.getLast().endsWith(now)) {
+				seen.add(helper.getTick() + ":" + now);
+			}
+		});
+		helper.runAtTickTime(5, () -> helper.assertTrue(head.phase() == HeadPhase.SPAWN, "spawn at 5, saw " + seen));
+		helper.runAtTickTime(15, () -> helper.assertTrue(head.phase() == HeadPhase.LOOK, "look at 15, saw " + seen));
+		helper.runAtTickTime(25, () -> helper.assertTrue(head.cue() == HeadCue.HELLO, "hello at 25, saw " + seen));
+		helper.runAtTickTime(62, () -> helper.assertTrue(head.phase() == HeadPhase.TALK, "still talking at 62, saw " + seen));
+		helper.runAtTickTime(68, () -> helper.assertTrue(
+			head.phase() == HeadPhase.CHARGE && head.cue() == HeadCue.INHALE, "breath at 68, saw " + seen));
+		helper.runAtTickTime(78, () -> {
+			helper.assertTrue(head.cue() == HeadCue.MMM1 && head.revs() == 0, "first hum at 78, saw " + seen);
+			leave(helper, target);
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void catchesAStandingPlayer(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(14.5, 0.5, 10.5), target);
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + head.position() + " phase " + head.phase());
+			helper.assertTrue(head.isRemoved(), "head still there after the catch");
+			leave(helper, target);
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void findsTheDoorInAWall(GameTestHelper helper) {
+		for (int z = 0; z < 20; z++) {
+			if (z == 17 || z == 18) {
+				continue;
+			}
+			for (int y = 0; y < 8; y++) {
+				helper.setBlock(new BlockPos(9, y, z), Blocks.STONE);
+			}
+		}
+		for (int y = 2; y < 8; y++) {
+			helper.setBlock(new BlockPos(9, y, 17), Blocks.STONE);
+			helper.setBlock(new BlockPos(9, y, 18), Blocks.STONE);
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 3.5), -90.0f);
+		TheHead head = head(helper, new Vec3(15.5, 0.5, 3.5), target);
+		AABB wall = new AABB(helper.absoluteVec(new Vec3(9, 0, 0)), helper.absoluteVec(new Vec3(10, 8, 17)));
+		helper.onEachTick(() -> helper.assertFalse(head.getBoundingBox().intersects(wall), "head inside the wall at " + head.position()));
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + helper.relativeVec(head.position()) + " phase " + head.phase());
+			leave(helper, target);
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 60)
+	public void shrugsOffAttacks(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(17.5, 0.5, 10.5), target);
+		helper.runAtTickTime(20, () -> {
+			float before = head.getHealth();
+			head.hurtServer(helper.getLevel(), head.damageSources().playerAttack(target), 1000.0f);
+			head.hurtServer(helper.getLevel(), head.damageSources().lava(), 1000.0f);
+			helper.assertTrue(head.getHealth() == before && head.isAlive(), "hurt to " + head.getHealth());
+			head.kill(helper.getLevel());
+			helper.assertTrue(!head.isAlive(), "the kill command did not remove him");
+			leave(helper, target);
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void leavesWhenHisTargetDoes(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(17.5, 0.5, 10.5), target);
+		helper.runAtTickTime(30, () -> leave(helper, target));
+		helper.runAtTickTime(36, () -> {
+			helper.assertTrue(head.isRemoved(), "head stayed after the target left");
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 420)
+	public void revsRiseAndSagButGlassStopsTheCatch(GameTestHelper helper) {
+		for (int x = 1; x <= 5; x++) {
+			for (int z = 8; z <= 12; z++) {
+				for (int y = 0; y <= 3; y++) {
+					boolean shell = x == 1 || x == 5 || z == 8 || z == 12 || y == 3;
+					helper.setBlock(new BlockPos(x, y, z), shell ? Blocks.GLASS : Blocks.AIR);
+				}
+			}
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		List<double[]> humStarts = new ArrayList<>();
+		double[] last = { -1.0 };
+		HeadCue[] lastCue = { HeadCue.NONE };
+		helper.onEachTick(() -> {
+			helper.assertFalse(target.isDeadOrDying(), "caught through glass at " + helper.relativeVec(head.position()));
+			HeadCue cue = head.cue();
+			if (cue != lastCue[0] && cue != HeadCue.INHALE && head.phase() == HeadPhase.CHARGE) {
+				humStarts.add(new double[] { head.revs(), head.chargeSpeed(), last[0] });
+			}
+			lastCue[0] = cue;
+			last[0] = head.chargeSpeed();
+		});
+		helper.runAtTickTime(400, () -> {
+			helper.assertTrue(humStarts.size() >= 5, "hums " + humStarts.size());
+			for (int i = 0; i < humStarts.size(); i++) {
+				double[] s = humStarts.get(i);
+				helper.assertTrue(s[0] == i, "rev " + s[0] + " at hum " + i);
+				helper.assertTrue(Math.abs(s[1] - RevSpring.speed(i, 0.0, 0.0)) < 0.02, "hum " + i + " starts at " + s[1]);
+				helper.assertTrue(s[2] < s[1] * (1.0 - HeadTuning.SAG) + 1e-6, "no sag before hum " + i + ": " + s[2]);
+			}
+			leave(helper, target);
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void summonsInViewOfThePlayer(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.CREATIVE, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		helper.runAtTickTime(2, () -> {
+			var server = helper.getLevel().getServer();
+			var source = server.createCommandSourceStack();
+			server.getCommands().performPrefixedCommand(source, "mariohead summon " + target.getScoreboardName());
+			List<TheHead> heads = helper.getLevel().getEntities(HeadEntities.THE_HEAD, target.getBoundingBox().inflate(16.0), h -> h.chased() == target);
+			helper.assertTrue(heads.size() == 1, "heads " + heads.size());
+			TheHead head = heads.getFirst();
+			Vec3 to = head.getBoundingBox().getCenter().subtract(target.getEyePosition());
+			double distance = to.horizontalDistance();
+			helper.assertTrue(distance >= HeadTuning.SPAWN_MIN - 0.01 && distance <= HeadTuning.SPAWN_MAX + 0.01, "distance " + distance);
+			helper.assertTrue(to.normalize().dot(target.getLookAngle()) > 0.7, "not in view " + to);
+			helper.assertTrue(head.chased() == target, "wrong target " + head.chased());
+			leave(helper, target);
+			helper.succeed();
+		});
+	}
+}

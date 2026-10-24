@@ -1,0 +1,13 @@
+{
+	"schemaVersion": 1,
+	"id": "mariohead-gametest",
+	"version": "1.0.0",
+	"name": "Mario Head game tests",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-gametest": ["com.larsoyd.mariohead.test.HeadGameTests"]
+	},
+	"depends": {
+		"mariohead": "*"
+	}
+}

@@ -35,25 +35,30 @@ public final class HeadTuning {
 	public static final double SPAWN_MAX = 12.0;
 	public static final double ACQUIRE_RANGE = 32.0;
 	public static final double HOVER = 2.0;
-	public static final double CLEARANCE = 1.0;
 	public static final double CLIMB = 0.21;
 	public static final double FLOOR_SEARCH = 12.0;
 	public static final double GRAB_DISTANCE = 4.0;
 	public static final double PATH_RANGE = 48.0;
 	public static final int REPLAN_TICKS = 7;
 	public static final double WAYPOINT_REACH = 0.9;
-	public static final double CONTACT = 1.7;
-	public static final double CONTACT_Y = 2.2;
+	public static final double CONTACT_REACH = 0.05;
 
 	public static final double BOB_BLOCKS = 0.14;
 	public static final double BOB_RATE = 0x0320 / 65536.0 * 2.0 * Math.PI * HeadVoice.MOUTH_FPS;
-	public static final float ROLL_PER_TURN = 3.2f;
-	public static final float ROLL_MAX = 22.5f;
+	// lean per degree turned in a tick
+	public static final float ROLL_PER_TURN = 2.1333f;
+	public static final float ROLL_MAX = HeadShape.ROLL_MAX;
 	public static final float ROLL_RATE = 3.164f;
 	public static final float PITCH_PER_BLOCK = 0.4944f;
-	public static final float PITCH_MAX = 25.3f;
+	public static final float PITCH_MAX = HeadShape.PITCH_MAX;
 	public static final float PITCH_RATE = 2.637f;
 	public static final double LOD_DISTANCE = 24.0;
+
+	// a 0.32 squeeze makes his box just under a block wide, the narrowest gap he follows a player into
+	public static final float MIN_SQUEEZE = 0.32f;
+	public static final float SQUEEZE_STEP = 0.04f;
+	public static final float SHRINK_RATE = 0.15f;
+	public static final float GROW_RATE = 0.04f;
 
 	private HeadTuning() {
 	}

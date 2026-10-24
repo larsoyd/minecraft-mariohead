@@ -1,0 +1,22 @@
+{
+	"entity.the_head.appear": {
+		"subtitle": "subtitles.mariohead.the_head.appear",
+		"sounds": [{ "name": "minecraft:mob/illusion_illager/mirror_move1", "pitch": 0.75 }]
+	},
+	"entity.the_head.hello": {
+		"subtitle": "subtitles.mariohead.the_head.hello",
+		"sounds": ["mariohead:the_head/hello"]
+	},
+	"entity.the_head.mmm1": {
+		"subtitle": "subtitles.mariohead.the_head.hum",
+		"sounds": ["mariohead:the_head/mmm1"]
+	},
+	"entity.the_head.mmm2": {
+		"subtitle": "subtitles.mariohead.the_head.hum",
+		"sounds": ["mariohead:the_head/mmm2"]
+	},
+	"entity.the_head.mmm3": {
+		"subtitle": "subtitles.mariohead.the_head.hum",
+		"sounds": ["mariohead:the_head/mmm3"]
+	}
+}
