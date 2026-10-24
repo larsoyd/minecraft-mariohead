@@ -245,7 +245,7 @@ public class TheHead extends Monster {
 			if (--this.replanIn <= 0 || this.path == null) {
 				this.replan(level, target);
 			}
-			straight = !this.steer(centre);
+			straight = !this.steer(centre, target);
 			if (straight) {
 				this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, target.position()), TURN_DEGREES);
 				this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
@@ -326,14 +326,22 @@ public class TheHead extends Monster {
 		this.replanIn = this.path != null && this.path.canReach() ? REPLAN_TICKS : REPLAN_UNREACHABLE_TICKS;
 	}
 
-	// follows the path, skips ahead on clear lines, slows in sharp turns, false when used up
-	private boolean steer(Vec3 centre) {
+	// heads for the farthest node his box flies straight to, false once the path is used up
+	private boolean steer(Vec3 centre, Player target) {
 		Path p = this.path;
-		if (p == null || p.getNodeCount() == 0) {
+		if (p == null || this.pathIndex >= p.getNodeCount()) {
 			return false;
 		}
-		if (this.pathIndex + 1 < p.getNodeCount() && this.clearLine(centre, nodeAt(p.getNode(this.pathIndex + 1), centre.y))) {
-			this.pathIndex++;
+		int flat = this.pathIndex;
+		while (flat + 1 < p.getNodeCount() && p.getNode(flat + 1).y == p.getNode(this.pathIndex).y
+			&& nodeAt(p.getNode(flat + 1), centre.y).distanceTo(centre) < PULL_REACH) {
+			flat++;
+		}
+		for (int i = flat; i > this.pathIndex; i--) {
+			if (HeadRoom.sweep(this, centre, nodeAt(p.getNode(i), centre.y), this.squeeze())) {
+				this.pathIndex = i;
+				break;
+			}
 		}
 		while (this.pathIndex < p.getNodeCount()) {
 			boolean last = this.pathIndex == p.getNodeCount() - 1;
@@ -346,7 +354,9 @@ public class TheHead extends Monster {
 		if (this.pathIndex >= p.getNodeCount()) {
 			return false;
 		}
-		float want = yawTo(centre, nodeAt(p.getNode(this.pathIndex), centre.y));
+		// the last node is a grid cell, the player is the real end of it
+		Vec3 aim = this.pathIndex == p.getNodeCount() - 1 && p.canReach() ? target.position() : nodeAt(p.getNode(this.pathIndex), centre.y);
+		float want = yawTo(centre, aim);
 		this.moveYaw = Mth.approachDegrees(this.moveYaw, want, TURN_DEGREES);
 		float turn = Math.abs(Mth.wrapDegrees(want - this.moveYaw));
 		double speed = this.chargeSpeed;

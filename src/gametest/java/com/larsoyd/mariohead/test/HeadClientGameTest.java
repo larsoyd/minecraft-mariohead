@@ -24,7 +24,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		try (TestSingleplayerContext world = context.worldBuilder().adjustSettings(s -> {
-			s.setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE);
+			s.setGameMode(WorldCreationUiState.SelectedGameMode.SURVIVAL);
 			s.setWorldType(s.getNormalPresetList().stream().filter(t -> t.preset() != null && t.preset().is(WorldPresets.FLAT)).findFirst().orElseThrow());
 		}).create()) {
 			var server = world.getServer();
@@ -35,6 +35,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			server.runCommand("tp @p 0.5 -60 0.5 -90 0");
 			world.getConnection().waitForChunksRender();
 			this.seenAndHeard(context, world);
+			this.turnsWithoutWobble(context, world);
 			this.lateObserver(context, world);
 		}
 	}
@@ -118,6 +119,52 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		check(HeadVoiceSound.started() == before + 1, "the next hum gave " + (HeadVoiceSound.started() - before) + " voices");
 		check(context.computeOnClient(mc -> clientHeads().getFirst().phase()) == HeadPhase.CHARGE, "not charging after hello");
 		server.runCommand("kill @e[type=mariohead:the_head]");
+	}
+
+	// the player circles him while he charges, the client sees his turn and lean every tick
+	private void turnsWithoutWobble(ClientGameTestContext context, TestSingleplayerContext world) {
+		var server = world.getServer();
+		server.runCommand("tp @p 0.5 -60 0.5 -90 0");
+		server.runOnServer(s -> {
+			var level = s.overworld();
+			TheHead head = HeadEntities.THE_HEAD.create(level, EntitySpawnReason.COMMAND);
+			head.snapTo(14.5, -59.0, 0.5, 90.0f, 0.0f);
+			head.chase(s.getPlayerList().getPlayers().getFirst());
+			level.addFreshEntity(head);
+		});
+		server.waitFor(s -> serverHead(s) != null && serverHead(s).phase() == HeadPhase.CHARGE, 200);
+		StringBuilder trace = new StringBuilder();
+		float lastYaw = context.computeOnClient(mc -> clientHeads().getFirst().getYRot());
+		float lastTurn = 0.0f;
+		double jerk = 0.0;
+		int flips = 0;
+		float lastRoll = 0.0f;
+		for (int t = 0; t < 60; t++) {
+			int step = t;
+			server.runOnServer(s -> {
+				var c = serverHead(s).centre();
+				double a = Math.toRadians(step * 3.0);
+				s.getPlayerList().getPlayers().getFirst().teleportTo(s.overworld(), c.x - 9.0 * Math.cos(a), -60.0, c.z + 9.0 * Math.sin(a), java.util.Set.of(), 0.0f, 0.0f, true);
+			});
+			context.waitTick();
+			float yaw = context.computeOnClient(mc -> clientHeads().getFirst().getYRot());
+			float roll = context.computeOnClient(mc -> clientHeads().getFirst().roll(1.0f));
+			float turn = net.minecraft.util.Mth.wrapDegrees(yaw - lastYaw);
+			if (t > 0) {
+				jerk += Math.abs(turn - lastTurn);
+			}
+			if (Math.abs(roll) > 1.0f && Math.abs(lastRoll) > 1.0f && Math.signum(roll) != Math.signum(lastRoll)) {
+				flips++;
+			}
+			trace.append(String.format(" %.1f/%.1f", turn, roll));
+			lastYaw = yaw;
+			lastTurn = turn;
+			lastRoll = roll;
+		}
+		LOG.info("[client-test] turn jerk={} roll_flips={} trace={}", String.format("%.1f", jerk), flips, trace);
+		check(flips == 0 && jerk < 40.0, "he weaves while circling: jerk " + jerk + " roll flips " + flips);
+		server.runCommand("kill @e[type=mariohead:the_head]");
+		context.waitFor(mc -> clientHeads().isEmpty(), 40);
 	}
 
 	private static TheHead serverHead(net.minecraft.server.MinecraftServer s) {

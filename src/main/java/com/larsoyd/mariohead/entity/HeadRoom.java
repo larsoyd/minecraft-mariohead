@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 final class HeadRoom {
 	private static final double GAP = 1e-3;
 	private static final double ESCAPE_STEP = 0.25;
+	private static final double SWEEP_STEP = 0.5;
 
 	private HeadRoom() {
 	}
@@ -78,6 +79,18 @@ final class HeadRoom {
 			}
 		}
 		return null;
+	}
+
+	// whether his box at a squeeze can fly the straight line between two centres
+	static boolean sweep(Entity head, Vec3 from, Vec3 to, float squeeze) {
+		int steps = Math.max(1, Mth.ceil(from.distanceTo(to) / SWEEP_STEP));
+		for (int i = 1; i <= steps; i++) {
+			Vec3 p = from.lerp(to, (double) i / steps);
+			if (!fits(head, p.x, p.y, p.z, squeeze)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	static boolean clearLine(Entity head, Level level, Vec3 from, Vec3 to) {

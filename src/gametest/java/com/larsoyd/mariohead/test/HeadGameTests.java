@@ -387,6 +387,33 @@ public class HeadGameTests {
 		});
 	}
 
+	// a path across open ground is a staircase of grid nodes, he flies it as one line instead of weaving
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void fliesAStraightLineAcrossOpenGround(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(1.5, 0.0, 1.5), -90.0f);
+		TheHead head = head(helper, new Vec3(18.5, 0.5, 12.5), target);
+		double[] turned = { 0.0 };
+		float[] first = { Float.NaN };
+		float[] last = { 0.0f };
+		helper.onEachTick(() -> {
+			if (head.isRemoved() || head.phase() != HeadPhase.CHARGE || head.centre().distanceTo(target.position()) < HeadTuning.GRAB_DISTANCE + 1.0) {
+				return;
+			}
+			if (Float.isNaN(first[0])) {
+				first[0] = head.getYRot();
+			} else {
+				turned[0] += Math.abs(net.minecraft.util.Mth.wrapDegrees(head.getYRot() - last[0]));
+			}
+			last[0] = head.getYRot();
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + helper.relativeVec(head.position()));
+			double overall = Math.abs(net.minecraft.util.Mth.wrapDegrees(last[0] - first[0]));
+			helper.assertTrue(turned[0] - overall < 8.0, "weaved " + String.format("%.1f", turned[0] - overall) + " degrees beyond a net turn of " + String.format("%.1f", overall));
+			leave(helper, target);
+		});
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 20, required = false)
 	public void failsOnPurposeSoTeardownIsChecked(GameTestHelper helper) {
 		player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), 0.0f);
@@ -577,7 +604,7 @@ public class HeadGameTests {
 
 	@GameTest(structure = ARENA, maxTicks = 120)
 	public void phasesFollowHisVoice(GameTestHelper helper) {
-		ServerPlayer target = player(helper, GameType.CREATIVE, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(17.5, 0.5, 10.5), target);
 		List<String> seen = new ArrayList<>();
 		helper.onEachTick(() -> {

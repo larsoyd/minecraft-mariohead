@@ -43,6 +43,7 @@ public final class HeadTuning {
 	public static final int REPLAN_TICKS = 7;
 	public static final int REPLAN_UNREACHABLE_TICKS = 20;
 	public static final double WAYPOINT_REACH = 0.9;
+	public static final double PULL_REACH = 32.0;
 	public static final double CONTACT_REACH = 0.05;
 
 	public static final double BOB_BLOCKS = 0.14;
