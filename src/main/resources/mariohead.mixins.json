@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "com.larsoyd.mariohead.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"BlockStateCollisionMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

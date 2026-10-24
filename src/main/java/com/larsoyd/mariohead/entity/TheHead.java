@@ -73,6 +73,7 @@ public class TheHead extends Monster {
 		this.xpReward = 0;
 		this.setPathfindingMalus(PathType.WATER, 0.0f);
 		this.setPathfindingMalus(PathType.WATER_BORDER, 0.0f);
+		this.setPathfindingMalus(PathType.LEAVES, 0.0f);
 	}
 
 	@Override

@@ -342,13 +342,41 @@ public class HeadGameTests {
 		});
 	}
 
+	private static void neverShrinks(GameTestHelper helper, TheHead head) {
+		helper.onEachTick(() -> helper.assertTrue(head.isRemoved() || head.squeeze() == 1.0f,
+			"shrank to " + head.squeeze() + " at " + helper.relativeVec(head.position())));
+	}
+
+	// leaves and grass are nothing to him, he flies through them at full size
 	@GameTest(structure = ARENA, maxTicks = 700)
-	public void ducksUnderACanopy(GameTestHelper helper) {
+	public void fliesThroughACanopy(GameTestHelper helper) {
 		var leaves = Blocks.OAK_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true);
 		fill(helper, 6, 2, 0, 12, 3, 19, leaves);
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		neverShrinks(helper, head);
 		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void fliesThroughALeafWallAndGrass(GameTestHelper helper) {
+		var leaves = Blocks.BIRCH_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true);
+		fill(helper, 9, 0, 0, 9, 7, 19, leaves);
+		fill(helper, 5, -1, 0, 13, -1, 19, Blocks.GRASS_BLOCK.defaultBlockState());
+		fill(helper, 5, 0, 0, 7, 0, 19, Blocks.SHORT_GRASS.defaultBlockState());
+		fill(helper, 11, 0, 0, 13, 0, 19, Blocks.FERN.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		neverShrinks(helper, head);
+		boolean[] inside = { false };
+		AABB wall = new AABB(helper.absoluteVec(new Vec3(9, 0, 0)), helper.absoluteVec(new Vec3(10, 8, 20)));
+		helper.onEachTick(() -> inside[0] |= head.getBoundingBox().intersects(wall));
+		helper.runAtTickTime(40, () -> helper.assertBlockPresent(Blocks.SHORT_GRASS, new BlockPos(6, 0, 10)));
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + helper.relativeVec(head.position()) + " phase " + head.phase());
+			helper.assertTrue(inside[0], "never flew into the leaves");
+			leave(helper, target);
+		});
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 700)
