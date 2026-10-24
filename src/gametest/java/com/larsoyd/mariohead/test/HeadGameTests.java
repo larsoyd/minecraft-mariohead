@@ -349,6 +349,122 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 700)
+	public void climbsOntoAPillarWithNoWayUp(GameTestHelper helper) {
+		fill(helper, 2, 0, 9, 4, 3, 11, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 4.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void dropsIntoAPit(GameTestHelper helper) {
+		fill(helper, 0, 0, 0, 19, 4, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 2, 0, 9, 4, 4, 11, Blocks.AIR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 5.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void goesRoundAndUpToTheFloorAbove(GameTestHelper helper) {
+		var stone = Blocks.STONE.defaultBlockState();
+		fill(helper, 0, 3, 0, 12, 3, 19, stone);
+		for (int step = 0; step < 4; step++) {
+			fill(helper, 16 - step, 0, 0, 16 - step, step, 4, stone);
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 4.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(3.5, 0.5, 10.5), target);
+		head.addTag("debug");
+		System.out.println("[headdebug] origin=" + helper.absolutePos(BlockPos.ZERO) + " slab=" + helper.getLevel().getBlockState(helper.absolutePos(new BlockPos(5, 3, 10))) + " exit=" + helper.getLevel().getBlockState(helper.absolutePos(new BlockPos(13, 1, 10))) + " ramp=" + helper.getLevel().getBlockState(helper.absolutePos(new BlockPos(13, 3, 2))));
+		helper.runAtTickTime(30, () -> {
+			var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, new Vec3(3.5, 0.0, 10.5));
+			zombie.setOnGround(true);
+			var zp = zombie.getNavigation().createPath(target, 0);
+			StringBuilder sb = new StringBuilder("[headdebug] zombie reach=" + (zp == null ? "null" : zp.canReach()) + " ");
+			for (int i = 0; zp != null && i < zp.getNodeCount(); i++) { var n = zp.getNode(i); var r = helper.absolutePos(BlockPos.ZERO); sb.append(n.x - r.getX()).append(",").append(n.y - r.getY()).append(",").append(n.z - r.getZ()).append("|"); }
+			System.out.println(sb);
+			zombie.discard();
+		});
+		helper.runAtTickTime(30, () -> {
+			for (Vec3 at : new Vec3[] { new Vec3(17.5, 0.0, 10.5), new Vec3(17.5, 0.0, 2.5), new Vec3(13.5, 4.0, 2.5) }) {
+				var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, at);
+				zombie.setOnGround(true);
+				var zp = zombie.getNavigation().createPath(target, 0);
+				StringBuilder sb = new StringBuilder("[headdebug] zombie from " + at + " reach=" + (zp == null ? "null" : zp.canReach()) + " ");
+				for (int i = 0; zp != null && i < zp.getNodeCount(); i++) { var n = zp.getNode(i); var r = helper.absolutePos(BlockPos.ZERO); sb.append(n.x - r.getX()).append(",").append(n.y - r.getY()).append(",").append(n.z - r.getZ()).append("|"); }
+				System.out.println(sb);
+				zombie.discard();
+			}
+			var r = helper.absolutePos(BlockPos.ZERO);
+			StringBuilder col = new StringBuilder("[headdebug] column x13..17 z2: ");
+			for (int x = 12; x <= 17; x++) { col.append(x).append(":"); for (int y = 0; y <= 5; y++) col.append(helper.getLevel().getBlockState(r.offset(x, y, 2)).isAir() ? "." : "#"); col.append(" "); }
+			System.out.println(col);
+		});
+		helper.runAtTickTime(30, () -> {
+			for (float mult : new float[] { 1.0f, 4.0f, 16.0f }) {
+				for (Vec3 at : new Vec3[] { new Vec3(17.5, 0.0, 10.5), new Vec3(3.5, 0.0, 10.5) }) {
+					var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, at);
+					zombie.setOnGround(true);
+					zombie.getNavigation().setMaxVisitedNodesMultiplier(mult);
+					var zp = zombie.getNavigation().createPath(target, 0);
+					System.out.println("[headdebug] zombie mult=" + mult + " from " + at + " reach=" + (zp == null ? "null" : zp.canReach() + " nodes=" + zp.getNodeCount()));
+					zombie.discard();
+				}
+			}
+		});
+		helper.runAtTickTime(30, () -> {
+			var r = helper.absolutePos(BlockPos.ZERO);
+			for (BlockPos goal : new BlockPos[] { new BlockPos(17, 0, 2), new BlockPos(16, 1, 2), new BlockPos(13, 4, 2), new BlockPos(2, 4, 10) }) {
+				var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, new Vec3(17.5, 0.0, 10.5));
+				zombie.setOnGround(true);
+				var zp = zombie.getNavigation().createPath(r.offset(goal), 0);
+				StringBuilder sb = new StringBuilder("[headdebug] goal " + goal.toShortString() + " reach=" + (zp == null ? "null" : zp.canReach()) + " ");
+				for (int i = 0; zp != null && i < zp.getNodeCount(); i++) { var n = zp.getNode(i); sb.append(n.x - r.getX()).append(",").append(n.y - r.getY()).append(",").append(n.z - r.getZ()).append("|"); }
+				System.out.println(sb);
+				zombie.discard();
+			}
+		});
+		helper.runAtTickTime(30, () -> {
+			var r = helper.absolutePos(BlockPos.ZERO);
+			var allay = helper.spawn(net.minecraft.world.entity.EntityTypes.ALLAY, new Vec3(3.5, 1.0, 10.5));
+			var zp = allay.getNavigation().createPath(target, 0);
+			StringBuilder sb = new StringBuilder("[headdebug] allay nav=" + allay.getNavigation().getClass().getSimpleName() + " reach=" + (zp == null ? "null" : zp.canReach()) + " ");
+			for (int i = 0; zp != null && i < zp.getNodeCount(); i++) { var n = zp.getNode(i); sb.append(n.x - r.getX()).append(",").append(n.y - r.getY()).append(",").append(n.z - r.getZ()).append("|"); }
+			System.out.println(sb);
+			allay.discard();
+		});
+		helper.runAtTickTime(30, () -> {
+			var r = helper.absolutePos(BlockPos.ZERO);
+			StringBuilder sb = new StringBuilder("[headdebug] goals ");
+			for (BlockPos goal : new BlockPos[] { new BlockPos(12, 4, 2), new BlockPos(10, 4, 4), new BlockPos(8, 4, 6), new BlockPos(6, 4, 8), new BlockPos(4, 4, 10), new BlockPos(12, 4, 10), new BlockPos(8, 4, 10) }) {
+				var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, new Vec3(17.5, 0.0, 10.5));
+				zombie.setOnGround(true);
+				var zp = zombie.getNavigation().createPath(r.offset(goal), 0);
+				sb.append(goal.toShortString()).append("=").append(zp == null ? "null" : zp.canReach() + "/" + zp.getNodeCount()).append("  ");
+				zombie.discard();
+			}
+			System.out.println(sb);
+		});
+		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void climbsAStairRamp(GameTestHelper helper) {
+		var stone = Blocks.STONE.defaultBlockState();
+		fill(helper, 0, 0, 0, 6, 3, 19, stone);
+		for (int step = 0; step < 4; step++) {
+			var stair = Blocks.STONE_STAIRS.defaultBlockState().setValue(net.minecraft.world.level.block.StairBlock.FACING, net.minecraft.core.Direction.WEST);
+			if (step > 0) {
+				fill(helper, 10 - step, 0, 0, 10 - step, step - 1, 19, stone);
+			}
+			fill(helper, 10 - step, step, 0, 10 - step, step, 19, stair);
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 4.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
 	public void crossesAPool(GameTestHelper helper) {
 		fill(helper, 6, 0, 0, 13, 0, 19, Blocks.WATER.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);

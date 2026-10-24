@@ -38,8 +38,10 @@ public final class HeadTuning {
 	public static final double CLIMB = 0.21;
 	public static final double FLOOR_SEARCH = 12.0;
 	public static final double GRAB_DISTANCE = 4.0;
-	public static final double PATH_RANGE = 48.0;
+	// the planner drops routes walked past this long, and real detours over floors run near 50
+	public static final double PATH_RANGE = 96.0;
 	public static final int REPLAN_TICKS = 7;
+	public static final int REPLAN_UNREACHABLE_TICKS = 20;
 	public static final double WAYPOINT_REACH = 0.9;
 	public static final double CONTACT_REACH = 0.05;
 

@@ -302,7 +302,6 @@ public class TheHead extends Monster {
 
 	// plans as the smallest walker on the floor under him, where the walk evaluator starts from
 	private void replan(ServerLevel level, Player target) {
-		this.replanIn = REPLAN_TICKS;
 		this.pathIndex = 0;
 		Vec3 real = this.position();
 		boolean grounded = this.onGround();
@@ -318,6 +317,7 @@ public class TheHead extends Monster {
 		this.resize();
 		this.setPos(real);
 		this.setOnGround(grounded);
+		this.replanIn = this.path != null && this.path.canReach() ? REPLAN_TICKS : REPLAN_UNREACHABLE_TICKS;
 	}
 
 	// follows the path, skips ahead on clear lines, slows in sharp turns, false when used up
