@@ -17,6 +17,9 @@ final class HeadRoom {
 	private static final double FOOTPRINT_INSET = 1e-3;
 	private static final double[] SIDE_STEPS = { 0.0, 0.5, -0.5, 1.0, -1.0 };
 	private static final double[] ON_THE_SPOT = { 0.0 };
+	private static final double FIT_REACH = 1.5;
+	private static final double FIT_STEP = 0.25;
+	private static final int FIT_WAYS = 8;
 	private static final double RISE = 2.0;
 	private static final double RISE_STEP = 0.5;
 
@@ -78,6 +81,23 @@ final class HeadRoom {
 			}
 		}
 		return false;
+	}
+
+	// nearest spot to x z where his box settles near wantY, in rings, the spot itself if none fits
+	static Vec3 nearestFit(Entity head, double x, double z, double wantY, float squeeze) {
+		for (double r = 0.0; r <= FIT_REACH + 1e-9; r += FIT_STEP) {
+			int ways = r == 0.0 ? 1 : FIT_WAYS;
+			for (int i = 0; i < ways; i++) {
+				double a = 2.0 * Math.PI * i / ways;
+				double px = x + Math.cos(a) * r;
+				double pz = z + Math.sin(a) * r;
+				double y = settle(head, new Vec3(px, wantY, pz), wantY, squeeze);
+				if (!Double.isNaN(y) && fits(head, px, y, pz, squeeze)) {
+					return new Vec3(px, y, pz);
+				}
+			}
+		}
+		return new Vec3(x, wantY, z);
 	}
 
 	// the largest squeeze that fits at x z near centreY, 0 when not even the smallest does

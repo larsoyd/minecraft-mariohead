@@ -153,6 +153,11 @@ public class TheHead extends Monster {
 
 	private void setSqueeze(float squeeze) {
 		Vec3 c = this.centre();
+		float was = this.squeeze();
+		if (squeeze < was || squeeze == 1.0f && was < 1.0f) {
+			MarioHead.LOG.info("[head] size id={} from={} to={} seen={} at={}", this.getId(), String.format("%.2f", was), String.format("%.2f", squeeze),
+				this.seen, this.blockPosition().toShortString());
+		}
 		this.entityData.set(DATA_SQUEEZE, squeeze);
 		this.resize();
 		this.setPos(c.x, c.y - this.getBbHeight() / 2.0, c.z);
@@ -303,9 +308,10 @@ public class TheHead extends Monster {
 		boolean straight = !underway && centre.distanceTo(target.position()) < GRAB_DISTANCE && this.clearLine(centre, target.getEyePosition());
 		if (straight) {
 			this.path = null;
-			this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, target.position()), GRAB_TURN_DEGREES);
+			Vec3 at = this.closeIn(target);
+			this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, at), GRAB_TURN_DEGREES);
 			this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
-			this.aimDistance = target.position().subtract(centre).horizontalDistance();
+			this.aimDistance = at.subtract(centre).horizontalDistance();
 		} else {
 			if (--this.replanIn <= 0 || this.path == null && !underway) {
 				this.replan(goal, target);
@@ -450,6 +456,13 @@ public class TheHead extends Monster {
 		}
 		this.chasedLast = target.position();
 		return this.pace;
+	}
+
+	// over the player where his box fits, so one against a wall is met from the open side
+	private Vec3 closeIn(Player target) {
+		Vec3 at = target.position();
+		Vec3 fit = HeadRoom.nearestFit(this, at.x, at.z, at.y + HOVER * this.squeeze(), this.squeeze());
+		return new Vec3(fit.x, at.y, fit.z);
 	}
 
 	// where the player is running to, led only while they run away from him

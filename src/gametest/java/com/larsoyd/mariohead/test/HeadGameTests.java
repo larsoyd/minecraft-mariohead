@@ -914,6 +914,17 @@ public class HeadGameTests {
 		});
 	}
 
+	// a trench his width with the player against one side, straight down he would sit on the rim
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void dropsIntoATrenchBesideThePlayer(GameTestHelper helper) {
+		fill(helper, 0, 0, 0, 19, 3, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 3, 0, 0, 5, 3, 19, Blocks.AIR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.4, 0.0, 10.5), 0.0f);
+		target.setXRot(80.0f);
+		TheHead head = head(helper, new Vec3(14.5, 4.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
 	// a fence ring keeps walkers out, he floats over it
 	@GameTest(structure = ARENA, maxTicks = 700)
 	public void floatsOverAFenceRing(GameTestHelper helper) {
