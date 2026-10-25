@@ -20,15 +20,17 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 	// the underground line is an announcement, everyone around hears it
 	private static final float ANNOUNCE_FLOOR = 0.6f;
 	private static final AtomicInteger STARTED = new AtomicInteger();
+	private static final AtomicInteger LOUD = new AtomicInteger();
 	private final TheHead head;
 	private final float gain;
 	private final float floor;
 
-	private HeadVoiceSound(TheHead head, HeadCue cue) {
-		super(HeadSounds.of(cue), SoundSource.HOSTILE, SoundInstance.createUnseededRandom());
+	private HeadVoiceSound(TheHead head, HeadCue cue, boolean loud) {
+		super(loud ? HeadSounds.loud(cue) : HeadSounds.of(cue), SoundSource.HOSTILE, SoundInstance.createUnseededRandom());
 		this.head = head;
 		this.gain = cue.spoken() ? WORDS_GAIN : 1.0f;
-		this.floor = cue == HeadCue.UNDERGROUND ? ANNOUNCE_FLOOR : 0.0f;
+		// digging, his hums come through the rock at full blast wherever you are
+		this.floor = loud ? 1.0f : cue == HeadCue.UNDERGROUND ? ANNOUNCE_FLOOR : 0.0f;
 		this.attenuation = SoundInstance.Attenuation.NONE;
 		this.looping = false;
 		this.delay = 0;
@@ -37,12 +39,20 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 
 	public static void play(TheHead head, HeadCue cue) {
 		Minecraft minecraft = Minecraft.getInstance();
-		minecraft.getSoundManager().play(new HeadVoiceSound(head, cue));
+		boolean loud = head.digging() && !cue.spoken();
+		minecraft.getSoundManager().play(new HeadVoiceSound(head, cue, loud));
+		if (loud) {
+			LOUD.incrementAndGet();
+		}
 		MarioHead.LOG.debug("[head] voice cue={} head={} started={}", cue, head.getId(), STARTED.incrementAndGet());
 	}
 
 	public static int started() {
 		return STARTED.get();
+	}
+
+	public static int loudStarted() {
+		return LOUD.get();
 	}
 
 	@Override

@@ -2,7 +2,7 @@
 """Build the head's bundled assets from the user's source files.
 
 model: the blend and its PNGs -> the mesh, cap, iris and skin textures
-voice: the voice clip, the full voice track and the underground line -> five OGG clips and HeadVoice.java
+voice: the voice clip, the full voice track and the underground line -> eight OGG clips and HeadVoice.java
 
 Sources are pinned by SHA-256 in sources.json. Their paths come from local.properties at the
 repository root (head.blend, head.voice, head.track, head.underground) or from the command line.
@@ -58,8 +58,10 @@ HUM_CUTS = [("voice", 2.30, 3.85), ("voice", 3.96, 6.16), ("voice", 6.72, 8.66)]
 UNDERGROUND_CUT = ("underground", 0.0, 2.6165)
 SPEECH_GAIN_DB = 4.0
 HUM_GAIN_DB = 10.0
+LOUD_HUM_DB = 9.0           # the hums he digs with, driven into a soft clip so they really are louder
 FADE = 0.008
 CEILING = 0.95
+LOUD_CEILING = 0.85         # a saturated hum decodes with overshoot, so it gets more headroom
 MOUTH_BAND = (200.0, 3000.0)
 MOUTH_RANGE_DB = 24.0
 MOUTH_OPEN_RATE = 0.55
@@ -362,6 +364,21 @@ def clips(sources, rate):
     return finished
 
 
+def loud_hums(sources, rate):
+    """The three hums driven into a soft clip and the limiter, no mouth envelope of their own."""
+    out = []
+    for i, spec in enumerate(HUM_CUTS):
+        key, start, end = spec
+        audio = decode_mono(sources[key], start, end, rate) * 10 ** ((HUM_GAIN_DB + LOUD_HUM_DB) / 20)
+        audio = np.tanh(audio) / np.tanh(1.0)
+        audio = fade_ends(limit(audio, LOUD_CEILING, rate), rate)
+        peak = float(np.abs(audio).max())
+        if peak > 0.98:
+            sys.exit(f"refused: clip mmm{i + 1}_loud peak={peak:.3f} after the limiter")
+        out.append((f"mmm{i + 1}_loud", audio))
+    return out
+
+
 def mouth_tracks(sources):
     """Envelopes measured on the clips at the mouth rate, padded to 16 samples like the original."""
     tracks = []
@@ -408,7 +425,7 @@ def build_voice(voice, track, underground):
     sources = {"voice": verified(voice, "voice"), "track": verified(track, "track"),
                "underground": verified(underground, "underground")}
     os.makedirs(SOUND_DIR, exist_ok=True)
-    for name, audio in clips(sources, VOICE_RATE):
+    for name, audio in clips(sources, VOICE_RATE) + loud_hums(sources, VOICE_RATE):
         path = os.path.join(SOUND_DIR, name + ".ogg")
         write_ogg(path, audio)
         log("voice", clip=name, seconds=f"{len(audio) / VOICE_RATE:.3f}",

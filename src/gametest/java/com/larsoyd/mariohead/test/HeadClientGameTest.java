@@ -198,6 +198,12 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		int voices = HeadVoiceSound.started() - before;
 		LOG.info("[client-test] underground cue={} voiced_cues={} voices={}", last, cues, voices);
 		check(last == HeadCue.UNDERGROUND && voices == cues, "the announcement: cue " + last + ", " + voices + " voices for " + cues + " voiced cues");
+		int loudBefore = HeadVoiceSound.loudStarted();
+		context.waitFor(mc -> clientHeads().getFirst().cue().clip() != null && !clientHeads().getFirst().cue().spoken(), 200);
+		context.waitTicks(2);
+		boolean digging = context.computeOnClient(mc -> clientHeads().getFirst().digging());
+		LOG.info("[client-test] digging={} loud_hums={}", digging, HeadVoiceSound.loudStarted() - loudBefore);
+		check(digging && HeadVoiceSound.loudStarted() == loudBefore + 1, "digging " + digging + " gave " + (HeadVoiceSound.loudStarted() - loudBefore) + " loud hums");
 		server.runCommand("kill @e[type=mariohead:the_head]");
 		server.runCommand("fill -2 -61 -2 2 -57 2 minecraft:air");
 	}

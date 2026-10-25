@@ -52,8 +52,11 @@ The command needs operator rights (permission level 2).
   through doors, caves and gaps down to one block, but only while nobody is looking at him: watched,
   he waits at a gap too small for him. He never pokes through blocks while he chases. A gap under
   one block stops him. Leaves, grass and flowers do not stop him at all.
-- Wall yourself in completely and after five seconds he announces in chat that he is going to move
-  underground, and comes for you through the ground.
+- Hide under rock where he does not fit, in a cave, a mountain or a dugout, and he does not shrink
+  for you. After five seconds he announces in chat that he is going to move underground and blasts
+  his way to you at full size, a TNT blast on every "Mmmm", and those hums come through the rock at
+  full volume. With mobGriefing off, or through obsidian, he passes through the ground instead.
+  Wall yourself in out in the open and he comes up under you the same way.
 - He cannot be hurt. `/kill` removes him. He leaves on Peaceful.
 - Before he says hello he will go after whoever else is near if his player leaves. After hello
   the chase belongs to that player, and he vanishes when they die, leave, change dimension or

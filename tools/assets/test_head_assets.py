@@ -173,6 +173,15 @@ class Voice(unittest.TestCase):
             path = os.path.join(build_head.SOUND_DIR, name + ".ogg")
             self.assertTrue(os.path.getsize(path) > 4000, path)
 
+    def test_loud_hums_are_louder(self):
+        for i in (1, 2, 3):
+            normal = build_head.decode_mono(os.path.join(build_head.SOUND_DIR, f"mmm{i}.ogg"), 0.0, 9.0, 48000)
+            loud = build_head.decode_mono(os.path.join(build_head.SOUND_DIR, f"mmm{i}_loud.ogg"), 0.0, 9.0, 48000)
+            gain = 20 * np.log10(np.sqrt(np.mean(loud ** 2)) / np.sqrt(np.mean(normal ** 2)))
+            self.assertGreater(gain, 4.0, f"mmm{i}_loud only {gain:.1f} dB louder")
+            self.assertLess(np.abs(loud).max(), 0.99, f"mmm{i}_loud clips")
+            self.assertAlmostEqual(len(loud) / 48000, len(normal) / 48000, delta=0.02)
+
     def test_envelope_of_silence_then_tone(self):
         rate = build_head.MOUTH_RATE
         t = np.arange(rate) / rate
