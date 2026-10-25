@@ -36,6 +36,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			world.getConnection().waitForChunksRender();
 			this.cameraReachesTheServer(context, world);
 			this.seenAndHeard(context, world);
+			this.twoHeadsTwoVoices(context, world);
 			this.turnsWithoutWobble(context, world);
 			this.lateObserver(context, world);
 			this.announcementIsHeard(context, world);
@@ -121,6 +122,29 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		check(HeadVoiceSound.started() == before + 1, "the next hum gave " + (HeadVoiceSound.started() - before) + " voices");
 		check(context.computeOnClient(mc -> clientHeads().getFirst().phase()) == HeadPhase.CHARGE, "not charging after hello");
 		server.runCommand("kill @e[type=mariohead:the_head]");
+	}
+
+	// two heads at once each say their own hello, the voices stack rather than cut each other off
+	private void twoHeadsTwoVoices(ClientGameTestContext context, TestSingleplayerContext world) {
+		var server = world.getServer();
+		server.runCommand("tp @p 0.5 -60 0.5 -90 0");
+		int before = HeadVoiceSound.started();
+		server.runOnServer(s -> {
+			var level = s.overworld();
+			for (double z : new double[] { -4.5, 5.5 }) {
+				TheHead head = HeadEntities.THE_HEAD.create(level, EntitySpawnReason.COMMAND);
+				head.snapTo(12.5, -59.0, z, 90.0f, 0.0f);
+				head.chase(s.getPlayerList().getPlayers().getFirst());
+				level.addFreshEntity(head);
+			}
+		});
+		context.waitFor(mc -> clientHeads().size() == 2 && clientHeads().stream().allMatch(h -> h.cue() == HeadCue.HELLO), 120);
+		context.waitTicks(2);
+		int voices = HeadVoiceSound.started() - before;
+		LOG.info("[client-test] two heads hello voices={}", voices);
+		check(voices == 2, "two hellos started " + voices + " voices");
+		server.runCommand("kill @e[type=mariohead:the_head]");
+		context.waitFor(mc -> clientHeads().isEmpty(), 40);
 	}
 
 	// the player circles him while he charges, the client sees his turn and lean every tick
