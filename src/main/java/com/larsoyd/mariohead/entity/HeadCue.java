@@ -40,9 +40,9 @@ public enum HeadCue {
 	private static final HeadCue[] BY_ID = values();
 	private static final HeadCue[] HUMS = { MMM1, MMM2, MMM3 };
 	private static final HeadVoice.Clip[] DIG_CLIPS = {
-		new HeadVoice.Clip("dig_mmm1", 500, new int[15]),
-		new HeadVoice.Clip("dig_mmm2", 500, new int[15]),
-		new HeadVoice.Clip("dig_mmm3", 500, new int[15])
+		new HeadVoice.Clip("dig_mmm1", 1550, new int[47]),
+		new HeadVoice.Clip("dig_mmm2", 2200, new int[66]),
+		new HeadVoice.Clip("dig_mmm3", 1940, new int[59])
 	};
 	private static final int CUE_BITS = 5;
 

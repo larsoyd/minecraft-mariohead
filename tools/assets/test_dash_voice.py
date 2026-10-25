@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check dash dialogue sources and the shortened digging hums."""
+"""Check dash dialogue sources and the full-length digging hums."""
 
 import hashlib
 import json
@@ -25,8 +25,8 @@ class DashVoiceTests(unittest.TestCase):
             self.assertEqual(event['sounds'], ['mariohead:the_head/' + name])
             self.assertIn(event['subtitle'], language)
 
-    def test_digging_hums_fit_half_second_cadence(self):
-        for index in range(1, 4):
+    def test_digging_hums_preserve_the_full_recordings(self):
+        for index, seconds in enumerate((1.55, 2.2, 1.94), 1):
             path = ASSETS / 'sounds/the_head' / f'dig_mmm{index}.ogg'
             result = subprocess.run(['ffprobe', '-v', 'error', '-show_entries',
                                      'stream=channels,duration,sample_rate', '-of', 'json', str(path)],
@@ -34,7 +34,8 @@ class DashVoiceTests(unittest.TestCase):
             stream = json.loads(result.stdout)['streams'][0]
             self.assertEqual(stream['channels'], 1)
             self.assertEqual(stream['sample_rate'], '48000')
-            self.assertAlmostEqual(float(stream['duration']), 0.5, delta=0.002)
+            self.assertAlmostEqual(float(stream['duration']), seconds, delta=0.002)
+            self.assertEqual(path.read_bytes(), (ASSETS / 'sounds/the_head' / f'mmm{index}_loud.ogg').read_bytes())
 
 
 if __name__ == '__main__':

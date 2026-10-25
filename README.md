@@ -65,11 +65,13 @@ The command needs operator rights (permission level 2).
   one block stops him. Leaves, grass and flowers do not stop him at all.
 - Hide under rock where he does not fit, in a cave, a mountain or a dugout, and he does not shrink
   for you. After five seconds he announces in chat that he is going to move underground and blasts
-  a tunnel his own size to you, a TNT dash every half-second with shorter "Mmmm" hums. After each hum he has a 20% chance
+  a tunnel his own size to you, a TNT dash on each full-length "Mmmm", with a quarter-second gap between hums. After each hum he has a 20% chance
   of a tunnel-themed line while the dashes continue. These lines have a five-second cooldown after
   finishing, cycle through all three before repeating, and never repeat back-to-back. Those hums are louder nearby and fade
   with distance. With mobGriefing off, or through obsidian, he passes through the ground instead.
   Wall yourself in out in the open and he comes up under you the same way.
+- Ender-pearl escapes trigger a temporary catch-up burst until he recovers the distance you gained.
+  Repeated pearls keep the burst active; he still has to navigate or tunnel through obstacles.
 - He cannot be hurt. `/kill` removes him. He leaves on Peaceful.
 - Before he says hello he will go after whoever else is near if his player leaves. After hello
   the chase belongs to that player, and he vanishes when they die, leave, change dimension or

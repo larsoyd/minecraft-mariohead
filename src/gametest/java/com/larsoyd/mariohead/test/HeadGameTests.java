@@ -114,8 +114,62 @@ public class HeadGameTests {
 		});
 	}
 
-	@GameTest(structure = ARENA, maxTicks = 600)
-	public void diggingDashesEveryHalfSecondWhileDialogueKeepsPlaying(GameTestHelper helper) {
+	@GameTest(structure = ARENA, maxTicks = 400, dimension = "minecraft:the_end")
+	public void catchesRepeatedRealPearlEscapes(GameTestHelper helper) {
+		pearlEscape(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 600, dimension = "minecraft:the_end")
+	public void pearlCatchupStillRespectsWalls(GameTestHelper helper) {
+		pearlEscape(helper, true);
+	}
+
+	private static void pearlEscape(GameTestHelper helper, boolean wall) {
+		fill(helper, 0, 0, 0, 220, 8, 19, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, -1, 0, 220, -1, 19, Blocks.STONE.defaultBlockState());
+		if (wall) {
+			fill(helper, 40, 0, 0, 40, 5, 14, Blocks.STONE.defaultBlockState());
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(18.5, 0, 10.5), 90);
+		TheHead head = head(helper, new Vec3(6.5, 0.5, 10.5), target);
+		try {
+			Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
+			ready.setAccessible(true);
+			ready.setLong(head, Long.MAX_VALUE);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
+		int[] pearls = { 0 };
+		helper.onEachTick(() -> {
+			long tick = helper.getTick();
+			if (tick >= 80 && tick <= 200 && tick % 20 == 0 && !target.isDeadOrDying()) {
+				target.setHealth(20);
+				Vec3 destination = target.position().add(24, 0, 0);
+				var pearl = new net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl(
+					helper.getLevel(), target, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ENDER_PEARL));
+				pearl.setPos(destination);
+				pearl.setOldPosAndRot();
+				helper.getLevel().addFreshEntity(pearl);
+				try {
+					var hit = pearl.getClass().getDeclaredMethod("onHit", net.minecraft.world.phys.HitResult.class);
+					hit.setAccessible(true);
+					hit.invoke(pearl, new net.minecraft.world.phys.BlockHitResult(destination, net.minecraft.core.Direction.UP,
+						BlockPos.containing(destination), false));
+				} catch (ReflectiveOperationException e) {
+					throw new IllegalStateException(e);
+				}
+				helper.assertTrue(target.position().distanceTo(destination) < 0.1, "pearl did not teleport its owner");
+				pearls[0]++;
+			}
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(pearls[0] >= 2 && target.isDeadOrDying() && head.isRemoved(),
+				"pearl escape: throws=" + pearls[0] + " gap=" + head.distanceTo(target));
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1000)
+	public void diggingUsesFullHumsWithShorterPausesWhileDialogueKeepsPlaying(GameTestHelper helper) {
 		fill(helper, 0, 6, 0, 19, 6, 19, Blocks.STONE.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
@@ -149,7 +203,7 @@ public class HeadGameTests {
 				blast.setAccessible(true);
 				if ((head.cue().digHum() || head.cue().chatter()) && head.revs() != previousRev[0]) {
 					if (previousDash[0] >= 0) {
-						helper.assertTrue(helper.getTick() - previousDash[0] == 10,
+						helper.assertTrue(helper.getTick() - previousDash[0] == (HeadCue.digHum(previousRev[0]).clip().millis() + 49) / 50 + 5,
 							"dig dash interval=" + (helper.getTick() - previousDash[0]));
 					}
 					previousDash[0] = helper.getTick();
@@ -162,7 +216,7 @@ public class HeadGameTests {
 					}
 				}
 				blast.set(head, null);
-				if (beats[0] >= 30 && talkingBeats[0] >= 3) {
+				if (beats[0] >= 12 && talkingBeats[0] >= 3) {
 					head.discard();
 					helper.succeed();
 				}

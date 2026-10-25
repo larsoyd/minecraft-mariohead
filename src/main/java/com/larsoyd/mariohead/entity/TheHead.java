@@ -86,11 +86,14 @@ public class TheHead extends Monster {
 	private int phaseTicks = -1;
 	private int cueTicks = -1;
 	private int revs;
+	private final PearlPursuit pearlPursuit = new PearlPursuit();
+	private double pearlBoost;
 	private final ChaseTempo tempo = new ChaseTempo();
 	private final HeadSpeech speech = new HeadSpeech();
 	private final DashChatter dashChatter = new DashChatter();
 	private HeadCue dashLine = HeadCue.NONE;
 	private long nextDigDash = -1;
+	private int digDashTicks = 1;
 	private boolean chatterRoll;
 	private HeadCue pendingVoice = HeadCue.NONE;
 	private boolean teasing;
@@ -360,8 +363,20 @@ public class TheHead extends Monster {
 		}
 	}
 
+	public void pearlTeleported(Player player, Vec3 before) {
+		if (this.chased == player) {
+			this.pearlPursuit.teleported(this.centre().distanceTo(before), this.centre().distanceTo(player.position()));
+			this.replanIn = 0;
+		}
+	}
+
+	private double chaseSpeed(double from, double to) {
+		return this.pearlBoost > 0.0 && !this.teasing && from < to ? Math.min(to, from + 0.12) : approach(from, to);
+	}
+
 	private void charge(ServerLevel level, Player target) {
 		this.trackPace(target);
+		this.pearlBoost = this.pearlPursuit.boost(this.centre().distanceTo(target.position()));
 		this.tryTaunt(target, this.random.nextDouble());
 		HeadCue cue = this.cue();
 		boolean undergroundRhythm = this.digging || this.burrowing || cue.chatter() || this.dashLine != HeadCue.NONE;
@@ -390,10 +405,10 @@ public class TheHead extends Monster {
 		}
 		double sag = cue == HeadCue.INHALE ? 1.0 : Math.clamp(this.cueTicks * DT / this.dashSeconds(cue), 0.0, 1.0);
 		if (undergroundRhythm && this.nextDigDash >= 0) {
-			sag = Math.clamp(1.0 - (this.nextDigDash - level.getGameTime()) / 10.0, 0.0, 1.0);
+			sag = Math.clamp(1.0 - (this.nextDigDash - level.getGameTime()) / (double) this.digDashTicks, 0.0, 1.0);
 		}
 		double boost = cue.clip() != null && !cue.spoken() ? this.dashBoost : 1.0;
-		this.chargeSpeed = this.teasing ? this.pace : RevSpring.speed(this.revs, sag, this.pace) * this.tempo.multiplier() * this.tempo.humMultiplier() * boost;
+		this.chargeSpeed = this.teasing ? this.pace : RevSpring.speed(this.revs, sag, this.pace) * this.tempo.multiplier() * this.tempo.humMultiplier() * boost + this.pearlBoost;
 		Vec3 goal = this.lead(target);
 
 		Vec3 centre = this.centre();
@@ -412,7 +427,7 @@ public class TheHead extends Monster {
 			}
 			Vec3 at = centre.distanceTo(target.position()) < GRAB_DISTANCE ? this.closeIn(target) : goal;
 			this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, at), GRAB_TURN_DEGREES);
-			this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
+			this.moveSpeed = this.chaseSpeed(this.moveSpeed, this.chargeSpeed);
 			this.aimDistance = at.subtract(centre).horizontalDistance();
 		} else {
 			if (--this.replanIn <= 0 || this.path == null && !underway) {
@@ -421,7 +436,7 @@ public class TheHead extends Monster {
 			straight = !underway && !this.steer(centre, goal);
 			if (straight) {
 				this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, goal), TURN_DEGREES);
-				this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
+				this.moveSpeed = this.chaseSpeed(this.moveSpeed, this.chargeSpeed);
 				this.aimDistance = goal.subtract(centre).horizontalDistance();
 			}
 		}
@@ -476,7 +491,8 @@ public class TheHead extends Monster {
 				this.dashLine = HeadCue.chatter(line);
 			}
 		}
-		this.nextDigDash = now + 10;
+		this.digDashTicks = (hum.clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS;
+		this.nextDigDash = now + this.digDashTicks;
 		this.teasing = false;
 		this.revs++;
 		this.tempo.dash();
@@ -584,7 +600,7 @@ public class TheHead extends Monster {
 		Vec3 way = to.subtract(c);
 		Vec3 dir = way.length() > 1e-6 ? way.normalize() : Vec3.ZERO;
 		this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(c, to), TURN_DEGREES);
-		this.moveSpeed = approach(this.moveSpeed, cue == HeadCue.UNDERGROUND ? 0.0 : this.chargeSpeed);
+		this.moveSpeed = this.chaseSpeed(this.moveSpeed, cue == HeadCue.UNDERGROUND ? 0.0 : this.chargeSpeed);
 		if (dash) {
 			Vec3 at = c.add(dir.scale(WIDTH * this.squeeze() / 2.0));
 			level.explode(this, null, BLAST, at.x, at.y, at.z, DIG_POWER, false, Level.ExplosionInteraction.NONE);
@@ -606,7 +622,7 @@ public class TheHead extends Monster {
 		Vec3 c = this.centre();
 		Vec3 to = target.position().add(0.0, target.getBbHeight() / 2.0, 0.0);
 		Vec3 aim = c.subtract(to).horizontalDistance() > BURROW_RISE ? new Vec3(to.x, Math.min(c.y, to.y) - BURROW_DEPTH, to.z) : to;
-		this.moveSpeed = approach(this.moveSpeed, cue == HeadCue.UNDERGROUND ? 0.0 : this.chargeSpeed);
+		this.moveSpeed = this.chaseSpeed(this.moveSpeed, cue == HeadCue.UNDERGROUND ? 0.0 : this.chargeSpeed);
 		this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(c, to), TURN_DEGREES);
 		Vec3 way = aim.subtract(c);
 		Vec3 step = way.length() > 1e-6 ? way.normalize().scale(Math.min(way.length(), this.moveSpeed)) : Vec3.ZERO;
@@ -898,7 +914,7 @@ public class TheHead extends Monster {
 		if (turn > SLOW_TURN_DEGREES) {
 			speed *= Math.max(MIN_TURN_SPEED, Math.cos(Math.toRadians(turn)));
 		}
-		this.moveSpeed = approach(this.moveSpeed, speed);
+		this.moveSpeed = this.chaseSpeed(this.moveSpeed, speed);
 		return true;
 	}
 

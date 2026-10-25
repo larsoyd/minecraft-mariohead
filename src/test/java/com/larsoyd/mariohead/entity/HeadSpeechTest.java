@@ -7,13 +7,13 @@ import org.junit.jupiter.api.Test;
 
 class HeadSpeechTest {
 	@Test
-	void diggingHumsFitTenTicksAndDialogueGetsBreathingRoom() {
+	void diggingHumsFinishBeforeTheNextHumOrDialogue() {
 		HeadSpeech speech = new HeadSpeech();
 		speech.started(HeadCue.DIG_MMM1, 100);
-		assertFalse(speech.canStart(HeadCue.DIG_MMM2, 109));
-		assertTrue(speech.canStart(HeadCue.DIG_MMM2, 110));
-		assertFalse(speech.canStart(HeadCue.DASH_067, 119));
-		assertTrue(speech.canStart(HeadCue.DASH_067, 120));
+		assertFalse(speech.canStart(HeadCue.DIG_MMM2, 135));
+		assertTrue(speech.canStart(HeadCue.DIG_MMM2, 136));
+		assertFalse(speech.canStart(HeadCue.DASH_067, 145));
+		assertTrue(speech.canStart(HeadCue.DASH_067, 146));
 		for (int index = 0; index < 3; index++) {
 			HeadCue line = HeadCue.chatter(index);
 			speech.started(line, 200);
