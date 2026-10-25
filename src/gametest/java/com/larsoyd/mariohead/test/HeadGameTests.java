@@ -955,6 +955,16 @@ public class HeadGameTests {
 		});
 	}
 
+	// a player treading deep water is no safer, he comes over the water and down to them
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void catchesASwimmer(GameTestHelper helper) {
+		fill(helper, 0, 0, 0, 19, 3, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 1, 0, 6, 9, 3, 14, Blocks.WATER.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(4.5, 1.5, 10.5), 90.0f);
+		TheHead head = head(helper, new Vec3(15.5, 4.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
 	// a fence ring keeps walkers out, he floats over it
 	@GameTest(structure = ARENA, maxTicks = 700)
 	public void floatsOverAFenceRing(GameTestHelper helper) {
