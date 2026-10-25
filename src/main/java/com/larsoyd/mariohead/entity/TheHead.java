@@ -460,9 +460,9 @@ public class TheHead extends Monster {
 		BlockPos to = BlockPos.containing(goal);
 		float size = this.squeeze();
 		Vec3 from = this.planStart();
-		Path route = this.planAt(from, to, size);
+		Path route = this.planAt(from, to, size, target);
 		if (size > MIN_SQUEEZE && (!reaches(route) || !this.seen && this.longWay(route, goal))) {
-			Path small = this.planAt(from, to, MIN_SQUEEZE);
+			Path small = this.planAt(from, to, MIN_SQUEEZE, target);
 			if (reaches(small) && (!reaches(route) || small.getNodeCount() * 2 < route.getNodeCount())) {
 				route = small;
 				size = MIN_SQUEEZE;
@@ -507,7 +507,7 @@ public class TheHead extends Monster {
 	}
 
 	// plans as a walker of that size standing at from, where the walk evaluator starts
-	private @Nullable Path planAt(@Nullable Vec3 from, BlockPos to, float size) {
+	private @Nullable Path planAt(@Nullable Vec3 from, BlockPos to, float size, Player target) {
 		Vec3 real = this.position();
 		boolean grounded = this.onGround();
 		this.planSqueeze = size <= MIN_SQUEEZE ? size : size + PLAN_MARGIN / WIDTH;
@@ -521,7 +521,21 @@ public class TheHead extends Monster {
 		this.resize();
 		this.setPos(real);
 		this.setOnGround(grounded);
-		return route;
+		return route != null && route.canReach() && !this.opensOnto(route.getEndNode(), cells(size), target) ? stopsShort(route) : route;
+	}
+
+	// a wide route may end a few blocks off, which only counts with nothing between its end and the player
+	private boolean opensOnto(Node end, int cells, Player target) {
+		double middle = HeadNodeEvaluator.centre(cells);
+		return this.clearLine(new Vec3(end.x + middle, end.y + 0.5, end.z + middle), target.getEyePosition());
+	}
+
+	private static Path stopsShort(Path route) {
+		List<Node> nodes = new ArrayList<>();
+		for (int i = 0; i < route.getNodeCount(); i++) {
+			nodes.add(route.getNode(i));
+		}
+		return new Path(nodes, route.getTarget(), false);
 	}
 
 	private static boolean reaches(@Nullable Path route) {

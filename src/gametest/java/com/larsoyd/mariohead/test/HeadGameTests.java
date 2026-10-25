@@ -714,6 +714,23 @@ public class HeadGameTests {
 		caughtWithin(helper, target, head);
 	}
 
+	// dug in under the floor he floats over, a route ending right above the player is still no way in
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void announcesToAPlayerDugInUnderHim(GameTestHelper helper) {
+		fill(helper, 0, 0, 0, 19, 3, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 10, 1, 10, 10, 2, 10, Blocks.AIR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 1.0, 10.5), -90.0f);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(16.5, 4.5, 10.5));
+		head.chase(target);
+		boolean[] announced = { false };
+		helper.onEachTick(() -> announced[0] |= !head.isRemoved() && head.cue() == HeadCue.UNDERGROUND);
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying() && announced[0], "dead " + target.isDeadOrDying() + " announced " + announced[0] + " head " + helper.relativeVec(head.position()));
+			leave(helper, target);
+		});
+	}
+
 	// a fence ring keeps walkers out, he floats over it
 	@GameTest(structure = ARENA, maxTicks = 700)
 	public void floatsOverAFenceRing(GameTestHelper helper) {
