@@ -12,6 +12,8 @@ public final class HeadTuning {
 	public static final double PACE_EDGE = 1.02;
 	public static final double PACE_TICKS = 20.0;
 	public static final double PACE_TELEPORT = 4.0;
+	public static final double LEAD_TICKS = 20.0;
+	public static final double LEAD_SMOOTH_TICKS = 5.0;
 	public static final double ACCEL = 0.0197;
 	public static final double DECEL = 0.0395;
 	public static final float TURN_DEGREES = 25.3125f;
@@ -36,12 +38,19 @@ public final class HeadTuning {
 	public static final double ACQUIRE_RANGE = 32.0;
 	public static final double HOVER = 2.0;
 	public static final double CLIMB = 0.21;
+	// a climb up to this high goes at full speed, he slows to a crawl over the next blocks of it
+	public static final double CLIMB_FREE = 0.5;
+	public static final double CLIMB_SLOW = 1.5;
+	public static final double STEP_UP = 1.05;
 	public static final double FLOOR_SEARCH = 12.0;
 	public static final double GRAB_DISTANCE = 4.0;
 	// the planner drops routes walked past this long, and real detours over floors run near 50
 	public static final double PATH_RANGE = 96.0;
 	public static final int REPLAN_TICKS = 7;
 	public static final int REPLAN_UNREACHABLE_TICKS = 20;
+	// a route longer than this many straight distances plus the slack is a long way round
+	public static final double LONG_WAY = 1.5;
+	public static final double LONG_WAY_SLACK = 8.0;
 	public static final double WAYPOINT_REACH = 0.9;
 	public static final double PULL_REACH = 32.0;
 	public static final double CONTACT_REACH = 0.05;
@@ -63,8 +72,12 @@ public final class HeadTuning {
 	// a 0.32 squeeze makes his box just under a block wide, the narrowest gap he follows a player into
 	public static final float MIN_SQUEEZE = 0.32f;
 	public static final float SQUEEZE_STEP = 0.04f;
-	public static final float SHRINK_RATE = 0.15f;
-	public static final float GROW_RATE = 0.04f;
+	public static final int SIZE_SEARCH_STEPS = 5;
+	public static final float FIT_MARGIN = 0.02f;
+	public static final float PLAN_MARGIN = 0.25f;
+	public static final double AHEAD_SETTLE = 1.0;
+	public static final int AHEAD_NODES = 3;
+	public static final double AHEAD_REACH = 2.5;
 	public static final double ESCAPE_REACH = 6.0;
 	public static final double ESCAPE_SPEED = 0.15;
 

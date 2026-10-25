@@ -514,6 +514,7 @@ public class HeadGameTests {
 		fill(helper, 0, 0, 0, 19, 4, 19, Blocks.STONE.defaultBlockState());
 		fill(helper, 2, 0, 9, 4, 4, 11, Blocks.AIR.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		target.setXRot(80.0f);
 		TheHead head = head(helper, new Vec3(16.5, 5.5, 10.5), target);
 		caughtWithin(helper, target, head);
 	}
@@ -550,7 +551,7 @@ public class HeadGameTests {
 	public void squeezesThroughAHoleInAWall(GameTestHelper helper) {
 		fill(helper, 9, 0, 0, 9, 7, 19, Blocks.STONE.defaultBlockState());
 		helper.setBlock(new BlockPos(9, 0, 10), Blocks.AIR);
-		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), 90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
 		float[] smallest = { 1.0f };
 		helper.onEachTick(() -> smallest[0] = Math.min(smallest[0], head.squeeze()));
@@ -570,9 +571,82 @@ public class HeadGameTests {
 		fill(helper, 7, 1, 9, 11, 1, 11, slab);
 		fill(helper, 7, 2, 8, 11, 7, 12, stone);
 		fill(helper, 9, 0, 9, 9, 0, 11, Blocks.AIR.defaultBlockState());
-		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), 90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
 		caughtWithin(helper, target, head);
+	}
+
+	// glass shows all of him, and the one way through is a hole at the floor
+	private static void windowWithAHole(GameTestHelper helper) {
+		fill(helper, 9, 0, 0, 9, 7, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 9, 1, 2, 9, 6, 17, Blocks.GLASS.defaultBlockState());
+		helper.setBlock(new BlockPos(9, 0, 10), Blocks.AIR);
+	}
+
+	// watched he keeps his size, so the gap holds him until the player looks away
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void waitsAtAGapWhileWatchedAndSqueezesWhenNot(GameTestHelper helper) {
+		windowWithAHole(helper);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		helper.onEachTick(() -> {
+			if (helper.getTick() <= 300) {
+				helper.assertTrue(head.squeeze() == 1.0f, "shrank to " + head.squeeze() + " in plain view at " + helper.relativeVec(head.position()));
+			}
+		});
+		helper.runAtTickTime(300, () -> {
+			helper.assertFalse(target.isDeadOrDying(), "caught while watched");
+			helper.assertTrue(helper.relativeVec(head.position()).x < 13.0, "never came up to the wall, at " + helper.relativeVec(head.position()));
+			target.setYRot(90.0f);
+			target.setYHeadRot(90.0f);
+		});
+		helper.runAfterDelay(301, () -> caughtWithin(helper, target, head));
+	}
+
+	// a way round he fits through beats the hole beside the player, which he would have to shrink for
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void takesTheWideWayRoundOverAHole(GameTestHelper helper) {
+		windowWithAHole(helper);
+		fill(helper, 9, 0, 15, 9, 7, 19, Blocks.AIR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		helper.onEachTick(() -> {
+			if (!head.isRemoved() && !target.isDeadOrDying()) {
+				net.minecraft.world.phys.Vec3 to = head.centre().subtract(target.getEyePosition());
+				target.setYRot((float) (Math.toDegrees(Math.atan2(to.z, to.x)) - 90.0));
+				target.setYHeadRot(target.getYRot());
+			}
+		});
+		neverShrinks(helper, head);
+		caughtWithin(helper, target, head);
+	}
+
+	// a player running across his path is met ahead of where they are, not trailed
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void headsOffAPlayerRunningAcross(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 2.5), 0.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 4.5), target);
+		double[] lead = { 0.0, 0.0 };
+		helper.onEachTick(() -> {
+			long t = helper.getTick();
+			if (t >= 60 && t < 160 && !target.isDeadOrDying()) {
+				Vec3 at = helper.absoluteVec(new Vec3(3.5, 0.0, 2.5 + (t - 59) * 0.14));
+				target.teleportTo(helper.getLevel(), at.x, at.y, at.z, java.util.Set.of(), 0.0f, 0.0f, true);
+			}
+			Vec3 v = head.getDeltaMovement().multiply(1.0, 0.0, 1.0);
+			Vec3 line = target.position().subtract(head.centre()).multiply(1.0, 0.0, 1.0);
+			if (t >= 80 && t < 150 && !head.isRemoved() && v.length() > 0.05 && line.length() > HeadTuning.GRAB_DISTANCE + 1.0) {
+				Vec3 run = helper.absoluteVec(new Vec3(0.0, 0.0, 1.0)).subtract(helper.absoluteVec(Vec3.ZERO)).normalize();
+				lead[0] += v.normalize().dot(run) - line.normalize().dot(run);
+				lead[1]++;
+			}
+		});
+		helper.runAtTickTime(150, () -> {
+			double mean = lead[0] / Math.max(1.0, lead[1]);
+			helper.assertTrue(lead[1] > 20 && mean > 0.1, "heading leads the runner by " + String.format("%.3f", mean) + " over " + (int) lead[1] + " ticks");
+			leave(helper, target);
+			helper.succeed();
+		});
 	}
 
 	// buried by a player he squirms out to the nearest open air, never on through a wall to his target

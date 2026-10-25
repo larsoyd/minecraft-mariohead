@@ -4,6 +4,8 @@ import static com.larsoyd.mariohead.entity.HeadTuning.*;
 
 import com.larsoyd.mariohead.HeadEntities;
 import com.larsoyd.mariohead.HeadSounds;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiConsumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -26,10 +28,12 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.pathfinder.PathType;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
@@ -56,10 +60,14 @@ public class TheHead extends Monster {
 	private @Nullable Path path;
 	private int pathIndex;
 	private int replanIn;
+	private int pathCells = 1;
 	private Vec3 chasedLast = Vec3.ZERO;
+	private Vec3 chasedVelocity = Vec3.ZERO;
 	private double pace;
 	private boolean climbing;
-	private boolean planning;
+	private float planSqueeze;
+	private boolean seen;
+	private boolean halted;
 	private boolean wedged;
 	private @Nullable Vec3 escape;
 	private @Nullable ChunkPos ticketChunk;
@@ -99,7 +107,7 @@ public class TheHead extends Monster {
 	// his box is the hull of the whole head, scaled down to squeeze through what he has to
 	@Override
 	protected EntityDimensions getDefaultDimensions(Pose pose) {
-		return super.getDefaultDimensions(pose).scale(this.planning ? MIN_SQUEEZE : this.squeeze());
+		return super.getDefaultDimensions(pose).scale(this.planSqueeze > 0.0f ? this.planSqueeze : this.squeeze());
 	}
 
 	public float squeeze() {
@@ -176,6 +184,7 @@ public class TheHead extends Monster {
 		this.cueTicks++;
 		Player target = this.validTarget(level);
 		HeadPhase phase = this.phase();
+		this.seen = HeadSight.seen(level, this.getBoundingBox());
 		this.fitSqueeze(phase == HeadPhase.CHARGE);
 		if (target == null && (phase == HeadPhase.TALK || phase == HeadPhase.CHARGE)) {
 			this.vanish(level);
@@ -234,6 +243,7 @@ public class TheHead extends Monster {
 		cue = this.cue();
 		double sag = cue == HeadCue.INHALE ? 1.0 : Math.clamp(this.cueTicks * DT / clipSeconds(cue), 0.0, 1.0);
 		this.chargeSpeed = RevSpring.speed(this.revs, sag, this.trackPace(target));
+		Vec3 goal = this.lead(target);
 
 		Vec3 centre = this.centre();
 		boolean straight = centre.distanceTo(target.position()) < GRAB_DISTANCE && this.clearLine(centre, target.getEyePosition());
@@ -243,13 +253,16 @@ public class TheHead extends Monster {
 			this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
 		} else {
 			if (--this.replanIn <= 0 || this.path == null) {
-				this.replan(level, target);
+				this.replan(goal);
 			}
-			straight = !this.steer(centre, target);
+			straight = !this.steer(centre, goal);
 			if (straight) {
-				this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, target.position()), TURN_DEGREES);
+				this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, goal), TURN_DEGREES);
 				this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
 			}
+		}
+		if (this.halted) {
+			this.moveSpeed = approach(this.moveSpeed, 0.0);
 		}
 		this.fly(target, straight);
 		this.faceTowards(this.moveYaw, target);
@@ -259,93 +272,209 @@ public class TheHead extends Monster {
 	}
 
 	private double trackPace(Player target) {
-		double step = target.position().subtract(this.chasedLast).horizontalDistance();
-		if (step < PACE_TELEPORT) {
-			this.pace += (step - this.pace) / PACE_TICKS;
+		Vec3 step = target.position().subtract(this.chasedLast).multiply(1.0, 0.0, 1.0);
+		if (step.length() < PACE_TELEPORT) {
+			this.pace += (step.length() - this.pace) / PACE_TICKS;
+			this.chasedVelocity = this.chasedVelocity.add(step.subtract(this.chasedVelocity).scale(1.0 / LEAD_SMOOTH_TICKS));
 		}
 		this.chasedLast = target.position();
 		return this.pace;
+	}
+
+	// where the player is running to, led only while they run away from him
+	private Vec3 lead(Player target) {
+		Vec3 at = target.position();
+		Vec3 away = at.subtract(this.centre()).multiply(1.0, 0.0, 1.0);
+		if (this.chasedVelocity.dot(away) <= 0.0) {
+			return at;
+		}
+		double ticks = Math.min(LEAD_TICKS, away.length() / Math.max(this.moveSpeed, SPEED_START));
+		Vec3 lift = new Vec3(0.0, target.getBbHeight() / 2.0, 0.0);
+		Vec3 ahead = at.add(this.chasedVelocity.scale(ticks)).add(lift);
+		HitResult hit = this.level().clip(new ClipContext(at.add(lift), ahead, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, target));
+		return (hit.getType() == HitResult.Type.MISS ? ahead : hit.getLocation()).subtract(lift);
 	}
 
 	private static double approach(double from, double to) {
 		return from < to ? Math.min(to, from + ACCEL) : Math.max(to, from - DECEL);
 	}
 
-	// shrinks ahead of a tight spot so he is small enough on arrival, grows back where there is room
+	// he only changes size where nobody sees it, so in view a gap too small for him holds him back
 	private void fitSqueeze(boolean moving) {
 		Vec3 c = this.centre();
 		float now = this.squeeze();
 		float here = HeadRoom.at(this, c.x, c.z, c.y);
-		this.wedged = here <= 0.0f;
+		this.halted = false;
+		this.wedged = !HeadRoom.fits(this, c.x, c.y, c.z, now);
 		if (this.wedged) {
-			if (now > MIN_SQUEEZE) {
-				this.setSqueeze(MIN_SQUEEZE);
+			float size = this.seen ? now : Math.max(MIN_SQUEEZE, Math.min(now, here));
+			if (size < now) {
+				this.setSqueeze(size);
 			}
-			if (this.escape == null || !HeadRoom.fits(this, this.escape.x, this.escape.y, this.escape.z, MIN_SQUEEZE)) {
-				this.escape = HeadRoom.nearestRoom(this, this.centre());
+			this.wedged = !HeadRoom.fits(this, c.x, c.y, c.z, size);
+			if (this.wedged && (this.escape == null || !HeadRoom.fits(this, this.escape.x, this.escape.y, this.escape.z, size))) {
+				this.escape = HeadRoom.nearestRoom(this, this.centre(), size, this.towardChased());
 			}
 			return;
 		}
 		this.escape = null;
-		float want = here;
-		if (moving) {
-			double yaw = Math.toRadians(this.moveYaw);
-			for (double d : LOOKAHEAD) {
-				float ahead = HeadRoom.at(this, c.x - Math.sin(yaw) * d, c.z + Math.cos(yaw) * d, c.y);
-				if (ahead > 0.0f) {
-					want = Math.min(want, ahead);
+		List<Vec3> ahead = moving ? this.ahead(c) : List.of();
+		boolean tight = !this.fitsAhead(ahead, c.y, now);
+		if (this.seen) {
+			this.halted = tight;
+			return;
+		}
+		float next = now;
+		if (tight) {
+			float lo = MIN_SQUEEZE;
+			float hi = now;
+			for (int i = 0; i < SIZE_SEARCH_STEPS; i++) {
+				float mid = (lo + hi) / 2.0f;
+				if (this.fitsAhead(ahead, c.y, mid)) {
+					lo = mid;
+				} else {
+					hi = mid;
 				}
 			}
-		}
-		float next = want < now ? Math.max(want, now - SHRINK_RATE) : Math.min(want, now + GROW_RATE);
-		if (next > now && !HeadRoom.fits(this, c.x, c.y, c.z, next)) {
-			next = now;
+			next = Math.max(MIN_SQUEEZE, lo - FIT_MARGIN);
+		} else if (now < here) {
+			float grown = Math.min(here, now + SQUEEZE_STEP);
+			if (HeadRoom.fits(this, c.x, c.y, c.z, grown) && this.fitsAhead(ahead, c.y, grown)) {
+				next = grown;
+			}
 		}
 		if (next != now) {
 			this.setSqueeze(next);
 		}
 	}
 
-	// plans as the smallest walker on the floor under him, where the walk evaluator starts from
-	private void replan(ServerLevel level, Player target) {
+	private Vec3 towardChased() {
+		return this.chased == null ? Vec3.ZERO : this.chased.position().subtract(this.centre()).multiply(1.0, 0.0, 1.0).normalize();
+	}
+
+	// the close nodes of his path at their floors, or points straight ahead at his height when he has none
+	private List<Vec3> ahead(Vec3 c) {
+		Path p = this.path;
+		List<Vec3> points = new ArrayList<>();
+		if (p != null && this.pathIndex < p.getNodeCount()) {
+			for (int i = this.pathIndex; i < p.getNodeCount() && points.size() < AHEAD_NODES; i++) {
+				Vec3 node = this.nodeAt(p.getNode(i), p.getNode(i).y);
+				if (node.subtract(c).horizontalDistance() > AHEAD_REACH) {
+					break;
+				}
+				points.add(node);
+			}
+			return points;
+		}
+		double yaw = Math.toRadians(this.moveYaw);
+		for (double d : LOOKAHEAD) {
+			points.add(new Vec3(c.x - Math.sin(yaw) * d, Double.NaN, c.z + Math.cos(yaw) * d));
+		}
+		return points;
+	}
+
+	// a node is tried where he would float over its floor, a point ahead at his own height
+	private boolean fitsAhead(List<Vec3> ahead, double y, float size) {
+		for (Vec3 point : ahead) {
+			double at = Double.isNaN(point.y) ? y : point.y + HOVER * size;
+			if (!HeadRoom.fitsNear(this, point.x, point.z, at, size, this.moveYaw)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	// a route at the size he has now, or a squeeze route when there is none or it is a long way round
+	private void replan(Vec3 goal) {
+		BlockPos to = BlockPos.containing(goal);
+		float size = this.squeeze();
+		Vec3 from = this.planStart();
+		Path route = this.planAt(from, to, size);
+		if (size > MIN_SQUEEZE && (!reaches(route) || !this.seen && this.longWay(route, goal))) {
+			Path small = this.planAt(from, to, MIN_SQUEEZE);
+			if (reaches(small) && (!reaches(route) || small.getNodeCount() * 2 < route.getNodeCount())) {
+				route = small;
+				size = MIN_SQUEEZE;
+			}
+		}
+		this.path = route;
+		this.pathCells = cells(size);
 		this.pathIndex = 0;
+		// a fresh path starts at a node he may already be past, so he does not turn back for it
+		Vec3 c = this.centre();
+		while (route != null && this.pathIndex + 1 < route.getNodeCount()
+			&& this.nodeAt(route.getNode(this.pathIndex + 1), c.y).distanceTo(c) <= this.nodeAt(route.getNode(this.pathIndex), c.y).distanceTo(c)) {
+			this.pathIndex++;
+		}
+		this.replanIn = reaches(route) ? REPLAN_TICKS : REPLAN_UNREACHABLE_TICKS;
+	}
+
+	// the node he is heading for while he can fly straight to it, so a new route carries on from there
+	private @Nullable Vec3 planStart() {
+		Path p = this.path;
+		Vec3 c = this.centre();
+		if (p != null && this.pathIndex < p.getNodeCount()) {
+			Node node = p.getNode(this.pathIndex);
+			Vec3 at = this.nodeAt(node, c.y);
+			if (at.distanceTo(c) < PULL_REACH && HeadRoom.sweep(this, c, at, this.squeeze())) {
+				return new Vec3(node.x + 0.5, node.y, node.z + 0.5);
+			}
+		}
+		double floor = HeadRoom.surface(this, c, -FLOOR_SEARCH);
+		return Double.isNaN(floor) ? null : new Vec3(c.x, floor, c.z);
+	}
+
+	// plans as a walker of that size standing at from, where the walk evaluator starts
+	private @Nullable Path planAt(@Nullable Vec3 from, BlockPos to, float size) {
 		Vec3 real = this.position();
 		boolean grounded = this.onGround();
-		double floor = HeadRoom.surface(this, this.centre(), -FLOOR_SEARCH);
-		this.planning = true;
+		this.planSqueeze = size <= MIN_SQUEEZE ? size : size + PLAN_MARGIN / WIDTH;
 		this.resize();
-		if (!Double.isNaN(floor)) {
-			this.setPos(real.x, floor, real.z);
+		if (from != null) {
+			this.setPos(from);
 			this.setOnGround(true);
 		}
-		this.path = this.getNavigation().createPath(target, 0);
-		this.planning = false;
+		Path route = this.getNavigation().createPath(to, cells(size) - 1);
+		this.planSqueeze = 0.0f;
 		this.resize();
 		this.setPos(real);
 		this.setOnGround(grounded);
-		this.replanIn = this.path != null && this.path.canReach() ? REPLAN_TICKS : REPLAN_UNREACHABLE_TICKS;
+		return route;
+	}
+
+	private static boolean reaches(@Nullable Path route) {
+		return route != null && route.canReach();
+	}
+
+	private boolean longWay(@Nullable Path route, Vec3 goal) {
+		return reaches(route) && route.getNodeCount() > goal.subtract(this.centre()).horizontalDistance() * LONG_WAY + LONG_WAY_SLACK;
+	}
+
+	// the planner wants a cell of slack, he cannot line a full box up to a hundredth of a block
+	private static int cells(float size) {
+		return size <= MIN_SQUEEZE ? 1 : Mth.floor(WIDTH * size + PLAN_MARGIN + 1.0f);
 	}
 
 	// heads for the farthest node his box flies straight to, false once the path is used up
-	private boolean steer(Vec3 centre, Player target) {
+	private boolean steer(Vec3 centre, Vec3 goal) {
 		Path p = this.path;
 		if (p == null || this.pathIndex >= p.getNodeCount()) {
 			return false;
 		}
 		int flat = this.pathIndex;
 		while (flat + 1 < p.getNodeCount() && p.getNode(flat + 1).y == p.getNode(this.pathIndex).y
-			&& nodeAt(p.getNode(flat + 1), centre.y).distanceTo(centre) < PULL_REACH) {
+			&& this.nodeAt(p.getNode(flat + 1), centre.y).distanceTo(centre) < PULL_REACH) {
 			flat++;
 		}
 		for (int i = flat; i > this.pathIndex; i--) {
-			if (HeadRoom.sweep(this, centre, nodeAt(p.getNode(i), centre.y), this.squeeze())) {
+			if (HeadRoom.sweep(this, centre, this.nodeAt(p.getNode(i), centre.y), this.squeeze())) {
 				this.pathIndex = i;
 				break;
 			}
 		}
 		while (this.pathIndex < p.getNodeCount()) {
 			boolean last = this.pathIndex == p.getNodeCount() - 1;
-			Vec3 node = nodeAt(p.getNode(this.pathIndex), centre.y);
+			Vec3 node = this.nodeAt(p.getNode(this.pathIndex), centre.y);
 			if (node.subtract(centre).horizontalDistance() > (last ? WAYPOINT_REACH * 0.45 : WAYPOINT_REACH)) {
 				break;
 			}
@@ -355,7 +484,7 @@ public class TheHead extends Monster {
 			return false;
 		}
 		// the last node is a grid cell, the player is the real end of it
-		Vec3 aim = this.pathIndex == p.getNodeCount() - 1 && p.canReach() ? target.position() : nodeAt(p.getNode(this.pathIndex), centre.y);
+		Vec3 aim = this.pathIndex == p.getNodeCount() - 1 && p.canReach() ? goal : this.nodeAt(p.getNode(this.pathIndex), centre.y);
 		float want = yawTo(centre, aim);
 		this.moveYaw = Mth.approachDegrees(this.moveYaw, want, TURN_DEGREES);
 		float turn = Math.abs(Mth.wrapDegrees(want - this.moveYaw));
@@ -367,21 +496,31 @@ public class TheHead extends Monster {
 		return true;
 	}
 
-	private static Vec3 nodeAt(Node node, double y) {
-		return new Vec3(node.x + 0.5, y, node.z + 0.5);
+	private Vec3 nodeAt(Node node, double y) {
+		double middle = HeadNodeEvaluator.centre(this.pathCells);
+		return new Vec3(node.x + middle, y, node.z + middle);
 	}
 
+	// rises before he pushes on when the floor ahead is higher than he floats, so a step never stalls him
 	private void fly(Player target, boolean straight) {
 		double yaw = Math.toRadians(this.moveYaw);
-		double dx = -Math.sin(yaw) * this.moveSpeed;
-		double dz = Math.cos(yaw) * this.moveSpeed;
 		double y = this.centre().y;
 		double want = this.hoverHeight(straight ? target.getY() : this.nextFloor());
-		if (straight && this.climbing) {
+		if (this.climbing) {
 			want = Math.max(want, y + 1.0);
 		}
+		Vec3 ahead = this.centre().add(-Math.sin(yaw) * AHEAD_SETTLE, 0.0, Math.cos(yaw) * AHEAD_SETTLE);
+		double fit = HeadRoom.settle(this, ahead, want, this.squeeze());
+		if (!Double.isNaN(fit)) {
+			want = fit;
+		}
+		double speed = this.moveSpeed * Mth.clamp(1.0 - (want - y - CLIMB_FREE) / CLIMB_SLOW, MIN_TURN_SPEED, 1.0);
+		double dx = -Math.sin(yaw) * speed;
+		double dz = Math.cos(yaw) * speed;
 		this.body(dx, Mth.clamp(want - y, -CLIMB, CLIMB), dz);
-		this.climbing = this.horizontalCollision;
+		Vec3 c = this.centre();
+		// a wall he flies up when he has no path, a step only when a block higher clears it
+		this.climbing = this.horizontalCollision && (straight || HeadRoom.fits(this, c.x + dx, c.y + STEP_UP, c.z + dz, this.squeeze()));
 	}
 
 	// a walk node is where a walker would stand, so its height is the floor he is about to cross
@@ -390,7 +529,7 @@ public class TheHead extends Monster {
 		if (p == null || this.pathIndex >= p.getNodeCount()) {
 			return Double.NaN;
 		}
-		double below = HeadRoom.surface(this, this.centre(), -FLOOR_SEARCH);
+		double below = HeadRoom.surface(this, this.centre(), -FLOOR_SEARCH, this.squeeze());
 		double node = p.getNode(this.pathIndex).y;
 		return Double.isNaN(below) ? node : Math.max(below, node);
 	}
@@ -425,7 +564,7 @@ public class TheHead extends Monster {
 	private double hoverHeight(double floorGiven) {
 		Vec3 c = this.centre();
 		float s = this.squeeze();
-		double floor = Double.isNaN(floorGiven) ? HeadRoom.surface(this, c, -FLOOR_SEARCH) : floorGiven;
+		double floor = Double.isNaN(floorGiven) ? HeadRoom.surface(this, c, -FLOOR_SEARCH, s) : floorGiven;
 		if (Double.isNaN(floor)) {
 			floor = this.chased != null ? this.chased.getY() : c.y - HOVER * s;
 		}

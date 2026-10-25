@@ -14,6 +14,10 @@ final class HeadRoom {
 	private static final double GAP = 1e-3;
 	private static final double ESCAPE_STEP = 0.25;
 	private static final double SWEEP_STEP = 0.5;
+	private static final double FOOTPRINT_INSET = 1e-3;
+	private static final double[] SIDE_STEPS = { 0.0, 0.5, -0.5, 1.0, -1.0 };
+	private static final double RISE = 2.0;
+	private static final double RISE_STEP = 0.5;
 
 	private HeadRoom() {
 	}
@@ -35,14 +39,44 @@ final class HeadRoom {
 		return hit.getType() == HitResult.Type.MISS ? Double.NaN : hit.getLocation().y;
 	}
 
+	// nearest surface up or down from anywhere under a box that wide, so he clears a whole stair
+	static double surface(Entity head, Vec3 from, double reach, float squeeze) {
+		double half = TheHead.WIDTH * squeeze / 2.0 - FOOTPRINT_INSET;
+		double best = surface(head, from, reach);
+		for (int corner = 0; corner < 4; corner++) {
+			double y = surface(head, from.add((corner & 1) == 0 ? -half : half, 0.0, (corner & 2) == 0 ? -half : half), reach);
+			if (!Double.isNaN(y)) {
+				best = Double.isNaN(best) ? y : reach < 0.0 ? Math.max(best, y) : Math.min(best, y);
+			}
+		}
+		return best;
+	}
+
 	// his centre at a squeeze, as close to want as the floor and ceiling around probe allow
 	static double settle(Entity head, Vec3 probe, double want, float squeeze) {
 		double half = TheHead.HEIGHT * squeeze / 2.0 + GAP;
-		double floor = surface(head, probe, -HeadTuning.FLOOR_SEARCH);
-		double ceiling = surface(head, probe, HeadTuning.FLOOR_SEARCH);
+		double floor = surface(head, probe, -HeadTuning.FLOOR_SEARCH, squeeze);
+		double ceiling = surface(head, probe, HeadTuning.FLOOR_SEARCH, squeeze);
 		double lo = Double.isNaN(floor) ? -Double.MAX_VALUE : floor + half;
 		double hi = Double.isNaN(ceiling) ? Double.MAX_VALUE : ceiling - half;
 		return lo > hi ? Double.NaN : Mth.clamp(want, lo, hi);
+	}
+
+	// whether his box fits close to a spot, settled there, risen up to two blocks or shifted a block aside
+	static boolean fitsNear(Entity head, double x, double z, double centreY, float squeeze, float yaw) {
+		double sideX = Math.cos(Math.toRadians(yaw));
+		double sideZ = Math.sin(Math.toRadians(yaw));
+		for (double side : SIDE_STEPS) {
+			double px = x + sideX * side;
+			double pz = z + sideZ * side;
+			double y = settle(head, new Vec3(px, centreY, pz), centreY, squeeze);
+			for (double up = 0.0; !Double.isNaN(y) && up <= RISE + 1e-9; up += RISE_STEP) {
+				if (fits(head, px, y + up, pz, squeeze)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	// the largest squeeze that fits at x z near centreY, 0 when not even the smallest does
@@ -57,8 +91,8 @@ final class HeadRoom {
 		return 0.0f;
 	}
 
-	// the closest centre within reach where his smallest box fits, searched in growing shells
-	static @Nullable Vec3 nearestRoom(Entity head, Vec3 from) {
+	// the closest centre within reach where his box at that size fits, never on the side toward away from
+	static @Nullable Vec3 nearestRoom(Entity head, Vec3 from, float squeeze, Vec3 toward) {
 		for (double r = ESCAPE_STEP; r <= HeadTuning.ESCAPE_REACH + 1e-9; r += ESCAPE_STEP) {
 			Vec3 best = null;
 			for (int dx = -1; dx <= 1; dx++) {
@@ -67,8 +101,12 @@ final class HeadRoom {
 						if (dx == 0 && dy == 0 && dz == 0) {
 							continue;
 						}
-						Vec3 p = from.add(new Vec3(dx, dy, dz).normalize().scale(r));
-						if (fits(head, p.x, p.y, p.z, HeadTuning.MIN_SQUEEZE) && (best == null || p.distanceToSqr(from) < best.distanceToSqr(from))) {
+						Vec3 dir = new Vec3(dx, dy, dz).normalize();
+						if (dir.dot(toward) > 1e-6) {
+							continue;
+						}
+						Vec3 p = from.add(dir.scale(r));
+						if (fits(head, p.x, p.y, p.z, squeeze) && (best == null || p.distanceToSqr(from) < best.distanceToSqr(from))) {
 							best = p;
 						}
 					}
