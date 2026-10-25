@@ -584,6 +584,130 @@ public class HeadGameTests {
 		helper.succeed();
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void stalkingAfterHouseReturnResumesTntDash(GameTestHelper helper) throws ReflectiveOperationException {
+		stalkingChase(helper, true, 0);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void stalkingAfterOrdinaryChaseResumesDash(GameTestHelper helper) throws ReflectiveOperationException {
+		stalkingChase(helper, false, 0);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void stalkingAfterHouseReturnLookRestoresDash(GameTestHelper helper) throws ReflectiveOperationException {
+		stalkingChase(helper, true, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void stalkingAfterHouseReturnDistantLookRestoresDash(GameTestHelper helper) throws ReflectiveOperationException {
+		stalkingChase(helper, true, 2);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void stalkingAfterHouseReturnEarlyLookRestoresDash(GameTestHelper helper) throws ReflectiveOperationException {
+		stalkingChase(helper, true, 3);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void stalkingAfterOrdinaryChaseLookRestoresDash(GameTestHelper helper) throws ReflectiveOperationException {
+		stalkingChase(helper, false, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void stalkingAfterOrdinaryChaseDistantLookRestoresDash(GameTestHelper helper) throws ReflectiveOperationException {
+		stalkingChase(helper, false, 2);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void stalkingAfterOrdinaryChaseEarlyLookRestoresDash(GameTestHelper helper) throws ReflectiveOperationException {
+		stalkingChase(helper, false, 3);
+	}
+
+	private void stalkingChase(GameTestHelper helper, boolean house, int reaction) throws ReflectiveOperationException {
+		int y = 40 + reaction * 30 + (house ? 15 : 0);
+		fill(helper, 0, y - 1, 0, 220, y - 1, 23, Blocks.STONE.defaultBlockState());
+		if (house) {
+			fill(helper, 8, y, 4, 18, y + 4, 14, Blocks.STONE.defaultBlockState());
+			fill(helper, 9, y, 5, 17, y + 3, 13, Blocks.AIR.defaultBlockState());
+			helper.setBlock(new BlockPos(14, y, 12), Blocks.BED.red().defaultBlockState());
+			helper.setBlock(new BlockPos(9, y, 9), Blocks.CHEST.defaultBlockState());
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, y, 9.5), -90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(6, y, 9.5));
+		head.chase(target);
+		var field = TheHead.class.getDeclaredField("prank");
+		field.setAccessible(true);
+		var prank = (com.larsoyd.mariohead.entity.BehindPrank) field.get(head);
+		List<HeadCue> cues = new ArrayList<>();
+		boolean[] earlyLook = { false };
+		boolean[] dashed = { false };
+		long[] escaped = { -1 };
+		long[] approach = { -1 };
+		long[] finished = { -1 };
+		Vec3[] resumed = { Vec3.ZERO };
+		helper.onEachTick(() -> {
+			head.getRandom().setSeed(12345);
+			HeadCue cue = head.cue();
+			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
+			var stage = prank.stage();
+			if (house && escaped[0] < 0 && cues.contains(HeadCue.HOME_ASK) && cue.digHum()) {
+				target.setPos(helper.absoluteVec(new Vec3(42.5, y, 9.5)));
+			}
+			if (escaped[0] < 0 && (house ? cue == HeadCue.HOME_RETURN : (cue == HeadCue.MMM1 || cue == HeadCue.MMM2 || cue == HeadCue.MMM3))) {
+				helper.assertTrue(head.digging() == house, "wrong dash mode before escape: " + cues);
+				if (house) helper.assertTrue(cues.contains(HeadCue.HOME_NICE) && cues.contains(HeadCue.HOME_ASK)
+					&& (cues.contains(HeadCue.HOME_HUNGRY) || cues.contains(HeadCue.HOME_THIRSTY)), "missing house sequence: " + cues);
+				escaped[0] = helper.getTick();
+			}
+			if (escaped[0] >= 0 && approach[0] < 0) {
+				if (stage == com.larsoyd.mariohead.entity.BehindPrank.Stage.APPROACH) {
+					approach[0] = helper.getTick();
+					helper.assertTrue(approach[0] - escaped[0] >= 100, "stalking skipped escape timer");
+				} else {
+					target.setPos(head.getX() + 70, helper.absoluteVec(new Vec3(0, y, 0)).y, head.getZ());
+					helper.assertTrue(helper.getTick() - escaped[0] < 240, "live chase never stalked house=" + house + " cues=" + cues);
+				}
+			}
+			if (approach[0] >= 0 && stage != com.larsoyd.mariohead.entity.BehindPrank.Stage.DONE) {
+				helper.assertTrue(!head.digging(), "stalking retained TNT");
+				if (stage == com.larsoyd.mariohead.entity.BehindPrank.Stage.APPROACH) helper.assertTrue(cue == HeadCue.NONE, "stalking was not quiet: " + cue);
+			}
+			if (stage == com.larsoyd.mariohead.entity.BehindPrank.Stage.APPROACH && (reaction == 2
+				|| reaction == 3 && head.distanceTo(target) < 14)) {
+				target.setYRot(90);
+				earlyLook[0] = true;
+			}
+			if (reaction == 1 && cue == HeadCue.PRANK_WARNING) target.setYRot(90);
+			if (stage == com.larsoyd.mariohead.entity.BehindPrank.Stage.DASH) {
+				dashed[0] = true;
+				helper.assertTrue(cues.contains(HeadCue.PRANK_WARNING) && prank.punishment() == (reaction == 0), "wrong warning reaction: " + cues);
+				if (reaction == 1) helper.assertTrue(cues.contains(HeadCue.PRANK_RESPONSE), "missing looked-at response");
+				target.setPos(head.getX() + 20, helper.absoluteVec(new Vec3(0, y, 0)).y, head.getZ());
+			}
+			if (stage == com.larsoyd.mariohead.entity.BehindPrank.Stage.DONE) {
+				if (reaction < 2) helper.assertTrue(dashed[0] && cues.contains(HeadCue.PRANK_WARNING), "stalking ended without warning and dash: " + cues);
+				else {
+					helper.assertTrue(earlyLook[0] && !cues.contains(HeadCue.PRANK_WARNING), "early sighting did not cancel warning: " + cues);
+					boolean greeted = cues.contains(HeadCue.TAUNT_026) || cues.contains(HeadCue.TAUNT_078);
+					helper.assertTrue(greeted == (reaction == 3), "wrong greeting for distance: " + cues);
+				}
+				helper.assertTrue(head.digging() == house, "stalking failed to restore original dash mode");
+				if (finished[0] < 0) {
+					finished[0] = helper.getTick();
+					resumed[0] = head.position();
+					target.setPos(head.getX() + 40, helper.absoluteVec(new Vec3(0, y, 0)).y, head.getZ());
+				}
+				if ((house ? cue.digHum() : (cue == HeadCue.MMM1 || cue == HeadCue.MMM2 || cue == HeadCue.MMM3)) && head.position().distanceTo(resumed[0]) > 1) {
+					com.larsoyd.mariohead.MarioHead.LOG.info("[stalking-test] house={} reaction={} escape={} approach={} resumed={} cue={}", house, reaction, escaped[0], approach[0], helper.getTick(), cue);
+					helper.succeed();
+				}
+				helper.assertTrue(helper.getTick() - finished[0] < 150, "chase did not resume after stalking: " + cues);
+			}
+			helper.assertTrue(!head.isRemoved() && !target.isDeadOrDying(), "chase ended before stalking completed: " + cues);
+		});
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 140)
 	public void prankTriggersAfterFiveSecondsOutsideHumRange(GameTestHelper helper) throws ReflectiveOperationException {
 		prankEscape(helper, false);
