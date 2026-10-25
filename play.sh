@@ -1,7 +1,6 @@
-#!/bin/sh
-# builds Mario Head and installs it with Fabric into the launcher folder, or runs a dev client
-# sh play.sh help lists the commands
-set -eu
+#!/usr/bin/env bash
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
+set -euo pipefail
 
 MC_VERSION=26.3
 LOADER_VERSION=0.20.1
@@ -48,7 +47,7 @@ fetch() {
 
 build() {
 	say "building the mod"
-	(cd "$root" && timeout --foreground 1200 ./gradlew --console=plain jar </dev/null) || die "build failed"
+	(cd "$root" && timeout --foreground 1200 ./gradlew --console=plain --max-workers=4 jar </dev/null) || die "build failed"
 	jar="$root/build/libs/mariohead-$(sed -n 's/^version=//p' "$root/gradle.properties").jar"
 	[ -f "$jar" ] || die "no jar at $jar"
 }
@@ -65,6 +64,12 @@ install() {
 	say "installing Fabric Loader $LOADER_VERSION for Minecraft $MC_VERSION"
 	timeout --foreground 600 java -jar "$installer" client -dir "$mc" -mcversion "$MC_VERSION" -loader "$LOADER_VERSION" \
 		|| die "the Fabric installer failed"
+	install_mods
+	say "in the launcher pick the profile fabric-loader-$MC_VERSION and press Play"
+}
+
+install_mods() {
+	mkdir -p "$mc/mods"
 	api="$mc/mods/fabric-api-$FABRIC_API_VERSION.jar"
 	fetch "$MAVEN/fabric-api/fabric-api/$FABRIC_API_VERSION/fabric-api-$FABRIC_API_VERSION.jar" "$api" "$FABRIC_API_SHA1"
 	for other in "$mc"/mods/fabric-api-*.jar; do
@@ -73,15 +78,42 @@ install() {
 	rm -f "$mc"/mods/mariohead-*.jar
 	cp "$jar" "$mc/mods/"
 	say "installed $(basename "$jar") and $(basename "$api") into $mc/mods"
-	say "in the launcher pick the profile fabric-loader-$MC_VERSION and press Play"
+}
+
+setup_prism() {
+	need prismlauncher
+	need python3
+	prism=${PRISM_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/PrismLauncher}
+	java25=${MARIOHEAD_JAVA:-}
+	if [ -z "$java25" ]; then
+		for candidate in "$HOME"/.gradle/jdks/*25*/bin/java /usr/lib/jvm/java-25-openjdk/bin/java; do
+			if [ -x "$candidate" ]; then java25=$candidate; break; fi
+		done
+	fi
+	[ -x "$java25" ] || die "Java 25 not found, set MARIOHEAD_JAVA to its java executable"
+	python3 "$root/tools/setup_prism.py" "$prism" "$mc" "$MC_VERSION" "$LOADER_VERSION" "$java25"
 }
 
 case ${1:-play} in
 	play)
+		setup_prism
+		need curl
+		need sha1sum
+		build
+		install_mods
+		say "launching Mario Head through Prism"
+		exec prismlauncher --dir "$prism" --launch mariohead
+		;;
+	setup)
+		setup_prism
+		;;
+	official)
 		install
-		need minecraft-launcher
+		launcher=minecraft-launcher
+		if command -v minecraft-launcher.sh >/dev/null 2>&1; then launcher=minecraft-launcher.sh; fi
+		need "$launcher"
 		say "opening the Minecraft Launcher"
-		nohup minecraft-launcher >/dev/null 2>&1 &
+		exec "$launcher"
 		;;
 	install)
 		install
@@ -93,13 +125,17 @@ case ${1:-play} in
 		;;
 	help)
 		cat <<'USAGE'
-sh play.sh          build, install with Fabric, then open the Minecraft Launcher
-sh play.sh install  build and install only
+sh play.sh          build and launch Fabric directly through Prism
+sh play.sh setup    prepare the Prism instance without launching
+sh play.sh official build and open the official Minecraft Launcher
+sh play.sh install  build and install for the official launcher only
 sh play.sh dev      run a throwaway dev client with the mod, nothing installed
 MINECRAFT_DIR=...   use another launcher folder than ~/.minecraft
+PRISM_DIR=...       override the Prism data folder
+MARIOHEAD_JAVA=...  Java 25 executable
 USAGE
 		;;
 	*)
-		die "unknown command $1, use play, install, dev or help"
+		die "unknown command $1, use play, setup, official, install, dev or help"
 		;;
 esac

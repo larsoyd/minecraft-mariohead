@@ -16,16 +16,22 @@ He does not give up. If he touches you, you die.
 
 ## Install
 
-From a checkout, with the Minecraft Launcher started at least once:
+Install Prism Launcher and sign into your Microsoft account in Prism, then run:
 
 ```
 sh play.sh
 ```
 
-It builds the mod, installs Fabric Loader 0.20.1 for 26.3 (the profile `fabric-loader-26.3`), puts
-Fabric API and the mod in `~/.minecraft/mods`, and opens the launcher. Pick `fabric-loader-26.3` and
-press Play. `sh play.sh install` skips opening the launcher, `sh play.sh dev` runs a throwaway client
-with an offline player and installs nothing, `sh play.sh help` lists these.
+This builds the mod, installs it and Fabric API into `~/.minecraft/mods`, and launches the
+Mario Head instance through Prism with Minecraft 26.3 and Fabric Loader 0.20.1. The instance
+shares your existing Minecraft folder, including worlds and settings. Java 25 is selected
+from Gradle's downloaded JDKs or `/usr/lib/jvm/java-25-openjdk`; set `MARIOHEAD_JAVA` to
+another Java 25 executable if needed.
+
+`sh play.sh setup` prepares the instance without launching. `sh play.sh official` builds and
+opens the official launcher instead; `sh play.sh install` only installs for that launcher.
+`sh play.sh dev` runs a separate offline development game. `MINECRAFT_DIR` overrides the game
+folder, and `PRISM_DIR` overrides Prism's data folder. Run only one game using these worlds at a time.
 
 By hand: put `mariohead-0.1.0.jar` and Fabric API in the `mods` folder of a Fabric 26.3 profile.
 
