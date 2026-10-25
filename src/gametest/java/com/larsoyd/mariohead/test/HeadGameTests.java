@@ -114,6 +114,248 @@ public class HeadGameTests {
 		});
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void entersRealVillageSmallHouse(GameTestHelper helper) {
+		villageHouseScenario(helper, "plains_small_house_1", false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void raidsChestInsideRealVillageSmallHouse(GameTestHelper helper) {
+		villageHouseScenario(helper, "plains_small_house_1", true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void raidsChestInsideRealVillageMediumHouse(GameTestHelper helper) {
+		villageHouseScenario(helper, "plains_medium_house_1", true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void raidsChestInsideRealDesertHouse(GameTestHelper helper) {
+		villageHouseScenario(helper, "desert/houses/desert_small_house_1", true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void raidsChestInsideRealSavannaHouse(GameTestHelper helper) {
+		villageHouseScenario(helper, "savanna/houses/savanna_small_house_1", true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void raidsChestInsideRealTaigaHouse(GameTestHelper helper) {
+		villageHouseScenario(helper, "taiga/houses/taiga_small_house_1", true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void raidsChestInsideRealSnowyHouse(GameTestHelper helper) {
+		villageHouseScenario(helper, "snowy/houses/snowy_small_house_1", true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void raidsVillageHouseFromBelowFoundation(GameTestHelper helper) {
+		villageHouseScenario(helper, "plains_small_house_1", true, true);
+	}
+
+	private void villageHouseScenario(GameTestHelper helper, String name, boolean withChest) {
+		villageHouseScenario(helper, name, withChest, false);
+	}
+
+	private void villageHouseScenario(GameTestHelper helper, String name, boolean withChest, boolean raised) {
+		fill(helper, 0, 0, 0, 19, 20, 19, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, -1, 0, 19, -1, 19, Blocks.STONE.defaultBlockState());
+		var level = helper.getLevel();
+		var template = level.getStructureTemplateManager().get(net.minecraft.resources.Identifier.withDefaultNamespace("village/" + (name.contains("/") ? name : "plains/houses/" + name))).orElseThrow();
+		var settings = new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings()
+			.setIgnoreEntities(true)
+			.addProcessor(net.minecraft.world.level.levelgen.structure.templatesystem.JigsawReplacementProcessor.INSTANCE)
+			.addProcessor(net.minecraft.world.level.levelgen.structure.templatesystem.BlockIgnoreProcessor.STRUCTURE_BLOCK);
+		BlockPos origin = helper.absolutePos(new BlockPos(5, raised ? 4 : 0, 3));
+		if (raised) fill(helper, 5, 0, 3, 4 + template.getSize().getX(), 3, 2 + template.getSize().getZ(), Blocks.COBBLESTONE.defaultBlockState());
+		helper.assertTrue(template.placeInWorld(level, origin, origin, settings, net.minecraft.util.RandomSource.create(4321), 3), "could not place vanilla house " + name);
+		List<BlockPos> standing = new ArrayList<>();
+		for (BlockPos pos : BlockPos.betweenClosed(origin, origin.offset(template.getSize()))) {
+			if (level.getBlockState(pos).isAir() && level.getBlockState(pos.above()).isAir()
+				&& !level.getBlockState(pos.below()).getCollisionShape(level, pos.below()).isEmpty()
+				&& com.larsoyd.mariohead.entity.HeadShelter.inspect(level, pos, origin.offset(-4, 2, 0)).sheltered()) {
+				standing.add(pos.immutable());
+			}
+		}
+		helper.assertTrue(standing.size() >= 2, "vanilla house has no detected interior: " + name);
+		BlockPos playerPos = standing.getLast();
+		BlockPos chestPos = standing.stream().filter(pos -> !pos.equals(playerPos) && pos.getY() == playerPos.getY()).findFirst().orElseThrow();
+		if (withChest) {
+			level.setBlock(chestPos, Blocks.CHEST.defaultBlockState(), 3);
+			((net.minecraft.world.Container) level.getBlockEntity(chestPos))
+				.setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND, 17));
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, helper.relativeVec(Vec3.atBottomCenterOf(playerPos)), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, helper.relativeVec(new Vec3(origin.getX() - 3.5, raised ? helper.absoluteVec(new Vec3(0, 0.5, 0)).y : playerPos.getY(), playerPos.getZ() + 0.5)));
+		head.chase(target);
+		boolean[] home = { false };
+		boolean[] food = { false };
+		boolean[] entered = { false };
+		boolean[] returned = { false };
+		helper.onEachTick(() -> {
+			home[0] |= head.cue() == HeadCue.HOME_NICE;
+			food[0] |= head.cue() == HeadCue.HOME_HUNGRY || head.cue() == HeadCue.HOME_THIRSTY;
+			returned[0] |= head.cue() == HeadCue.HOME_RETURN;
+			Vec3 c = head.centre();
+			entered[0] |= c.x > origin.getX() + 1 && c.x < origin.getX() + template.getSize().getX() - 1
+				&& c.z > origin.getZ() + 1 && c.z < origin.getZ() + template.getSize().getZ() - 1
+				&& c.distanceTo(target.getEyePosition()) < 3 && level.noCollision(head, head.getBoundingBox().deflate(1e-5));
+			if (home[0] && entered[0] && (!withChest || food[0] && returned[0] && level.getBlockState(chestPos).isAir())) {
+				com.larsoyd.mariohead.MarioHead.LOG.info("[home-test] house={} entered={} food={} returned={} tick={}", name, entered[0], food[0], returned[0], helper.getTick());
+				helper.succeed();
+			}
+			if (helper.getTick() > 750) helper.assertTrue(false, "village entry failed house=" + name + " home=" + home[0]
+				+ " food=" + food[0] + " entered=" + entered[0] + " returned=" + returned[0] + " pos=" + helper.relativeVec(c) + " cue=" + head.cue());
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void singleChestGetsFullHomeRaid(GameTestHelper helper) {
+		homeRaidScenario(helper, 0);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void trappedChestGetsFullHomeRaid(GameTestHelper helper) {
+		homeRaidScenario(helper, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void doubleChestSurvivesIgnitionUntilFoodLine(GameTestHelper helper) {
+		homeRaidScenario(helper, 2);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void chestPlacedDuringHomeDialogueGetsRaided(GameTestHelper helper) {
+		homeRaidScenario(helper, 3);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void openingHouseAfterGreetingKeepsChestTargets(GameTestHelper helper) {
+		homeRaidScenario(helper, 4);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void existingDiggingStillRaidsHouseChest(GameTestHelper helper) {
+		homeRaidScenario(helper, 5);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void removedChestCancelsRaidBeforeAnotherDash(GameTestHelper helper) {
+		homeRaidScenario(helper, 6);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void doorHouseWithoutBedRaidsSingleChest(GameTestHelper helper) {
+		homeRaidScenario(helper, 7);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void raisedChestGetsRaided(GameTestHelper helper) {
+		homeRaidScenario(helper, 8);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void lowCeilingHouseStillRaidsChest(GameTestHelper helper) {
+		homeRaidScenario(helper, 9);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void houseIgnitionDashKeepsMoving(GameTestHelper helper) {
+		homeRaidScenario(helper, 10);
+	}
+
+	private void homeRaidScenario(GameTestHelper helper, int scenario) {
+		fill(helper, 8, 0, 4, 18, 5, 14, Blocks.STONE.defaultBlockState());
+		fill(helper, 9, 1, 5, 17, scenario == 9 ? 2 : 4, 13, Blocks.AIR.defaultBlockState());
+		if (scenario == 7) {
+			helper.setBlock(new BlockPos(8, 1, 7), Blocks.OAK_DOOR.defaultBlockState());
+			helper.setBlock(new BlockPos(8, 2, 7), Blocks.OAK_DOOR.defaultBlockState()
+				.setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
+		} else {
+			helper.setBlock(new BlockPos(14, 1, 12), Blocks.BED.red().defaultBlockState());
+		}
+		List<BlockPos> chests = scenario == 2 ? List.of(new BlockPos(9, 1, 9), new BlockPos(9, 1, 10))
+			: List.of(new BlockPos(9, scenario == 8 ? 3 : 1, 9));
+		Runnable place = () -> {
+			for (int index = 0; index < chests.size(); index++) {
+				var state = (scenario == 1 ? Blocks.TRAPPED_CHEST : Blocks.CHEST).defaultBlockState();
+				if (scenario == 2) {
+					state = state.setValue(net.minecraft.world.level.block.ChestBlock.FACING, net.minecraft.core.Direction.EAST)
+						.setValue(net.minecraft.world.level.block.ChestBlock.TYPE, index == 0
+							? net.minecraft.world.level.block.state.properties.ChestType.LEFT
+							: net.minecraft.world.level.block.state.properties.ChestType.RIGHT);
+				}
+				helper.setBlock(chests.get(index), state);
+				((net.minecraft.world.Container) helper.getLevel().getBlockEntity(helper.absolutePos(chests.get(index))))
+					.setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND, 17));
+			}
+		};
+		if (scenario != 3) place.run();
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, 1, 9.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(6.0, 1, 9.5));
+		head.chase(target);
+		if (scenario == 5) {
+			try {
+				var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
+				digging.setAccessible(true);
+				digging.invoke(head, true);
+			} catch (ReflectiveOperationException e) {
+				throw new AssertionError(e);
+			}
+		}
+		List<HeadCue> cues = new ArrayList<>();
+		long[] ignitionAt = { -1 };
+		Vec3[] ignitionPos = { Vec3.ZERO };
+		boolean[] food = { false };
+		boolean[] changed = { false };
+		helper.onEachTick(() -> {
+			HeadCue cue = head.cue();
+			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
+			if (scenario == 3 && cue.digHum() && !food[0]) fill(helper, 8, 1, 7, 8, 3, 9, Blocks.AIR.defaultBlockState());
+			if (scenario == 10 && cue.digHum() && !food[0]) {
+				if (ignitionAt[0] < 0) {
+					ignitionAt[0] = helper.getTick();
+					ignitionPos[0] = head.position();
+				} else if (helper.getTick() - ignitionAt[0] == 10) {
+					helper.assertTrue(head.position().distanceTo(ignitionPos[0]) > 0.5, "house dash stopped after its first tick");
+				}
+			}
+			if (cue == HeadCue.HOME_NICE && !changed[0]) {
+				changed[0] = true;
+				if (scenario == 3) place.run();
+				if (scenario == 4) fill(helper, 8, 1, 7, 8, 3, 9, Blocks.AIR.defaultBlockState());
+			}
+			if (cue == HeadCue.HOME_HUNGRY || cue == HeadCue.HOME_THIRSTY) {
+				if (scenario == 6 && !food[0]) {
+					for (BlockPos pos : chests) {
+						((net.minecraft.world.Container) helper.getLevel().getBlockEntity(helper.absolutePos(pos))).clearContent();
+						helper.setBlock(pos, Blocks.AIR.defaultBlockState());
+					}
+				}
+				food[0] = true;
+				target.setPos(helper.absoluteVec(new Vec3(25.5, 1, 9.5)));
+			}
+			if (scenario == 6 && food[0]) helper.assertTrue(!cue.digHum(), "empty raid started another dash: " + cues);
+			if (changed[0] && !food[0]) {
+				for (BlockPos pos : chests) helper.assertTrue(helper.getLevel().getBlockEntity(helper.absolutePos(pos)) instanceof net.minecraft.world.Container,
+					"ignition destroyed chest before food line, scenario=" + scenario + " cues=" + cues);
+			}
+			if (changed[0]) helper.assertTrue(cue != HeadCue.UNDERGROUND && !target.isDeadOrDying(),
+				"home raid fell back to player/underground, scenario=" + scenario + " cues=" + cues);
+			if (cue == HeadCue.HOME_RETURN) {
+				helper.assertTrue(cues.contains(HeadCue.HOME_ASK) && food[0], "missing house/food dialogue: " + cues);
+				for (BlockPos pos : chests) helper.assertTrue(helper.getLevel().getBlockState(helper.absolutePos(pos)).isAir(), "raid missed chest " + pos);
+				helper.assertTrue(head.chased() == target, "raid lost escaped owner");
+				var drops = helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+					new AABB(helper.absolutePos(new BlockPos(7, 0, 3))).expandTowards(13, 7, 13),
+					item -> item.getItem().is(net.minecraft.world.item.Items.DIAMOND));
+				helper.assertTrue(drops.isEmpty(), "raid dropped inventory");
+				helper.succeed();
+			}
+		});
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 180)
 	public void replacingChestsCannotExtendRaidDeadline(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(17.5, 1, 9.5), 90);
@@ -156,6 +398,26 @@ public class HeadGameTests {
 		} catch (ReflectiveOperationException e) {
 			throw new AssertionError(e);
 		}
+	}
+
+	@GameTest(structure = ARENA)
+	public void unopenedVillageChestDoesNotDropLoot(GameTestHelper helper) {
+		BlockPos pos = helper.absolutePos(new BlockPos(6, 1, 6));
+		helper.getLevel().setBlock(pos, Blocks.CHEST.defaultBlockState(), 3);
+		var container = (net.minecraft.world.RandomizableContainer) helper.getLevel().getBlockEntity(pos);
+		container.setLootTable(net.minecraft.world.level.storage.loot.BuiltInLootTables.VILLAGE_PLAINS_HOUSE, 4321L);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(3.5, 1, 6.5));
+		try {
+			var destroy = TheHead.class.getDeclaredMethod("destroyRaidChest", ServerLevel.class, BlockPos.class);
+			destroy.setAccessible(true);
+			destroy.invoke(head, helper.getLevel(), pos);
+			helper.assertTrue(helper.getLevel().getBlockState(pos).isAir(), "unopened chest survived raid");
+			helper.assertTrue(helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+				new net.minecraft.world.phys.AABB(pos).inflate(2)).isEmpty(), "unopened village chest generated loot drops during raid");
+		} catch (ReflectiveOperationException e) {
+			throw new AssertionError(e);
+		}
+		helper.succeed();
 	}
 
 	@GameTest(structure = ARENA)

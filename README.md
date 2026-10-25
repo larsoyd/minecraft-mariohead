@@ -81,7 +81,7 @@ The command needs operator rights (permission level 2).
 - Hide near a bed in a sealed room, or behind a closed house door, and he says "Hmm, you have a
   nice place here!", pauses half a second, then asks "Can I have it?" His TNT dash starts after
   another 0.2 seconds. This sequence can happen even after he has started digging.
-- A room with multiple chests can distract him once per chase. He asks for food or a drink, then
+- A room with a chest can distract him once per chase. He asks for food or a drink, then
   attacks the chests for at most five seconds, destroying their contents when mobGriefing is on.
   Adding more chests cannot extend the diversion. He returns to his original player with
   "Hmm, guess what time it is? It's time for you to die!"

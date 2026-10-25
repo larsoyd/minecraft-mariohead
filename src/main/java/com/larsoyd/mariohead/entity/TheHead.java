@@ -479,7 +479,7 @@ public class TheHead extends Monster {
 			if (this.distanceToSqr(target) <= 24 * 24 && this.underRoof(target) && this.pendingVoice == HeadCue.NONE) {
 				HeadShelter room = HeadShelter.inspect(level, target.blockPosition(), BlockPos.containing(this.centre()));
 				boolean home = !this.homeUsed && room.sheltered();
-				boolean loot = !this.raidUsed && room.chests().size() >= 2 && level.getGameRules().get(GameRules.MOB_GRIEFING);
+				boolean loot = !this.raidUsed && !room.chests().isEmpty() && level.getGameRules().get(GameRules.MOB_GRIEFING);
 				if (home || loot) {
 					this.homeUsed |= home;
 					this.raidUsed |= loot;
@@ -492,24 +492,26 @@ public class TheHead extends Monster {
 			}
 		}
 		if (this.homeStage == HomeStage.NONE) return false;
-		if (this.homeStage == HomeStage.RAID) {
+		if (this.homeStage == HomeStage.LOOT || this.homeStage == HomeStage.RAID_START || this.homeStage == HomeStage.RAID) {
 			this.homeChests.removeIf(pos -> !(level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.ChestBlock));
-			if (now >= this.raidUntil || this.homeChests.isEmpty() || !level.getGameRules().get(GameRules.MOB_GRIEFING)) {
+			if (this.homeStage == HomeStage.RAID && now >= this.raidUntil || this.homeChests.isEmpty()
+				|| !level.getGameRules().get(GameRules.MOB_GRIEFING)) {
 				this.homeChests.clear();
 				this.homeStage = HomeStage.RETURN;
 				this.replanIn = 0;
 				this.path = null;
-			} else {
-				BlockPos chest = this.homeChests.stream().min(java.util.Comparator.comparingDouble(pos -> Vec3.atCenterOf(pos).distanceToSqr(this.centre()))).orElseThrow();
-				Vec3 to = Vec3.atCenterOf(chest);
-				boolean dash = this.tickDigDash(now);
-				this.chargeSpeed = Math.max(0.8, RevSpring.speed(this.revs, 0.0, this.pace));
-				Vec3 delta = to.subtract(this.centre());
-				this.setFacing(yawTo(this.centre(), to), (float) -Math.toDegrees(Math.atan2(delta.y, delta.horizontalDistance())));
-				this.digToward(level, to, this.cue(), dash);
-				if (this.getBoundingBox().inflate(0.3).contains(to)) this.destroyRaidChest(level, chest);
-				return true;
 			}
+		}
+		if (this.homeStage == HomeStage.RAID) {
+			BlockPos chest = this.homeChests.stream().min(java.util.Comparator.comparingDouble(pos -> Vec3.atCenterOf(pos).distanceToSqr(this.centre()))).orElseThrow();
+			Vec3 to = Vec3.atCenterOf(chest);
+			boolean dash = this.tickDigDash(now);
+			this.chargeSpeed = Math.max(0.8, RevSpring.speed(this.revs, 0.0, this.pace));
+			Vec3 delta = to.subtract(this.centre());
+			this.setFacing(yawTo(this.centre(), to), (float) -Math.toDegrees(Math.atan2(delta.y, delta.horizontalDistance())));
+			this.digToward(level, to, this.cue(), dash);
+			if (this.getBoundingBox().inflate(0.3).contains(to)) this.destroyRaidChest(level, chest);
+			return true;
 		}
 		HeadCue line = switch (this.homeStage) {
 			case NICE -> HeadCue.HOME_NICE;
@@ -521,6 +523,12 @@ public class TheHead extends Monster {
 		if (this.speech.canStart(line, now)) {
 			HomeStage stage = this.homeStage;
 			if (stage == HomeStage.IGNITE || stage == HomeStage.RAID_START) {
+				if (stage == HomeStage.IGNITE && !this.raidUsed && level.getGameRules().get(GameRules.MOB_GRIEFING)) {
+					HeadShelter room = HeadShelter.inspect(level, target.blockPosition(), BlockPos.containing(this.centre()));
+					this.homeChests.addAll(room.chests());
+					this.raidUsed = !this.homeChests.isEmpty();
+				}
+				this.homeChests.removeIf(pos -> !(level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.ChestBlock));
 				this.burrowing = false;
 				this.setDigging(true);
 				this.nextDigDash = -1;
@@ -528,7 +536,13 @@ public class TheHead extends Monster {
 				this.lastBlastAt = null;
 				boolean dash = this.tickDigDash(now);
 				this.chargeSpeed = Math.max(0.8, this.chargeSpeed);
-				this.dig(level, target, this.cue(), dash);
+				if (stage == HomeStage.RAID_START && !this.homeChests.isEmpty()) {
+					Vec3 to = this.homeChests.stream().map(Vec3::atCenterOf)
+						.min(java.util.Comparator.comparingDouble(this.centre()::distanceToSqr)).orElseThrow();
+					this.digToward(level, to, this.cue(), dash);
+				} else {
+					this.dig(level, target, this.cue(), dash);
+				}
 				if (stage == HomeStage.RAID_START) {
 					this.raidUntil = now + 100;
 					this.homeStage = HomeStage.RAID;
@@ -546,6 +560,11 @@ public class TheHead extends Monster {
 			};
 		}
 		if (this.homeStage == HomeStage.RETURN || line == HeadCue.HOME_RETURN) return false;
+		if (this.homeStage == HomeStage.LOOT && this.cue().digHum()) {
+			this.chargeSpeed = Math.max(0.8, this.chargeSpeed);
+			this.dig(level, target, this.cue(), false);
+			return true;
+		}
 		this.moveSpeed = 0;
 		this.faceTowards(yawTo(this.centre(), target.position()), target);
 		this.hover();
@@ -554,7 +573,10 @@ public class TheHead extends Monster {
 
 	private void destroyRaidChest(ServerLevel level, BlockPos pos) {
 		if (!level.getGameRules().get(GameRules.MOB_GRIEFING)) return;
-		if (level.getBlockEntity(pos) instanceof net.minecraft.world.Container container) container.clearContent();
+		if (level.getBlockEntity(pos) instanceof net.minecraft.world.Container container) {
+			if (container instanceof net.minecraft.world.RandomizableContainer loot) loot.setLootTable(null);
+			container.clearContent();
+		}
 		level.destroyBlock(pos, false, this);
 	}
 
@@ -685,7 +707,9 @@ public class TheHead extends Monster {
 				|| state.getBlock().getExplosionResistance() >= HARD_BLOCK) {
 				continue;
 			}
-			if (this.homeChests.contains(pos)) {
+			boolean chest = state.getBlock() instanceof net.minecraft.world.level.block.ChestBlock;
+			if (chest && this.homeStage == HomeStage.IGNITE) continue;
+			if (chest && (this.homeStage == HomeStage.RAID_START || this.homeStage == HomeStage.RAID)) {
 				this.destroyRaidChest(level, pos);
 			} else {
 				level.destroyBlock(pos, !decay || this.random.nextFloat() < 1.0f / DIG_POWER, this);
