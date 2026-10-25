@@ -426,6 +426,45 @@ public class HeadGameTests {
 		});
 	}
 
+	// run alone with the test filter, it logs the server tick time with this many heads chasing
+	private static void tickTimeWith(GameTestHelper helper, int heads) {
+		fill(helper, 9, 0, 0, 9, 7, 16, Blocks.STONE.defaultBlockState());
+		for (int x = 1; x <= 4; x++) {
+			for (int z = 9; z <= 12; z++) {
+				for (int y = 0; y <= 2; y++) {
+					helper.setBlock(new BlockPos(x, y, z), x == 1 || x == 4 || z == 9 || z == 12 ? Blocks.GLASS : Blocks.AIR);
+				}
+			}
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.0, 0.0, 11.0), -90.0f);
+		for (int i = 0; i < heads; i++) {
+			head(helper, new Vec3(13.5 + (i % 3) * 2.0, 0.5, 2.5 + i * 3.5), target);
+		}
+		helper.runAtTickTime(270, () -> {
+			long[] times = helper.getLevel().getServer().getTickTimesNanos();
+			double sum = 0.0;
+			double worst = 0.0;
+			for (long t : times) {
+				sum += t / 1e6;
+				worst = Math.max(worst, t / 1e6);
+			}
+			com.larsoyd.mariohead.MarioHead.LOG.info("[perf] heads={} ticks={} avg_ms={} max_ms={} target_alive={}", heads, times.length,
+				String.format("%.2f", sum / times.length), String.format("%.2f", worst), !target.isDeadOrDying());
+			leave(helper, target);
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300, required = false)
+	public void tickTimeWithFiveHeads(GameTestHelper helper) {
+		tickTimeWith(helper, 5);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300, required = false)
+	public void tickTimeWithNoHeads(GameTestHelper helper) {
+		tickTimeWith(helper, 0);
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 20, required = false)
 	public void failsOnPurposeSoTeardownIsChecked(GameTestHelper helper) {
 		player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), 0.0f);
