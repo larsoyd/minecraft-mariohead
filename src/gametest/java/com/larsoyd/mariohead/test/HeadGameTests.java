@@ -787,6 +787,255 @@ public class HeadGameTests {
 		});
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void tntDashOnlyBlastsObstructions(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		try {
+			var dig = TheHead.class.getDeclaredMethod("digToward", ServerLevel.class, Vec3.class, HeadCue.class, boolean.class);
+			dig.setAccessible(true);
+			Field blast = TheHead.class.getDeclaredField("lastBlastAt");
+			blast.setAccessible(true);
+			Vec3 to = head.centre().add(-10, 0, 0);
+			for (int dash = 0; dash < 6; dash++) {
+				dig.invoke(head, helper.getLevel(), to, HeadCue.DIG_MMM1, true);
+				helper.assertFalse(head.burrowing(), "stationary clear-air dash enabled phasing");
+			}
+			helper.assertTrue(blast.get(head) == null, "empty-air dash exploded");
+			helper.assertTrue(explosionPackets(target) == 0, "empty-air dash sent explosion packet");
+			fill(helper, 13, 0, 9, 14, 3, 11, Blocks.STONE.defaultBlockState());
+			dig.invoke(head, helper.getLevel(), to, HeadCue.DIG_MMM1, false);
+			helper.assertTrue(stoneLeft(helper, 13, 0, 9, 14, 3, 11) == 24, "non-dash cut stone");
+			dig.invoke(head, helper.getLevel(), to, HeadCue.DIG_MMM1, true);
+			helper.assertTrue(blast.get(head) != null, "blocked dash did not explode");
+			helper.assertTrue(explosionPackets(target) == 1, "blocked dash did not send audible explosion");
+			helper.assertTrue(stoneLeft(helper, 13, 0, 9, 14, 3, 11) < 24, "blocked dash did not cut stone");
+			head.discard();
+			helper.succeed();
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void tntDashKeepsDiggingWhileStoneBreaks(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		try {
+			var dig = TheHead.class.getDeclaredMethod("digToward", ServerLevel.class, Vec3.class, HeadCue.class, boolean.class);
+			dig.setAccessible(true);
+			Vec3 to = head.centre().add(-10, 0, 0);
+			for (int dash = 0; dash < 6; dash++) {
+				fill(helper, 13, 0, 9, 14, 3, 11, Blocks.STONE.defaultBlockState());
+				dig.invoke(head, helper.getLevel(), to, HeadCue.DIG_MMM1, true);
+				helper.assertFalse(head.burrowing(), "phased despite breaking stone on dash " + dash);
+			}
+			fill(helper, 13, 0, 9, 14, 3, 11, Blocks.OBSIDIAN.defaultBlockState());
+			for (int dash = 0; dash < HeadTuning.DIG_STALLS; dash++) {
+				dig.invoke(head, helper.getLevel(), to, HeadCue.DIG_MMM1, true);
+			}
+			helper.assertTrue(head.burrowing(), "unbreakable route lost escape fallback");
+			head.discard();
+			helper.succeed();
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void tntDashLeavesOpenGroundIntact(GameTestHelper helper) {
+		fill(helper, 0, -1, 9, 19, -1, 11, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		try {
+			var dig = TheHead.class.getDeclaredMethod("dig", ServerLevel.class, net.minecraft.world.entity.player.Player.class, HeadCue.class, boolean.class);
+			dig.setAccessible(true);
+			Field speed = TheHead.class.getDeclaredField("chargeSpeed");
+			speed.setAccessible(true);
+			speed.setDouble(head, 0.4);
+			for (int tick = 0; tick < 160; tick++) {
+				dig.invoke(head, helper.getLevel(), target, HeadCue.DIG_MMM1, tick % 40 == 0);
+			}
+			helper.assertTrue(stoneLeft(helper, 0, -1, 9, 19, -1, 11) == 60, "TNT chase dug a trench into open ground");
+			helper.assertTrue(explosionPackets(target) == 0, "open-ground chase sent explosions");
+			helper.assertFalse(head.burrowing(), "open-ground chase entered phasing");
+			head.discard();
+			helper.succeed();
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 2200, dimension = "minecraft:the_end")
+	public void houseTntCatchesRunnerOnOpenGround(GameTestHelper helper) {
+		houseRunner(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 2200, dimension = "minecraft:the_end")
+	public void houseTntClimbsOutToEscapingRunner(GameTestHelper helper) {
+		houseRunner(helper, true);
+	}
+
+	private void houseRunner(GameTestHelper helper, boolean hill) {
+		int base = hill ? 220 : 160;
+		fill(helper, 0, base - 1, 5, 850, base - 1, 15, Blocks.STONE.defaultBlockState());
+		fill(helper, 7, base, 5, 18, base + 4, 15, Blocks.OAK_PLANKS.defaultBlockState());
+		fill(helper, 8, base, 6, 17, base + 3, 14, Blocks.AIR.defaultBlockState());
+		helper.setBlock(new BlockPos(14, base, 9), Blocks.BED.red().defaultBlockState());
+		if (hill) {
+			for (int x = 20; x <= 850; x++) {
+				fill(helper, x, base, 8, x, base + Math.min(7, x - 20), 12, Blocks.STONE.defaultBlockState());
+			}
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(14.5, base, 9.5), 90);
+		target.setNoGravity(true);
+		TheHead head = head(helper, new Vec3(3.5, base + 0.5, 9.5), target);
+		head.getRandom().setSeed(12345);
+		long[] escaped = { -1 };
+		long[] tntAt = { -1 };
+		boolean[] tnt = { false };
+		helper.onEachTick(() -> {
+			if (target.isDeadOrDying()) return;
+			if (head.cue() == HeadCue.HOME_ASK && escaped[0] < 0) escaped[0] = helper.getTick();
+			if (escaped[0] >= 0) {
+				double x = 14.5 + (helper.getTick() - escaped[0]) * 0.36;
+				double y = base + (hill ? Math.clamp(Math.floor(x) - 19, 0, 8) : 0);
+				target.setPos(helper.absoluteVec(new Vec3(x, y, 9.5)));
+				target.setOnGround(true);
+			}
+			tnt[0] |= head.digging();
+			if (head.digging() && tntAt[0] < 0) tntAt[0] = helper.getTick();
+			if (hill && tntAt[0] >= 0 && helper.getTick() - tntAt[0] >= 200) {
+				helper.assertTrue(helper.relativeVec(head.position()).y >= base + 8, "TNT pursuit stayed buried below the escaping runner");
+			}
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(escaped[0] >= 0 && tnt[0] && target.isDeadOrDying(),
+				"house runner escaped: hill=" + hill + " head=" + helper.relativeVec(head.position())
+					+ " gap=" + head.distanceTo(target) + " speed=" + head.chargeSpeed());
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void denseTerrainDashesFasterWithoutRestartingHum(GameTestHelper helper) {
+		terrainDashCadence(helper, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void ordinaryHouseKeepsFullHumDashCadence(GameTestHelper helper) {
+		terrainDashCadence(helper, false);
+	}
+
+	private void terrainDashCadence(GameTestHelper helper, boolean dense) {
+		fill(helper, 5, -4, 5, 19, -1, 15, Blocks.STONE.defaultBlockState());
+		fill(helper, 8, 0, 5, dense ? 19 : 8, 7, 15, Blocks.STONE.defaultBlockState());
+		if (!dense) fill(helper, 8, 4, 5, 19, 4, 15, Blocks.OAK_PLANKS.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, 0, 10.5), 90);
+		TheHead head = head(helper, new Vec3(6.5, 0.5, 10.5), target);
+		try {
+			var dash = TheHead.class.getDeclaredMethod("tickDigDash", long.class);
+			dash.setAccessible(true);
+			Field next = TheHead.class.getDeclaredField("nextDigDash");
+			next.setAccessible(true);
+			long now = helper.getLevel().getGameTime();
+			helper.assertTrue((boolean) dash.invoke(head, now), "digging did not start");
+			HeadCue hum = head.cue();
+			int full = (hum.clip().millis() + 49) / 50 + 5;
+			helper.assertTrue(next.getLong(head) - now == (dense ? 10 : full), "wrong terrain cadence: dense=" + dense + " ticks=" + (next.getLong(head) - now));
+			if (dense) {
+				helper.assertFalse((boolean) dash.invoke(head, now + 9), "dense dash fired early");
+				helper.assertTrue((boolean) dash.invoke(head, now + 10), "dense dash waited for hum to finish");
+				helper.assertTrue(head.cue() == hum && head.revs() == 2, "faster dash restarted the full recording");
+				fill(helper, 8, 0, 5, 19, 7, 15, Blocks.AIR.defaultBlockState());
+				helper.assertTrue((boolean) dash.invoke(head, now + 20), "dash did not resume in open air");
+				helper.assertTrue(next.getLong(head) - (now + 20) > 10, "fast terrain cadence persisted in open air");
+			}
+			head.discard();
+			helper.succeed();
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	private static int explosionPackets(ServerPlayer player) {
+		int count = 0;
+		Object packet;
+		while ((packet = CHANNELS.get(player).readOutbound()) != null) {
+			if (packet instanceof net.minecraft.network.protocol.game.ClientboundExplodePacket blast && blast.playSound()) count++;
+		}
+		return count;
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void tntDashAllowsRegularTaunts(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 0, 10.5), -90);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		try {
+			var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
+			var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class);
+			var dash = TheHead.class.getDeclaredMethod("tickDigDash", long.class);
+			digging.setAccessible(true);
+			taunt.setAccessible(true);
+			dash.setAccessible(true);
+			digging.invoke(head, true);
+			helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "TNT mode blocked regular taunt");
+			long now = helper.getLevel().getGameTime();
+			helper.assertFalse((boolean) dash.invoke(head, now), "dash interrupted taunt");
+			helper.assertTrue((boolean) dash.invoke(head, now + 300), "dash did not resume after taunt");
+			Field boost = TheHead.class.getDeclaredField("dashBoost");
+			boost.setAccessible(true);
+			helper.assertTrue(boost.getDouble(head) == 1.1, "TNT taunt lost follow-up boost");
+			Field rolled = TheHead.class.getDeclaredField("tauntRolled");
+			rolled.setAccessible(true);
+			helper.assertFalse(rolled.getBoolean(head), "new TNT dash did not refresh taunt roll");
+			helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "TNT taunt ignored cooldown");
+			head.discard();
+			helper.succeed();
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1500)
+	public void tntDashDigsIntoDeepNarrowShaft(GameTestHelper helper) {
+		deepNarrowChase(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1500)
+	public void tntDashDigsIntoDeepNarrowTunnel(GameTestHelper helper) {
+		deepNarrowChase(helper, true);
+	}
+
+	private void deepNarrowChase(GameTestHelper helper, boolean tunnel) {
+		fill(helper, 0, 0, 0, 19, 42, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 10, 1, 10, 10, 42, 10, Blocks.AIR.defaultBlockState());
+		if (tunnel) fill(helper, 4, 1, 10, 10, 2, 10, Blocks.AIR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(tunnel ? 4.5 : 10.5, 1, 10.5), -90);
+		TheHead head = head(helper, new Vec3(16.5, 43.5, 10.5), target);
+		boolean[] announced = { false };
+		boolean[] blasted = { false };
+		int[] nearbyBlasts = { 0 };
+		helper.onEachTick(() -> {
+			int packets = explosionPackets(target);
+			if (head.distanceTo(target) < 32) nearbyBlasts[0] += packets;
+			announced[0] |= head.cue() == HeadCue.UNDERGROUND;
+			try {
+				Field blast = TheHead.class.getDeclaredField("lastBlastAt");
+				blast.setAccessible(true);
+				blasted[0] |= blast.get(head) != null;
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+			helper.assertFalse(head.burrowing(), "phased through ordinary stone at " + helper.relativeVec(head.position()));
+			helper.assertTrue(head.squeeze() == 1, "shrank into narrow shaft at " + helper.relativeVec(head.position()));
+			if (target.isDeadOrDying()) {
+				helper.assertTrue(announced[0] && blasted[0] && nearbyBlasts[0] >= 2,
+					"silent catch: announcement=" + announced[0] + " blast=" + blasted[0] + " nearby=" + nearbyBlasts[0]);
+				helper.succeed();
+			}
+		});
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 1000)
 	public void diggingUsesFullHumsWithShorterPausesWhileDialogueKeepsPlaying(GameTestHelper helper) {
 		fill(helper, 0, 6, 0, 19, 6, 19, Blocks.STONE.defaultBlockState());
@@ -804,6 +1053,9 @@ public class HeadGameTests {
 				return;
 			}
 			try {
+				Field taunt = TheHead.class.getDeclaredField("tauntReadyAt");
+				taunt.setAccessible(true);
+				taunt.setLong(head, Long.MAX_VALUE);
 				var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
 				digging.setAccessible(true);
 				digging.invoke(head, true);
@@ -833,7 +1085,7 @@ public class HeadGameTests {
 					previousDash[0] = helper.getTick();
 					previousRev[0] = head.revs();
 					beats[0]++;
-					helper.assertTrue(blast.get(head) != null, "dash did not blast while cue=" + head.cue());
+					helper.assertTrue(blast.get(head) == null, "empty-air dash exploded while cue=" + head.cue());
 					if (head.cue().chatter()) {
 						talkingBeats[0]++;
 						helper.assertTrue(head.chargeSpeed() > 0.1 && head.getDeltaMovement().length() > 0.01, "dialogue stopped dash movement");

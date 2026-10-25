@@ -645,12 +645,14 @@ public class TheHead extends Monster {
 				this.dashLine = HeadCue.chatter(line);
 			}
 		}
-		this.digDashTicks = (hum.clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS;
+		this.dashBoost = this.teasing ? 1.1 : 1.0;
+		int interval = this.denseTerrain() ? DENSE_DASH_TICKS : (hum.clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS;
+		this.digDashTicks = (int) Math.ceil(interval * this.dashBoost);
 		this.nextDigDash = now + this.digDashTicks;
 		this.teasing = false;
 		this.revs++;
 		this.tempo.dash();
-		this.dashBoost = 1.0;
+		this.tauntRolled = false;
 		if (this.dashLine == HeadCue.NONE && this.speech.canStart(hum, now)) {
 			this.setCue(hum);
 			this.chatterRoll = this.homeStage == HomeStage.NONE;
@@ -658,12 +660,27 @@ public class TheHead extends Monster {
 		return true;
 	}
 
+	private boolean denseTerrain() {
+		Vec3 c = this.centre();
+		Vec3 dir = this.chased == null ? this.getLookAngle() : this.chased.position().subtract(c).normalize();
+		BlockPos ahead = BlockPos.containing(c.add(dir.scale(DIG_REACH)));
+		CollisionContext context = CollisionContext.of(this);
+		int solid = 0;
+		for (BlockPos pos : BlockPos.betweenClosed(ahead.offset(-3, -3, -3), ahead.offset(3, 3, 3))) {
+			BlockState state = this.level().getBlockState(pos);
+			if (!state.is(Blocks.BARRIER) && !state.getCollisionShape(this.level(), pos, context).isEmpty() && ++solid >= DENSE_BLOCKS) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private double dashSeconds(HeadCue cue) {
 		return clipSeconds(cue) * (cue.clip() != null && !cue.spoken() ? this.tempo.multiplier() * this.dashBoost : 1.0);
 	}
 
 	private boolean tryTaunt(Player target, double chance) {
-		if (this.teasing || this.cue().chatter() || this.dashLine != HeadCue.NONE || this.tauntRolled || this.pendingVoice != HeadCue.NONE || this.burrowing || this.digging
+		if (this.teasing || this.cue().chatter() || this.dashLine != HeadCue.NONE || this.tauntRolled || this.pendingVoice != HeadCue.NONE || this.burrowing
 			|| this.level().getGameTime() < this.tauntReadyAt || target.isPassenger() || target.isInWater() || target.isFallFlying()) {
 			return false;
 		}
@@ -719,9 +736,9 @@ public class TheHead extends Monster {
 	}
 
 	// cuts exactly the blocks his box sweeps through ahead, so the hole is his own shape and size
-	private void tunnel(ServerLevel level, Vec3 c, Vec3 dir) {
+	private int tunnel(ServerLevel level, Vec3 c, Vec3 dir) {
 		if (!level.getGameRules().get(GameRules.MOB_GRIEFING)) {
-			return;
+			return 0;
 		}
 		boolean decay = level.getGameRules().get(GameRules.MOB_EXPLOSION_DROP_DECAY);
 		CollisionContext context = CollisionContext.of(this);
@@ -747,6 +764,7 @@ public class TheHead extends Monster {
 			broken++;
 		}
 		MarioHead.LOG.debug("[head] tunnel id={} at={} cut={} broken={}", this.getId(), this.blockPosition(), cut.size(), broken);
+		return broken;
 	}
 
 	private void setDigging(boolean digging) {
@@ -754,9 +772,14 @@ public class TheHead extends Monster {
 		this.entityData.set(DATA_DIGGING, digging);
 	}
 
-	// straight at the player, a blast on every dash, and through the rock once blasts stop working
+	// blast obstructing blocks, with phasing reserved for routes he cannot break
 	private void dig(ServerLevel level, Player target, HeadCue cue, boolean dash) {
-		this.digToward(level, target.position().add(0.0, target.getBbHeight() / 2.0, 0.0), cue, dash);
+		Vec3 to = new Vec3(target.getX(), this.targetFloor(target) + HOVER * this.squeeze(), target.getZ());
+		Vec3 c = this.centre();
+		if (to.y > c.y + 0.1 && !this.underRoof(target)) {
+			to = new Vec3(c.x, to.y, c.z);
+		}
+		this.digToward(level, to, cue, dash);
 	}
 
 	private void digToward(ServerLevel level, Vec3 to, HeadCue cue, boolean dash) {
@@ -766,11 +789,14 @@ public class TheHead extends Monster {
 		this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(c, to), TURN_DEGREES);
 		this.moveSpeed = this.chaseSpeed(this.moveSpeed, cue == HeadCue.UNDERGROUND ? 0.0 : this.chargeSpeed);
 		if (dash) {
-			Vec3 at = c.add(dir.scale(WIDTH * this.squeeze() / 2.0));
-			level.explode(this, null, BLAST, at.x, at.y, at.z, DIG_POWER, false, Level.ExplosionInteraction.NONE);
-			this.tunnel(level, c, dir);
-			this.stalledBlasts = this.lastBlastAt != null && this.lastBlastAt.distanceTo(c) < DIG_PROGRESS ? this.stalledBlasts + 1 : 0;
-			this.lastBlastAt = c;
+			int broken = this.tunnel(level, c, dir);
+			if (broken > 0) {
+				Vec3 at = c.add(dir.scale(WIDTH * this.squeeze() / 2.0));
+				level.explode(this, null, BLAST, at.x, at.y, at.z, DIG_POWER, false, Level.ExplosionInteraction.NONE);
+				this.lastBlastAt = c;
+			}
+			this.stalledBlasts = broken == 0 && !HeadRoom.sweep(this, c, c.add(dir.scale(DIG_REACH)), this.squeeze())
+				? this.stalledBlasts + 1 : 0;
 			if (this.stalledBlasts >= DIG_STALLS) {
 				this.setDigging(false);
 				this.burrowing = true;
@@ -1011,9 +1037,14 @@ public class TheHead extends Monster {
 		CollisionContext context = CollisionContext.of(this);
 		for (int i = 0; i < ROOF_REACH && pos.getY() < this.level().getMaxY(); i++) {
 			pos.move(0, 1, 0);
-			BlockState state = this.level().getBlockState(pos);
-			if (!state.is(Blocks.BARRIER) && !state.getCollisionShape(this.level(), pos, context).isEmpty()) {
-				return true;
+			for (int x = -1; x <= 1; x++) {
+				for (int z = -1; z <= 1; z++) {
+					BlockPos nearby = pos.offset(x, 0, z);
+					BlockState state = this.level().getBlockState(nearby);
+					if (!state.is(Blocks.BARRIER) && !state.getCollisionShape(this.level(), nearby, context).isEmpty()) {
+						return true;
+					}
+				}
 			}
 		}
 		return false;
