@@ -1256,6 +1256,76 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 30)
+	public void surfaceTntCancelsQueuedTreasureChatter(GameTestHelper helper) throws ReflectiveOperationException {
+		treasureChatter(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void undergroundTntPlaysQueuedTreasureChatter(GameTestHelper helper) throws ReflectiveOperationException {
+		treasureChatter(helper, true);
+	}
+
+	private void treasureChatter(GameTestHelper helper, boolean underground) throws ReflectiveOperationException {
+		if (underground) fill(helper, 5, -4, 5, 19, 7, 15, Blocks.STONE.defaultBlockState());
+		else helper.setBlock(new BlockPos(6, 1, 10), Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(18.5, 0, 10.5), 90);
+		TheHead head = head(helper, new Vec3(3.5, 0.5, 10.5), target);
+		head.setNoAi(true);
+		var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
+		digging.setAccessible(true);
+		digging.invoke(head, true);
+		Field line = TheHead.class.getDeclaredField("dashLine");
+		line.setAccessible(true);
+		line.set(head, HeadCue.DASH_073);
+		var dash = TheHead.class.getDeclaredMethod("tickDigDash", long.class);
+		dash.setAccessible(true);
+		dash.invoke(head, helper.getLevel().getGameTime() + 200);
+		helper.assertTrue(head.cue().chatter() == underground, "wrong treasure chatter eligibility underground=" + underground);
+		helper.assertTrue(line.get(head) == HeadCue.NONE, "surface TNT retained queued treasure chatter");
+		Field roll = TheHead.class.getDeclaredField("chatterRoll");
+		roll.setAccessible(true);
+		if (!underground) helper.assertFalse(roll.getBoolean(head), "surface hum armed treasure chatter");
+		head.discard();
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void tntDashCrossesSuccessiveWallsBetweenHums(GameTestHelper helper) throws ReflectiveOperationException {
+		dashThroughWalls(helper, 0.8, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void fastTntDashClearsItsWholeMovement(GameTestHelper helper) throws ReflectiveOperationException {
+		dashThroughWalls(helper, 4.8, true);
+	}
+
+	private void dashThroughWalls(GameTestHelper helper, double velocity, boolean solid) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(18.5, 0, 10.5), 90);
+		TheHead head = head(helper, new Vec3(3.5, 0.5, 10.5), target);
+		head.setNoAi(true);
+		fill(helper, 7, 0, 8, 7, 4, 13, Blocks.STONE.defaultBlockState());
+		fill(helper, 11, 0, 8, 11, 4, 13, Blocks.STONE.defaultBlockState());
+		if (solid) fill(helper, 7, 0, 8, 14, 4, 13, Blocks.STONE.defaultBlockState());
+		var dig = TheHead.class.getDeclaredMethod("digToward", ServerLevel.class, Vec3.class, HeadCue.class, boolean.class);
+		dig.setAccessible(true);
+		Field speed = TheHead.class.getDeclaredField("chargeSpeed");
+		speed.setAccessible(true);
+		speed.setDouble(head, velocity);
+		Field moving = TheHead.class.getDeclaredField("moveSpeed");
+		moving.setAccessible(true);
+		moving.setDouble(head, velocity);
+		Vec3 to = head.centre().add(12, 0, 0);
+		for (int tick = 0; tick < (int) Math.ceil(12 / velocity); tick++) {
+			dig.invoke(head, helper.getLevel(), to, HeadCue.DIG_MMM1, tick == 0);
+		}
+		helper.assertTrue(head.centre().distanceTo(to) < 0.1,
+			"dash stopped between hums at " + helper.relativeVec(head.centre()));
+		helper.assertFalse(head.burrowing(), "breakable walls caused phasing");
+		head.discard();
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
 	public void tntDashKeepsDiggingWhileStoneBreaks(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
@@ -1314,12 +1384,22 @@ public class HeadGameTests {
 		houseRunner(helper, true);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 2200, dimension = "minecraft:the_end")
+	public void houseTntCatchesRunnerEscapingBeforeReturnThreat(GameTestHelper helper) {
+		houseRunner(helper, false, true);
+	}
+
 	private void houseRunner(GameTestHelper helper, boolean hill) {
-		int base = hill ? 220 : 160;
+		houseRunner(helper, hill, false);
+	}
+
+	private void houseRunner(GameTestHelper helper, boolean hill, boolean chest) {
+		int base = chest ? 100 : hill ? 220 : 160;
 		fill(helper, 0, base - 1, 5, 850, base - 1, 15, Blocks.STONE.defaultBlockState());
 		fill(helper, 7, base, 5, 18, base + 4, 15, Blocks.OAK_PLANKS.defaultBlockState());
 		fill(helper, 8, base, 6, 17, base + 3, 14, Blocks.AIR.defaultBlockState());
 		helper.setBlock(new BlockPos(14, base, 9), Blocks.BED.red().defaultBlockState());
+		if (chest) helper.setBlock(new BlockPos(9, base, 9), Blocks.CHEST.defaultBlockState());
 		if (hill) {
 			for (int x = 20; x <= 850; x++) {
 				fill(helper, x, base, 8, x, base + Math.min(7, x - 20), 12, Blocks.STONE.defaultBlockState());
@@ -1332,8 +1412,12 @@ public class HeadGameTests {
 		long[] escaped = { -1 };
 		long[] tntAt = { -1 };
 		boolean[] tnt = { false };
+		boolean[] food = { false };
+		boolean[] returned = { false };
 		helper.onEachTick(() -> {
 			if (target.isDeadOrDying()) return;
+			food[0] |= head.cue() == HeadCue.HOME_HUNGRY || head.cue() == HeadCue.HOME_THIRSTY;
+			returned[0] |= head.cue() == HeadCue.HOME_RETURN;
 			if (head.cue() == HeadCue.HOME_ASK && escaped[0] < 0) escaped[0] = helper.getTick();
 			if (escaped[0] >= 0) {
 				double x = 14.5 + (helper.getTick() - escaped[0]) * 0.36;
@@ -1348,8 +1432,8 @@ public class HeadGameTests {
 			}
 		});
 		helper.succeedWhen(() -> {
-			helper.assertTrue(escaped[0] >= 0 && tnt[0] && target.isDeadOrDying(),
-				"house runner escaped: hill=" + hill + " head=" + helper.relativeVec(head.position())
+			helper.assertTrue(escaped[0] >= 0 && tnt[0] && target.isDeadOrDying() && (!chest || food[0] && returned[0]),
+				"house runner escaped: hill=" + hill + " chest=" + chest + " food=" + food[0] + " returned=" + returned[0] + " head=" + helper.relativeVec(head.position())
 					+ " gap=" + head.distanceTo(target) + " speed=" + head.chargeSpeed());
 		});
 	}
@@ -1490,7 +1574,12 @@ public class HeadGameTests {
 			if (helper.getTick() < 80) {
 				return;
 			}
+			fill(helper, 8, -4, 5, 19, 7, 15, Blocks.STONE.defaultBlockState());
+			fill(helper, 15, 0, 9, 18, 3, 12, Blocks.AIR.defaultBlockState());
 			try {
+				Field announced = TheHead.class.getDeclaredField("announced");
+				announced.setAccessible(true);
+				announced.setBoolean(head, true);
 				Field taunt = TheHead.class.getDeclaredField("tauntReadyAt");
 				taunt.setAccessible(true);
 				taunt.setLong(head, Long.MAX_VALUE);
@@ -1517,13 +1606,13 @@ public class HeadGameTests {
 				blast.setAccessible(true);
 				if ((head.cue().digHum() || head.cue().chatter()) && head.revs() != previousRev[0]) {
 					if (previousDash[0] >= 0) {
-						helper.assertTrue(helper.getTick() - previousDash[0] == (HeadCue.digHum(previousRev[0]).clip().millis() + 49) / 50 + 5,
+						helper.assertTrue(helper.getTick() - previousDash[0] == HeadTuning.DENSE_DASH_TICKS,
 							"dig dash interval=" + (helper.getTick() - previousDash[0]));
 					}
 					previousDash[0] = helper.getTick();
 					previousRev[0] = head.revs();
 					beats[0]++;
-					helper.assertTrue(blast.get(head) == null, "empty-air dash exploded while cue=" + head.cue());
+					helper.assertTrue(blast.get(head) != null, "dense-terrain dash did not cut while cue=" + head.cue());
 					if (head.cue().chatter()) {
 						talkingBeats[0]++;
 						helper.assertTrue(head.chargeSpeed() > 0.1 && head.getDeltaMovement().length() > 0.01, "dialogue stopped dash movement");

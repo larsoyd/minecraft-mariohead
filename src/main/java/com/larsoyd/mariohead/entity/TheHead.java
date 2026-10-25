@@ -743,7 +743,7 @@ public class TheHead extends Monster {
 				default -> HomeStage.NONE;
 			};
 		}
-		if (line == HeadCue.HOME_RETURN && this.homeStage == HomeStage.NONE) return false;
+		if (line == HeadCue.HOME_RETURN) return false;
 		this.moveSpeed = 0;
 		if (!chestDialogue) this.faceTowards(yawTo(this.centre(), target.position()), target);
 		this.hover();
@@ -768,7 +768,11 @@ public class TheHead extends Monster {
 	}
 
 	private boolean tickDigDash(long now) {
-		if (this.homeStage != HomeStage.NONE) this.chatterRoll = false;
+		boolean underground = (this.digging || this.burrowing) && this.denseTerrain();
+		if (this.homeStage != HomeStage.NONE || !underground) {
+			this.chatterRoll = false;
+			this.dashLine = HeadCue.NONE;
+		}
 		if (this.pendingVoice != HeadCue.NONE) {
 			this.setCue(this.pendingVoice);
 			return false;
@@ -806,9 +810,11 @@ public class TheHead extends Monster {
 		this.revs++;
 		this.tempo.dash();
 		this.tauntRolled = false;
-		if (this.dashLine == HeadCue.NONE && this.speech.canStart(hum, now)) {
+		boolean returning = this.homeStage == HomeStage.RETURN && this.chased != null
+			&& this.centre().distanceTo(this.chased.getEyePosition()) <= DIALOGUE_REACH;
+		if (this.dashLine == HeadCue.NONE && !returning && this.speech.canStart(hum, now)) {
 			this.setCue(hum);
-			this.chatterRoll = this.homeStage == HomeStage.NONE;
+			this.chatterRoll = this.homeStage == HomeStage.NONE && underground;
 		}
 		return true;
 	}
@@ -896,7 +902,7 @@ public class TheHead extends Monster {
 		boolean decay = level.getGameRules().get(GameRules.MOB_EXPLOSION_DROP_DECAY);
 		CollisionContext context = CollisionContext.of(this);
 		Set<BlockPos> cut = new HashSet<>();
-		for (double d = 0.0; d <= DIG_REACH + 1e-9; d += DIG_STEP) {
+		for (double d = 0.0; d <= Math.ceil(Math.max(DIG_REACH, this.moveSpeed) / DIG_STEP) * DIG_STEP + 1e-9; d += DIG_STEP) {
 			Vec3 p = c.add(dir.scale(d));
 			BlockPos.betweenClosedStream(HeadRoom.box(p.x, p.y, p.z, this.squeeze()).deflate(1e-4)).forEach(pos -> cut.add(pos.immutable()));
 		}
@@ -941,22 +947,22 @@ public class TheHead extends Monster {
 		Vec3 dir = way.length() > 1e-6 ? way.normalize() : Vec3.ZERO;
 		this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(c, to), TURN_DEGREES);
 		this.moveSpeed = this.chaseSpeed(this.moveSpeed, cue == HeadCue.UNDERGROUND ? 0.0 : this.chargeSpeed);
-		if (dash) {
+		Vec3 step = dir.scale(Math.min(way.length(), this.moveSpeed));
+		if (dash || !HeadRoom.sweep(this, c, c.add(step), this.squeeze())) {
 			int broken = this.tunnel(level, c, dir);
 			if (broken > 0) {
 				Vec3 at = c.add(dir.scale(WIDTH * this.squeeze() / 2.0));
 				level.explode(this, null, BLAST, at.x, at.y, at.z, DIG_POWER, false, Level.ExplosionInteraction.NONE);
 				this.lastBlastAt = c;
 			}
-			this.stalledBlasts = broken == 0 && !HeadRoom.sweep(this, c, c.add(dir.scale(DIG_REACH)), this.squeeze())
-				? this.stalledBlasts + 1 : 0;
+			if (broken > 0) this.stalledBlasts = 0;
+			else if (dash) this.stalledBlasts = HeadRoom.sweep(this, c, c.add(dir.scale(DIG_REACH)), this.squeeze()) ? 0 : this.stalledBlasts + 1;
 			if (this.stalledBlasts >= DIG_STALLS) {
 				this.setDigging(false);
 				this.burrowing = true;
 				MarioHead.LOG.info("[head] dig stalled id={} at={} blasts={}", this.getId(), this.blockPosition(), this.stalledBlasts);
 			}
 		}
-		Vec3 step = dir.scale(Math.min(way.length(), this.moveSpeed));
 		this.body(step.x, step.y, step.z);
 	}
 
