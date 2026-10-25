@@ -649,9 +649,9 @@ public class HeadGameTests {
 		});
 	}
 
-	// walled in, the player hears him announce once after five seconds, then he comes through the ground
-	@GameTest(structure = ARENA, maxTicks = 600)
-	public void announcesAndBurrowsToASealedPlayer(GameTestHelper helper) {
+	// walled in under rock, he announces once after five seconds and blasts his way in at full size
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void announcesAndDigsToASealedPlayer(GameTestHelper helper) {
 		fill(helper, 1, 0, 8, 5, 4, 12, Blocks.STONE.defaultBlockState());
 		fill(helper, 3, 1, 10, 3, 2, 10, Blocks.AIR.defaultBlockState());
 		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
@@ -673,13 +673,13 @@ public class HeadGameTests {
 				announced.add(t);
 			}
 			last[0] = head.cue();
-			if (announced.isEmpty()) {
-				helper.assertTrue(helper.getLevel().noCollision(head, head.getBoundingBox().deflate(1e-6)),
-					"went into the ground before announcing, at " + helper.relativeVec(head.position()));
-			}
+			helper.assertTrue(helper.getLevel().noCollision(head, head.getBoundingBox().deflate(1e-6)),
+				"inside the rock at " + helper.relativeVec(head.position()) + " announced " + announced);
 		});
+		neverShrinks(helper, head);
 		helper.succeedWhen(() -> {
 			helper.assertTrue(target.isDeadOrDying(), "sealed player alive, head " + helper.relativeVec(head.position()) + " announced " + announced);
+			helper.assertTrue(stoneLeft(helper, 1, 0, 8, 5, 4, 12) < 120, "no rock blasted, " + stoneLeft(helper, 1, 0, 8, 5, 4, 12) + " stone left");
 			helper.assertTrue(announced.size() == 1, "announced at " + announced);
 			int wait = announced.getFirst() - charged[0];
 			helper.assertTrue(wait >= 100 && wait <= 140, "announced " + wait + " ticks into the charge");
@@ -687,9 +687,9 @@ public class HeadGameTests {
 		});
 	}
 
-	// a shaft deeper than any walker drops and a tunnel off its foot, found by searching the open cells
+	// a tunnel too small for him at the foot of a deep shaft, so he digs the rest at his own size
 	@GameTest(structure = ARENA, maxTicks = 900)
-	public void followsThePlayerDownADeepShaft(GameTestHelper helper) {
+	public void digsToAPlayerInATunnel(GameTestHelper helper) {
 		fill(helper, 0, 8, 0, 19, 8, 19, Blocks.AIR.defaultBlockState());
 		fill(helper, 0, 0, 0, 19, 6, 19, Blocks.STONE.defaultBlockState());
 		fill(helper, 12, 1, 10, 12, 6, 10, Blocks.AIR.defaultBlockState());
@@ -697,6 +697,7 @@ public class HeadGameTests {
 		fill(helper, 3, 1, 10, 3, 2, 10, Blocks.AIR.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 1.0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 7.5, 10.5), target);
+		neverShrinks(helper, head);
 		caughtWithin(helper, target, head);
 	}
 
@@ -723,6 +724,7 @@ public class HeadGameTests {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 1.0, 10.5), -90.0f);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(16.5, 4.5, 10.5));
 		head.chase(target);
+		neverShrinks(helper, head);
 		boolean[] announced = { false };
 		helper.onEachTick(() -> announced[0] |= !head.isRemoved() && head.cue() == HeadCue.UNDERGROUND);
 		helper.succeedWhen(() -> {
@@ -731,7 +733,7 @@ public class HeadGameTests {
 		});
 	}
 
-	// a dugout whose roof broke open at one corner, the way a hillside cut leaves it
+	// a dugout whose roof broke open at one corner too small for him, so he blasts it wider
 	@GameTest(structure = ARENA, maxTicks = 900)
 	public void dropsThroughABrokenCornerOfADugout(GameTestHelper helper) {
 		fill(helper, 0, 0, 0, 19, 2, 19, Blocks.STONE.defaultBlockState());
@@ -741,6 +743,7 @@ public class HeadGameTests {
 		helper.setBlock(new BlockPos(12, 2, 9), Blocks.AIR);
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 0.0, 10.5), 0.0f);
 		TheHead head = head(helper, new Vec3(14.5, 3.5, 15.5), target);
+		neverShrinks(helper, head);
 		caughtWithin(helper, target, head);
 	}
 
@@ -760,7 +763,7 @@ public class HeadGameTests {
 		caughtWithin(helper, target, head);
 	}
 
-	// a shut door he cannot open makes a sealed room, so he says so and comes up through the floor
+	// a shut door he cannot open makes a sealed room, so he says so and blasts his way in
 	@GameTest(structure = ARENA, maxTicks = 700)
 	public void aShutDoorSealsTheRoom(GameTestHelper helper) {
 		fill(helper, 1, 0, 8, 5, 3, 12, Blocks.STONE.defaultBlockState());
@@ -772,25 +775,42 @@ public class HeadGameTests {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), 90.0f);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(16.5, 0.5, 10.5));
 		head.chase(target);
+		neverShrinks(helper, head);
 		boolean[] announced = { false };
 		helper.onEachTick(() -> announced[0] |= !head.isRemoved() && head.cue() == HeadCue.UNDERGROUND);
 		helper.succeedWhen(() -> {
-			helper.assertBlockPresent(Blocks.OAK_DOOR, new BlockPos(5, 0, 10));
 			helper.assertTrue(target.isDeadOrDying() && announced[0], "dead " + target.isDeadOrDying() + " announced " + announced[0] + " head " + helper.relativeVec(head.position()));
 			leave(helper, target);
 		});
 	}
 
-	// boxed in himself, the player cannot be reached either, so he goes under the box
+	// boxed in with the player in the open, he slips through the ground and leaves the box whole
 	@GameTest(structure = ARENA, maxTicks = 700)
 	public void boxedInHeComesOutUnderground(GameTestHelper helper) {
 		fill(helper, 12, 0, 7, 18, 5, 13, Blocks.STONE.defaultBlockState());
 		fill(helper, 13, 0, 8, 17, 4, 12, Blocks.AIR.defaultBlockState());
 		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
+		int box = stoneLeft(helper, 12, 0, 7, 18, 5, 13);
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), 90.0f);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(15.5, 0.5, 10.5));
 		head.chase(target);
-		caughtWithin(helper, target, head);
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + helper.relativeVec(head.position()));
+			helper.assertTrue(stoneLeft(helper, 12, 0, 7, 18, 5, 13) == box, "the box was blasted");
+			leave(helper, target);
+		});
+	}
+
+	private static int stoneLeft(GameTestHelper helper, int x0, int y0, int z0, int x1, int y1, int z1) {
+		int count = 0;
+		for (int x = x0; x <= x1; x++) {
+			for (int y = y0; y <= y1; y++) {
+				for (int z = z0; z <= z1; z++) {
+					count += helper.getBlockState(new BlockPos(x, y, z)).is(Blocks.STONE) ? 1 : 0;
+				}
+			}
+		}
+		return count;
 	}
 
 	// a U of wall opening away from him, so the way in starts by going round the far side
@@ -947,17 +967,16 @@ public class HeadGameTests {
 
 	@GameTest(structure = ARENA, maxTicks = 420)
 	public void revsRiseAndSagButGlassStopsTheCatch(GameTestHelper helper) {
-		for (int x = 1; x <= 5; x++) {
-			for (int z = 8; z <= 12; z++) {
-				for (int y = 0; y <= 3; y++) {
-					boolean shell = x == 1 || x == 5 || z == 8 || z == 12 || y == 3;
+		// a roofless pen too small for him, and the player keeps an eye on him so he cannot shrink into it
+		for (int x = 1; x <= 4; x++) {
+			for (int z = 9; z <= 12; z++) {
+				for (int y = 0; y <= 2; y++) {
+					boolean shell = x == 1 || x == 4 || z == 9 || z == 12;
 					helper.setBlock(new BlockPos(x, y, z), shell ? Blocks.GLASS : Blocks.AIR);
 				}
 			}
 		}
-		// one small hole keeps the box open, and the player keeps an eye on him so he cannot shrink for it
-		helper.setBlock(new BlockPos(5, 0, 10), Blocks.AIR);
-		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.0, 0.0, 11.0), -90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
 		helper.onEachTick(() -> {
 			if (!head.isRemoved()) {
