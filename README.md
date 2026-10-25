@@ -56,8 +56,8 @@ The command needs operator rights (permission level 2).
   one block stops him. Leaves, grass and flowers do not stop him at all.
 - Hide under rock where he does not fit, in a cave, a mountain or a dugout, and he does not shrink
   for you. After five seconds he announces in chat that he is going to move underground and blasts
-  a tunnel his own size to you, a TNT blast on every "Mmmm", and those hums come through the rock at
-  full volume. With mobGriefing off, or through obsidian, he passes through the ground instead.
+  a tunnel his own size to you, a TNT blast on every "Mmmm". Those hums are louder nearby and fade
+  with distance. With mobGriefing off, or through obsidian, he passes through the ground instead.
   Wall yourself in out in the open and he comes up under you the same way.
 - He cannot be hurt. `/kill` removes him. He leaves on Peaceful.
 - Before he says hello he will go after whoever else is near if his player leaves. After hello

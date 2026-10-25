@@ -29,8 +29,7 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 		super(loud ? HeadSounds.loud(cue) : HeadSounds.of(cue), SoundSource.HOSTILE, SoundInstance.createUnseededRandom());
 		this.head = head;
 		this.gain = cue.spoken() ? WORDS_GAIN : 1.0f;
-		// digging, his hums come through the rock at full blast wherever you are
-		this.floor = loud ? 1.0f : cue == HeadCue.UNDERGROUND ? ANNOUNCE_FLOOR : 0.0f;
+		this.floor = cue == HeadCue.UNDERGROUND ? ANNOUNCE_FLOOR : 0.0f;
 		this.attenuation = SoundInstance.Attenuation.NONE;
 		this.looping = false;
 		this.delay = 0;

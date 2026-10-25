@@ -59,9 +59,9 @@ public final class HeadTuning {
 	public static final double BOB_BLOCKS = 0.14;
 	public static final double BOB_RATE = 0x0320 / 65536.0 * 2.0 * Math.PI * HeadVoice.MOUTH_FPS;
 	// lean per degree turned in a tick
-	public static final float ROLL_PER_TURN = 2.1333f;
-	public static final float ROLL_MAX = HeadShape.ROLL_MAX;
-	public static final float ROLL_RATE = 3.164f;
+	public static final float ROLL_PER_TURN = 0.35f;
+	public static final float ROLL_MAX = 4.0f;
+	public static final float ROLL_RATE = 0.7f;
 	public static final float PITCH_MAX = HeadShape.PITCH_MAX;
 	public static final float PITCH_RATE = 10.0f;
 	public static final double LOD_DISTANCE = 24.0;

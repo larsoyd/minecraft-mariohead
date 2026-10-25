@@ -249,6 +249,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			context.waitTick();
 			float yaw = context.computeOnClient(mc -> clientHeads().getFirst().getYRot());
 			float roll = context.computeOnClient(mc -> clientHeads().getFirst().roll(1.0f));
+			check(Math.abs(roll) <= 4.0f, "excessive sideways rocking: " + roll);
 			float turn = net.minecraft.util.Mth.wrapDegrees(yaw - lastYaw);
 			if (t > 0) {
 				jerk += Math.abs(turn - lastTurn);
@@ -303,6 +304,36 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		boolean digging = context.computeOnClient(mc -> clientHeads().getFirst().digging());
 		LOG.info("[client-test] digging={} loud_hums={}", digging, HeadVoiceSound.loudStarted() - loudBefore);
 		check(digging && HeadVoiceSound.loudStarted() == loudBefore + 1, "digging " + digging + " gave " + (HeadVoiceSound.loudStarted() - loudBefore) + " loud hums");
+		context.runOnClient(mc -> {
+			try {
+				var constructor = HeadVoiceSound.class.getDeclaredConstructor(TheHead.class, HeadCue.class, boolean.class);
+				constructor.setAccessible(true);
+				TheHead probe = HeadEntities.THE_HEAD.create(mc.level, EntitySpawnReason.COMMAND);
+				float previous = Float.MAX_VALUE;
+				for (double distance : new double[] { 2.0, 15.0, 40.0, 51.0 }) {
+					var eye = mc.player.getEyePosition();
+					probe.setPos(eye.x + distance, eye.y - probe.getBbHeight() / 2.0, eye.z);
+					HeadVoiceSound sound = constructor.newInstance(probe, HeadCue.MMM1, true);
+					sound.getOrResolve(mc.getSoundManager());
+					check(!sound.isRelative() && Math.abs(sound.getX() - probe.centre().x) < 0.001,
+						"digging voice is not positioned at the head");
+					check(sound.getVolume() < previous, "digging voice did not fade at " + distance + ": " + sound.getVolume());
+					if (distance >= 50.0) {
+						check(sound.getVolume() == 0.0f, "distant digging voice is still audible");
+					}
+					previous = sound.getVolume();
+					HeadVoiceSound announcement = constructor.newInstance(probe, HeadCue.UNDERGROUND, false);
+					announcement.getOrResolve(mc.getSoundManager());
+					check(announcement.getVolume() >= 0.6f, "underground announcement lost its volume floor");
+					probe.setPos(probe.getX() + 1.0, probe.getY(), probe.getZ() + 1.0);
+					sound.tick();
+					check(Math.abs(sound.getX() - probe.centre().x) < 0.001
+						&& Math.abs(sound.getZ() - probe.centre().z) < 0.001, "voice did not follow the moving head");
+				}
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
 		server.runCommand("kill @e[type=mariohead:the_head]");
 		server.runCommand("fill -2 -61 -2 2 -57 2 minecraft:air");
 	}

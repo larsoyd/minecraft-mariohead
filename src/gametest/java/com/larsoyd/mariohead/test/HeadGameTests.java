@@ -980,6 +980,27 @@ public class HeadGameTests {
 		firstDashPitch(helper, 5.0, false, -1);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 130)
+	public void ignoresOrdinaryJumpHeightWhileChasing(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		target.setNoGravity(true);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		helper.onEachTick(() -> {
+			long tick = helper.getTick();
+			if (tick >= 72 && tick <= 110) {
+				double jump = Math.max(0.0, Math.sin((tick - 72) * Math.PI / 12.0)) * 1.25;
+				target.setPos(target.getX(), helper.absoluteVec(new Vec3(0, jump, 0)).y, target.getZ());
+				double height = helper.relativeVec(head.centre()).y;
+				helper.assertTrue(Math.abs(height - HeadTuning.HOVER) <= 0.2,
+					"head followed jump: height=" + height + " jump=" + jump);
+			}
+		});
+		helper.runAtTickTime(111, () -> {
+			head.discard();
+			helper.succeed();
+		});
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 250)
 	public void tiltsDownDuringInhale(GameTestHelper helper) {
 		firstDashPitch(helper, 0.0, true, 1);

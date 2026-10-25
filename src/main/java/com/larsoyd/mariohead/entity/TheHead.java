@@ -784,7 +784,7 @@ public class TheHead extends Monster {
 	private void fly(Player target, boolean straight) {
 		double yaw = Math.toRadians(this.moveYaw);
 		double y = this.centre().y;
-		double want = straight ? this.hoverHeight(target.getY()) : this.cellRoute ? this.cellHeight() : this.hoverHeight(this.nextFloor());
+		double want = straight ? this.hoverHeight(this.targetFloor(target)) : this.cellRoute ? this.cellHeight() : this.hoverHeight(this.nextFloor());
 		if (this.climbing) {
 			want = Math.max(want, y + 1.0);
 		}
@@ -830,6 +830,15 @@ public class TheHead extends Monster {
 
 	private void hover() {
 		this.body(0.0, Mth.clamp(this.hoverHeight(Double.NaN) - this.centre().y, -CLIMB, CLIMB), 0.0);
+	}
+
+	private double targetFloor(Player target) {
+		if (target.isFallFlying() || target.isInWater() || target.isPassenger()) {
+			return target.getY();
+		}
+		// ordinary jumps stay tied to their floor, higher flight still draws him upward
+		double floor = HeadRoom.surface(this, target.position().add(0.0, 0.05, 0.0), -1.55);
+		return Double.isNaN(floor) ? target.getY() : floor;
 	}
 
 	// blocks stop him, unless something was built into him and he squirms out to the nearest open air
