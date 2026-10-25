@@ -42,6 +42,7 @@ import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.control.LookControl;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
@@ -120,6 +121,12 @@ public class TheHead extends Monster {
 
 	public TheHead(EntityType<? extends TheHead> type, Level level) {
 		super(type, level);
+		this.lookControl = new LookControl(this) {
+			@Override
+			protected boolean resetXRotOnTick() {
+				return false;
+			}
+		};
 		this.setNoGravity(true);
 		this.xpReward = 0;
 		this.setPathfindingMalus(PathType.WATER, 0.0f);
@@ -316,7 +323,8 @@ public class TheHead extends Monster {
 	private void charge(ServerLevel level, Player target) {
 		HeadCue cue = this.cue();
 		HeadCue before = cue;
-		if (cue == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)) {
+		if (cue == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
+			&& Math.abs(this.getXRot() - this.pitchTo(target)) <= PITCH_RATE) {
 			this.revs++;
 			this.setCue(HeadCue.hum(this.revs));
 		} else if (cue != HeadCue.INHALE && this.cueTicks >= ticks(clipSeconds(cue))) {
@@ -329,10 +337,19 @@ public class TheHead extends Monster {
 
 		Vec3 centre = this.centre();
 		boolean underway = this.burrowing || this.digging;
-		boolean straight = !underway && centre.distanceTo(target.position()) < GRAB_DISTANCE && this.clearLine(centre, target.getEyePosition());
+		Vec3 flightGoal = goal.add(0.0, HOVER * this.squeeze(), 0.0);
+		boolean openFlight = !underway && centre.distanceTo(flightGoal) <= PATH_RANGE
+			&& HeadRoom.sweep(this, centre, flightGoal, this.squeeze());
+		boolean straight = openFlight || !underway && centre.distanceTo(target.position()) < GRAB_DISTANCE && this.clearLine(centre, target.getEyePosition());
 		if (straight) {
 			this.path = null;
-			Vec3 at = this.closeIn(target);
+			if (openFlight) {
+				this.halted = false;
+				this.sealed = false;
+				this.fitsWay = true;
+				this.roofed = this.underRoof(target);
+			}
+			Vec3 at = centre.distanceTo(target.position()) < GRAB_DISTANCE ? this.closeIn(target) : goal;
 			this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, at), GRAB_TURN_DEGREES);
 			this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
 			this.aimDistance = at.subtract(centre).horizontalDistance();
@@ -350,6 +367,7 @@ public class TheHead extends Monster {
 		if (this.halted) {
 			this.moveSpeed = approach(this.moveSpeed, 0.0);
 		}
+		this.faceTowards(this.moveYaw, target);
 		if (this.burrowing) {
 			this.burrow(target, cue);
 		} else if (this.digging) {
@@ -357,7 +375,6 @@ public class TheHead extends Monster {
 		} else {
 			this.fly(target, straight);
 		}
-		this.faceTowards(this.moveYaw, target);
 		if (this.touching(target)) {
 			this.caught(level, target);
 			return;
@@ -842,6 +859,12 @@ public class TheHead extends Monster {
 		Vec3 c = this.centre();
 		float s = this.squeeze();
 		double floor = Double.isNaN(floorGiven) ? HeadRoom.surface(this, c, -FLOOR_SEARCH, s) : floorGiven;
+		if (Double.isNaN(floorGiven)) {
+			double water = HeadRoom.surface(this, c, -FLOOR_SEARCH, ClipContext.Fluid.ANY);
+			if (!Double.isNaN(water)) {
+				floor = Double.isNaN(floor) ? water : Math.max(floor, water);
+			}
+		}
 		if (Double.isNaN(floor)) {
 			floor = this.chased != null ? this.chased.getY() : c.y - HOVER * s;
 		}
@@ -904,9 +927,15 @@ public class TheHead extends Monster {
 	}
 
 	private void faceTowards(float yaw, Player target) {
-		float pitch = (float) Mth.clamp((this.centre().y - (target.getY() + 1.2)) * PITCH_PER_BLOCK, -PITCH_MAX, PITCH_MAX);
 		this.setFacing(Mth.approachDegrees(this.getYRot(), yaw, TURN_DEGREES),
-			Mth.approach(this.getXRot(), pitch, PITCH_RATE));
+			Mth.approach(this.getXRot(), this.pitchTo(target), PITCH_RATE));
+	}
+
+	private float pitchTo(Player target) {
+		Vec3 c = this.centre();
+		double elevation = c.y - target.getY() - HOVER * this.squeeze();
+		return Math.abs(elevation) <= BOB_BLOCKS * this.squeeze() + 0.1 ? 0.0f
+			: (float) Math.toDegrees(Math.atan2(c.y - target.getEyeY(), target.position().subtract(c).horizontalDistance()));
 	}
 
 	private void setFacing(float yaw, float pitch) {

@@ -68,6 +68,10 @@ class HeadHullTest {
 	@Test
 	void theBoxIsNotWasteful() {
 		assertTrue(worst(45.0f, 0.0f, 0.0f, false) > TheHead.WIDTH / 2.0f * 0.9f, "box much wider than the head");
-		assertTrue(worst(0.0f, 0.0f, HeadTuning.ROLL_MAX, true) > TheHead.HEIGHT / 2.0f * 0.95f, "box much taller than the head");
+		float tallest = 0.0f;
+		for (float pitch = -HeadTuning.PITCH_MAX; pitch <= HeadTuning.PITCH_MAX; pitch += 5.0f) {
+			tallest = Math.max(tallest, worst(0.0f, pitch, HeadTuning.ROLL_MAX, true));
+		}
+		assertTrue(tallest > TheHead.HEIGHT / 2.0f * 0.95f, "box much taller than the tilted head");
 	}
 }

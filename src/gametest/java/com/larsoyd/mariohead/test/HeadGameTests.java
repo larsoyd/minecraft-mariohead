@@ -556,7 +556,7 @@ public class HeadGameTests {
 		fill(helper, 2, 0, 9, 4, 4, 11, Blocks.AIR.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
 		target.setXRot(80.0f);
-		TheHead head = head(helper, new Vec3(16.5, 5.5, 10.5), target);
+		TheHead head = head(helper, new Vec3(16.5, 5.05, 10.5), target);
 		caughtWithin(helper, target, head);
 	}
 
@@ -568,7 +568,7 @@ public class HeadGameTests {
 			fill(helper, 16 - step, 0, 0, 16 - step, step, 4, stone);
 		}
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 4.0, 10.5), -90.0f);
-		TheHead head = head(helper, new Vec3(3.5, 0.5, 10.5), target);
+		TheHead head = head(helper, new Vec3(3.5, 0.05, 10.5), target);
 		caughtWithin(helper, target, head);
 	}
 
@@ -898,6 +898,138 @@ public class HeadGameTests {
 		helper.assertTrue(target.startRiding(boat, true, false), "the player did not get in the boat");
 		TheHead head = head(helper, new Vec3(14.5, 0.5, 10.5), target);
 		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void fliesOverWaterToARowingBoat(GameTestHelper helper) {
+		rowingBoat(helper, 4, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void fliesFromShoreToBoat(GameTestHelper helper) {
+		rowingBoat(helper, 4, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void fliesOverShallowWater(GameTestHelper helper) {
+		rowingBoat(helper, 1, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void fliesOverDeepWater(GameTestHelper helper) {
+		rowingBoat(helper, 5, false);
+	}
+
+	private static void rowingBoat(GameTestHelper helper, int depth, boolean shore) {
+		fill(helper, 0, 0, 0, 19, depth - 1, 19, Blocks.WATER.defaultBlockState());
+		if (shore) {
+			fill(helper, 13, 0, 0, 19, depth - 1, 19, Blocks.STONE.defaultBlockState());
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(8.5, depth, 10.5), -90.0f);
+		var boat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(8.5, depth, 10.5));
+		helper.assertTrue(target.startRiding(boat, true, false), "player did not board");
+		TheHead head = head(helper, new Vec3(17.5, depth + 0.05, 10.5), target);
+		java.util.Random random = new java.util.Random(8017 + depth);
+		helper.onEachTick(() -> {
+			if (!head.isRemoved()) {
+				helper.assertTrue(head.centre().y >= helper.absoluteVec(new Vec3(0, depth, 0)).y,
+					"flyer dived toward lake bed at " + helper.relativeVec(head.centre()));
+				helper.assertFalse(head.burrowing() || head.digging(), "open water triggered underground pursuit");
+			}
+			if (head.phase() == HeadPhase.CHARGE && helper.relativeVec(boat.position()).x > 3.0) {
+				boat.setDeltaMovement(-0.05 - random.nextDouble() * 0.2, 0.0, (random.nextDouble() - 0.5) * 0.15);
+			}
+		});
+		caughtWithin(helper, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void facesElevationBeforeDashing(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(14.5, 0.5, 10.5), target);
+		helper.runAtTickTime(30, () -> {
+			try {
+				var face = TheHead.class.getDeclaredMethod("faceTowards", float.class, net.minecraft.world.entity.player.Player.class);
+				face.setAccessible(true);
+				java.util.Random random = new java.util.Random(5081);
+				for (int i = 0; i < 250; i++) {
+					double horizontal = i < 2 ? 0.0 : random.nextDouble() * 30.0;
+					double vertical = i == 0 ? 20.0 : i == 1 ? -20.0 : i < 20
+						? (random.nextDouble() * 2.0 - 1.0) * HeadTuning.BOB_BLOCKS : random.nextDouble() * 40.0 - 20.0;
+					Vec3 c = target.position().add(horizontal, HeadTuning.HOVER + vertical, 0.0);
+					head.setPos(c.x, c.y - head.getBbHeight() / 2.0, c.z);
+					for (int tick = 0; tick < 80; tick++) {
+						face.invoke(head, 90.0f, target);
+					}
+					double expected = Math.abs(vertical) <= HeadTuning.BOB_BLOCKS + 0.1 ? 0.0
+						: Math.toDegrees(Math.atan2(c.y - target.getEyeY(), horizontal));
+					helper.assertTrue(Math.abs(head.getXRot() - expected) < 0.01,
+						"elevation " + vertical + " range " + horizontal + " pitch " + head.getXRot() + " expected " + expected);
+				}
+				head.discard();
+				leave(helper, target);
+				helper.succeed();
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void tiltsUpDuringInhale(GameTestHelper helper) {
+		firstDashPitch(helper, 5.0, false, -1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void tiltsDownDuringInhale(GameTestHelper helper) {
+		firstDashPitch(helper, 0.0, true, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void staysLevelAtHoverHeight(GameTestHelper helper) {
+		firstDashPitch(helper, 0.0, false, 0);
+	}
+
+	private static void firstDashPitch(GameTestHelper helper, double targetY, boolean dive, int sign) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(8.5, targetY, 10.5), -90.0f);
+		target.setNoGravity(true);
+		TheHead head = head(helper, new Vec3(14.5, 0.5, 10.5), target);
+		boolean[] raised = { false };
+		helper.onEachTick(() -> {
+			if (dive && !raised[0] && head.phase() == HeadPhase.CHARGE) {
+				head.setPos(head.getX(), helper.absoluteVec(new Vec3(0, 6.0, 0)).y - head.getBbHeight() / 2.0, head.getZ());
+				raised[0] = true;
+			}
+			if (head.cue() == HeadCue.MMM1) {
+				helper.assertTrue(sign == 0 ? Math.abs(head.getXRot()) < 0.01 : head.getXRot() * sign > 15.0,
+					"dash pitch=" + head.getXRot() + " expected sign=" + sign
+					+ " head=" + helper.relativeVec(head.centre()) + " target=" + helper.relativeVec(target.position()));
+				head.discard();
+				leave(helper, target);
+				helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void finishesTurningBeforeDashAfterElevationReverses(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(8.5, 5.0, 10.5), -90.0f);
+		target.setNoGravity(true);
+		TheHead head = head(helper, new Vec3(14.5, 0.5, 10.5), target);
+		boolean[] reversed = { false };
+		helper.onEachTick(() -> {
+			if (!reversed[0] && head.phase() == HeadPhase.CHARGE && head.cue() == HeadCue.INHALE && head.cueSeconds(0) >= 0.35) {
+				target.setPos(target.getX(), helper.absoluteVec(new Vec3(0, 0, 0)).y, target.getZ());
+				head.setPos(head.getX(), helper.absoluteVec(new Vec3(0, 6, 0)).y - head.getBbHeight() / 2.0, head.getZ());
+				reversed[0] = true;
+			}
+			if (head.cue() == HeadCue.MMM1) {
+				helper.assertTrue(reversed[0] && head.getXRot() > 15.0f, "dash before turning downward: " + head.getXRot());
+				head.discard();
+				leave(helper, target);
+				helper.succeed();
+			}
+		});
 	}
 
 	// three heads on one player: one catch, and the other two are gone with the chase

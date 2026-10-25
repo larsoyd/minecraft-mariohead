@@ -45,9 +45,11 @@ The command needs operator rights (permission level 2).
 
 ## How he behaves
 
-- He floats about two blocks above the floor and plans his way along it, through doors, up stairs
-  and around walls, and heads off a player who runs across his path. Where no floor leads to you he
-  finds the open way through caves, shafts and the air, and otherwise flies straight at you.
+- He floats about two blocks above the floor or water and flies straight toward you when his whole
+  body fits the route. Around obstacles he plans through doors, stairs, caves and shafts, and heads
+  off a player who runs across his path. Boats do not stop the chase.
+- He tilts toward players above or below him and finishes turning before each dash. At his normal
+  hover height he stays level.
 - He is about three blocks wide and prefers a way round he fits through. He can shrink to squeeze
   through doors, caves and gaps down to one block, but only while nobody is looking at him: watched,
   he waits at a gap too small for him. He never pokes through blocks while he chases. A gap under

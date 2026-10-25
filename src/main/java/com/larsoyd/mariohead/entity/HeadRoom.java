@@ -38,8 +38,12 @@ final class HeadRoom {
 
 	// the height of the first collider hit from a point straight up or down, NaN when there is none
 	static double surface(Entity head, Vec3 from, double reach) {
+		return surface(head, from, reach, ClipContext.Fluid.NONE);
+	}
+
+	static double surface(Entity head, Vec3 from, double reach, ClipContext.Fluid fluid) {
 		HitResult hit = head.level().clip(new ClipContext(from, from.add(0.0, reach, 0.0),
-			ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, head));
+			ClipContext.Block.COLLIDER, fluid, head));
 		return hit.getType() == HitResult.Type.MISS ? Double.NaN : hit.getLocation().y;
 	}
 

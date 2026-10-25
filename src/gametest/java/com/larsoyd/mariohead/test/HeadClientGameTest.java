@@ -41,12 +41,46 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			this.heardBeyondRenderDistance(context, world);
 			this.lateObserver(context, world);
 			this.announcementIsHeard(context, world);
+			this.tiltedPortraits(context, world);
 		}
 	}
 
 	private static List<TheHead> clientHeads() {
 		var level = Minecraft.getInstance().level;
 		return level.getEntities(HeadEntities.THE_HEAD, new AABB(-400, -100, -400, 400, 100, 400), h -> true);
+	}
+
+	private void screenshot(ClientGameTestContext context, String name) {
+		var options = net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions.of(name);
+		String directory = System.getenv("MARIOHEAD_SCREENSHOTS");
+		if (directory != null) {
+			options = options.withDestinationDir(java.nio.file.Path.of(directory));
+		}
+		LOG.info("[client-test] screenshot={}", context.takeScreenshot(options));
+	}
+
+	private void tiltedPortraits(ClientGameTestContext context, TestSingleplayerContext world) {
+		var server = world.getServer();
+		server.runCommand("kill @e[type=mariohead:the_head]");
+		server.runCommand("tp @p 0.5 -60 0.5 0 0");
+		for (float pitch : new float[] { 60.0f, -60.0f }) {
+			server.runOnServer(s -> {
+				var level = s.overworld();
+				TheHead head = HeadEntities.THE_HEAD.create(level, EntitySpawnReason.COMMAND);
+				head.setNoAi(true);
+				head.snapTo(0.5, -59.8, 6.5, 130.0f, pitch);
+				head.setYBodyRot(130.0f);
+				head.setYHeadRot(130.0f);
+				level.addFreshEntity(head);
+			});
+			context.waitFor(mc -> !clientHeads().isEmpty() && Math.abs(clientHeads().getFirst().getXRot() - pitch) < 2.0f, 100);
+			context.waitTicks(15);
+			this.screenshot(context, pitch > 0 ? "the-head-dive" : "the-head-climb");
+			LOG.info("[client-test] tilt requested={} received={}", pitch,
+				context.computeOnClient(mc -> clientHeads().getFirst().getXRot()));
+			server.runCommand("kill @e[type=mariohead:the_head]");
+			context.waitFor(mc -> clientHeads().isEmpty(), 40);
+		}
 	}
 
 	private void seenAndHeard(ClientGameTestContext context, TestSingleplayerContext world) {
@@ -65,7 +99,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		check(rendered, "no head renderer");
 		context.waitFor(mc -> clientHeads().getFirst().cue() == HeadCue.HELLO, 120);
 		context.waitTicks(12);
-		context.takeScreenshot("the-head-hello");
+		this.screenshot(context, "the-head-hello");
 		check(HeadVoiceSound.started() == before + 1, "hello started " + (HeadVoiceSound.started() - before) + " voices");
 		LOG.info("[client-test] hello plays={}", hellos[0]);
 		check(hellos[0] == 1, "the tracking client played the hello " + hellos[0] + " times");
@@ -97,7 +131,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		});
 		context.getInput().pressKey(options -> options.keyToggleGui);
 		context.waitTicks(4);
-		context.takeScreenshot(name);
+		this.screenshot(context, name);
 		context.getInput().pressKey(options -> options.keyToggleGui);
 		server.runCommand("tp @p " + back.x + " " + back.y + " " + back.z);
 		server.runCommand("tick unfreeze");

@@ -62,9 +62,8 @@ public final class HeadTuning {
 	public static final float ROLL_PER_TURN = 2.1333f;
 	public static final float ROLL_MAX = HeadShape.ROLL_MAX;
 	public static final float ROLL_RATE = 3.164f;
-	public static final float PITCH_PER_BLOCK = 0.4944f;
 	public static final float PITCH_MAX = HeadShape.PITCH_MAX;
-	public static final float PITCH_RATE = 2.637f;
+	public static final float PITCH_RATE = 10.0f;
 	public static final double LOD_DISTANCE = 24.0;
 	// how far his voice carries, the same edge as the client's loudness curve
 	public static final double VOICE_REACH = 50.0;
