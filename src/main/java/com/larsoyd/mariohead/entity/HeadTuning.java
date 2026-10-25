@@ -53,6 +53,7 @@ public final class HeadTuning {
 	public static final double LONG_WAY_SLACK = 8.0;
 	public static final double WAYPOINT_REACH = 0.9;
 	public static final double PULL_REACH = 32.0;
+	public static final double PULL_LEVEL = 1.5;
 	public static final double CONTACT_REACH = 0.05;
 
 	public static final double BOB_BLOCKS = 0.14;
@@ -80,6 +81,10 @@ public final class HeadTuning {
 	public static final double AHEAD_REACH = 2.5;
 	public static final double ESCAPE_REACH = 6.0;
 	public static final double ESCAPE_SPEED = 0.15;
+	public static final int CELL_LIMIT = 4096;
+	public static final double SEAL_SECONDS = 5.0;
+	public static final double BURROW_DEPTH = 3.0;
+	public static final double BURROW_RISE = 1.5;
 
 	private HeadTuning() {
 	}

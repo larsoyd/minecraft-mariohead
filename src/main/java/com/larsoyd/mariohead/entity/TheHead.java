@@ -4,11 +4,13 @@ import static com.larsoyd.mariohead.entity.HeadTuning.*;
 
 import com.larsoyd.mariohead.HeadEntities;
 import com.larsoyd.mariohead.HeadSounds;
+import com.larsoyd.mariohead.MarioHead;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -57,10 +59,12 @@ public class TheHead extends Monster {
 	private double chargeSpeed;
 	private double moveSpeed;
 	private float moveYaw;
+	private double aimDistance;
 	private @Nullable Path path;
 	private int pathIndex;
 	private int replanIn;
 	private int pathCells = 1;
+	private boolean cellRoute;
 	private Vec3 chasedLast = Vec3.ZERO;
 	private Vec3 chasedVelocity = Vec3.ZERO;
 	private double pace;
@@ -69,6 +73,10 @@ public class TheHead extends Monster {
 	private boolean seen;
 	private boolean halted;
 	private boolean wedged;
+	private boolean sealed;
+	private long sealedSince = -1L;
+	private boolean burrowing;
+	private boolean announced;
 	private @Nullable Vec3 escape;
 	private @Nullable ChunkPos ticketChunk;
 
@@ -145,6 +153,10 @@ public class TheHead extends Monster {
 		return this.chargeSpeed;
 	}
 
+	public boolean burrowing() {
+		return this.burrowing;
+	}
+
 	public @Nullable Player chased() {
 		return this.chased;
 	}
@@ -185,7 +197,11 @@ public class TheHead extends Monster {
 		Player target = this.validTarget(level);
 		HeadPhase phase = this.phase();
 		this.seen = HeadSight.seen(level, this.getBoundingBox());
-		this.fitSqueeze(phase == HeadPhase.CHARGE);
+		if (this.burrowing) {
+			this.sinkOutOfSight();
+		} else {
+			this.fitSqueeze(phase == HeadPhase.CHARGE);
+		}
 		if (target == null && (phase == HeadPhase.TALK || phase == HeadPhase.CHARGE)) {
 			this.vanish(level);
 			return;
@@ -246,28 +262,81 @@ public class TheHead extends Monster {
 		Vec3 goal = this.lead(target);
 
 		Vec3 centre = this.centre();
-		boolean straight = centre.distanceTo(target.position()) < GRAB_DISTANCE && this.clearLine(centre, target.getEyePosition());
+		boolean straight = !this.burrowing && centre.distanceTo(target.position()) < GRAB_DISTANCE && this.clearLine(centre, target.getEyePosition());
 		if (straight) {
 			this.path = null;
 			this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, target.position()), GRAB_TURN_DEGREES);
 			this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
+			this.aimDistance = target.position().subtract(centre).horizontalDistance();
 		} else {
 			if (--this.replanIn <= 0 || this.path == null) {
-				this.replan(goal);
+				this.replan(goal, target);
 			}
-			straight = !this.steer(centre, goal);
+			straight = !this.burrowing && !this.steer(centre, goal);
 			if (straight) {
 				this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(centre, goal), TURN_DEGREES);
 				this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
+				this.aimDistance = goal.subtract(centre).horizontalDistance();
 			}
 		}
 		if (this.halted) {
 			this.moveSpeed = approach(this.moveSpeed, 0.0);
 		}
-		this.fly(target, straight);
+		if (this.burrowing) {
+			this.burrow(target, cue);
+		} else {
+			this.fly(target, straight);
+		}
 		this.faceTowards(this.moveYaw, target);
 		if (this.touching(target)) {
 			this.caught(level, target);
+			return;
+		}
+		this.watchForSeal(level);
+	}
+
+	// sealed in for long enough, he says so once and takes the way through the ground
+	private void watchForSeal(ServerLevel level) {
+		long now = level.getGameTime();
+		if (!this.sealed) {
+			this.sealedSince = -1L;
+		} else if (this.sealedSince < 0L) {
+			this.sealedSince = now;
+		}
+		if (!this.burrowing && this.sealedSince >= 0L && now - this.sealedSince >= ticks(SEAL_SECONDS)) {
+			this.burrowing = true;
+			this.path = null;
+			if (!this.announced) {
+				this.announced = true;
+				this.setCue(HeadCue.UNDERGROUND);
+				level.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("chat.type.announcement",
+					this.getDisplayName(), Component.translatable("chat.mariohead.the_head.underground")), false);
+			}
+			MarioHead.LOG.info("[head] underground id={} at={} sealed_ticks={}", this.getId(), this.blockPosition(), now - this.sealedSince);
+		} else if (this.burrowing && !this.sealed) {
+			Vec3 c = this.centre();
+			this.burrowing = !HeadRoom.fits(this, c.x, c.y, c.z, this.squeeze());
+		}
+	}
+
+	// down under the player and up into them, holding still while he says it
+	private void burrow(Player target, HeadCue cue) {
+		Vec3 c = this.centre();
+		Vec3 to = target.position().add(0.0, target.getBbHeight() / 2.0, 0.0);
+		Vec3 aim = c.subtract(to).horizontalDistance() > BURROW_RISE ? new Vec3(to.x, Math.min(c.y, to.y) - BURROW_DEPTH, to.z) : to;
+		this.moveSpeed = approach(this.moveSpeed, cue == HeadCue.UNDERGROUND ? 0.0 : this.chargeSpeed);
+		this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(c, to), TURN_DEGREES);
+		Vec3 way = aim.subtract(c);
+		Vec3 step = way.length() > 1e-6 ? way.normalize().scale(Math.min(way.length(), this.moveSpeed)) : Vec3.ZERO;
+		this.body(step.x, step.y, step.z);
+	}
+
+	// in the ground nobody sees him, so that is where he gets small enough for any hole he comes up in
+	private void sinkOutOfSight() {
+		this.wedged = false;
+		this.halted = false;
+		if (!this.seen && this.squeeze() > MIN_SQUEEZE) {
+			this.setSqueeze(MIN_SQUEEZE);
 		}
 	}
 
@@ -358,7 +427,7 @@ public class TheHead extends Monster {
 		List<Vec3> points = new ArrayList<>();
 		if (p != null && this.pathIndex < p.getNodeCount()) {
 			for (int i = this.pathIndex; i < p.getNodeCount() && points.size() < AHEAD_NODES; i++) {
-				Vec3 node = this.nodeAt(p.getNode(i), p.getNode(i).y);
+				Vec3 node = this.nodeAt(p.getNode(i), this.cellRoute ? p.getNode(i).y + 0.5 - HOVER * MIN_SQUEEZE : p.getNode(i).y);
 				if (node.subtract(c).horizontalDistance() > AHEAD_REACH) {
 					break;
 				}
@@ -385,7 +454,7 @@ public class TheHead extends Monster {
 	}
 
 	// a route at the size he has now, or a squeeze route when there is none or it is a long way round
-	private void replan(Vec3 goal) {
+	private void replan(Vec3 goal, Player target) {
 		BlockPos to = BlockPos.containing(goal);
 		float size = this.squeeze();
 		Vec3 from = this.planStart();
@@ -395,6 +464,17 @@ public class TheHead extends Monster {
 			if (reaches(small) && (!reaches(route) || small.getNodeCount() * 2 < route.getNodeCount())) {
 				route = small;
 				size = MIN_SQUEEZE;
+			}
+		}
+		this.sealed = false;
+		this.cellRoute = false;
+		if (!reaches(route)) {
+			HeadCells.Route cells = HeadCells.search(this, BlockPos.containing(target.getX(), target.getY() + 0.5, target.getZ()), this.getBoundingBox(), CELL_LIMIT);
+			this.sealed = cells.kind() == HeadCells.Kind.SEALED;
+			if (cells.kind() == HeadCells.Kind.FOUND) {
+				route = new Path(cells.cells().stream().map(p -> new Node(p.getX(), p.getY(), p.getZ())).toList(), target.blockPosition(), true);
+				size = MIN_SQUEEZE;
+				this.cellRoute = true;
 			}
 		}
 		this.path = route;
@@ -462,7 +542,7 @@ public class TheHead extends Monster {
 			return false;
 		}
 		int flat = this.pathIndex;
-		while (flat + 1 < p.getNodeCount() && p.getNode(flat + 1).y == p.getNode(this.pathIndex).y
+		while (this.levelWith(p.getNode(this.pathIndex), centre) && flat + 1 < p.getNodeCount() && p.getNode(flat + 1).y == p.getNode(this.pathIndex).y
 			&& this.nodeAt(p.getNode(flat + 1), centre.y).distanceTo(centre) < PULL_REACH) {
 			flat++;
 		}
@@ -475,7 +555,7 @@ public class TheHead extends Monster {
 		while (this.pathIndex < p.getNodeCount()) {
 			boolean last = this.pathIndex == p.getNodeCount() - 1;
 			Vec3 node = this.nodeAt(p.getNode(this.pathIndex), centre.y);
-			if (node.subtract(centre).horizontalDistance() > (last ? WAYPOINT_REACH * 0.45 : WAYPOINT_REACH)) {
+			if (node.subtract(centre).horizontalDistance() > (last ? WAYPOINT_REACH * 0.45 : WAYPOINT_REACH) || !this.levelWith(p.getNode(this.pathIndex), centre)) {
 				break;
 			}
 			this.pathIndex++;
@@ -486,6 +566,7 @@ public class TheHead extends Monster {
 		// the last node is a grid cell, the player is the real end of it
 		Vec3 aim = this.pathIndex == p.getNodeCount() - 1 && p.canReach() ? goal : this.nodeAt(p.getNode(this.pathIndex), centre.y);
 		float want = yawTo(centre, aim);
+		this.aimDistance = aim.subtract(centre).horizontalDistance();
 		this.moveYaw = Mth.approachDegrees(this.moveYaw, want, TURN_DEGREES);
 		float turn = Math.abs(Mth.wrapDegrees(want - this.moveYaw));
 		double speed = this.chargeSpeed;
@@ -494,6 +575,12 @@ public class TheHead extends Monster {
 		}
 		this.moveSpeed = approach(this.moveSpeed, speed);
 		return true;
+	}
+
+	// only a stretch he is flying at the height of can be cut straight, not a tunnel under his feet
+	private boolean levelWith(Node node, Vec3 centre) {
+		double height = this.cellRoute ? node.y + 0.5 : node.y + HOVER * this.squeeze();
+		return Math.abs(centre.y - height) < PULL_LEVEL;
 	}
 
 	private Vec3 nodeAt(Node node, double y) {
@@ -505,22 +592,35 @@ public class TheHead extends Monster {
 	private void fly(Player target, boolean straight) {
 		double yaw = Math.toRadians(this.moveYaw);
 		double y = this.centre().y;
-		double want = this.hoverHeight(straight ? target.getY() : this.nextFloor());
+		double want = straight ? this.hoverHeight(target.getY()) : this.cellRoute ? this.cellHeight() : this.hoverHeight(this.nextFloor());
 		if (this.climbing) {
 			want = Math.max(want, y + 1.0);
 		}
-		Vec3 ahead = this.centre().add(-Math.sin(yaw) * AHEAD_SETTLE, 0.0, Math.cos(yaw) * AHEAD_SETTLE);
+		double reach = Math.min(AHEAD_SETTLE, this.aimDistance);
+		Vec3 ahead = this.centre().add(-Math.sin(yaw) * reach, 0.0, Math.cos(yaw) * reach);
 		double fit = HeadRoom.settle(this, ahead, want, this.squeeze());
 		if (!Double.isNaN(fit)) {
 			want = fit;
 		}
-		double speed = this.moveSpeed * Mth.clamp(1.0 - (want - y - CLIMB_FREE) / CLIMB_SLOW, MIN_TURN_SPEED, 1.0);
+		// never past the point he is making for, or he circles a shaft he has to drop down
+		double speed = Math.min(this.aimDistance, this.moveSpeed * Mth.clamp(1.0 - (want - y - CLIMB_FREE) / CLIMB_SLOW, MIN_TURN_SPEED, 1.0));
 		double dx = -Math.sin(yaw) * speed;
 		double dz = Math.cos(yaw) * speed;
 		this.body(dx, Mth.clamp(want - y, -CLIMB, CLIMB), dz);
 		Vec3 c = this.centre();
 		// a wall he flies up when he has no path, a step only when a block higher clears it
 		this.climbing = this.horizontalCollision && (straight || HeadRoom.fits(this, c.x + dx, c.y + STEP_UP, c.z + dz, this.squeeze()));
+	}
+
+	// a cell node is where his middle goes, a walk node is a floor he floats over
+	private double cellHeight() {
+		Path p = this.path;
+		Vec3 c = this.centre();
+		if (p == null || this.pathIndex >= p.getNodeCount()) {
+			return c.y;
+		}
+		double y = HeadRoom.settle(this, c, p.getNode(this.pathIndex).y + 0.5, this.squeeze());
+		return Double.isNaN(y) ? c.y : y;
 	}
 
 	// a walk node is where a walker would stand, so its height is the floor he is about to cross
@@ -554,7 +654,7 @@ public class TheHead extends Monster {
 			dx = 0.0;
 			dz = 0.0;
 		}
-		this.noPhysics = this.wedged;
+		this.noPhysics = this.wedged || this.burrowing;
 		this.move(MoverType.SELF, new Vec3(dx, dy, dz));
 		this.noPhysics = false;
 		this.setDeltaMovement(this.position().subtract(before));

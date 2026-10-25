@@ -37,6 +37,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			this.seenAndHeard(context, world);
 			this.turnsWithoutWobble(context, world);
 			this.lateObserver(context, world);
+			this.announcementIsHeard(context, world);
 		}
 	}
 
@@ -165,6 +166,40 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		check(flips == 0 && jerk < 40.0, "he weaves while circling: jerk " + jerk + " roll flips " + flips);
 		server.runCommand("kill @e[type=mariohead:the_head]");
 		context.waitFor(mc -> clientHeads().isEmpty(), 40);
+	}
+
+	// sealed in stone, the player hears him announce the way underground
+	private void announcementIsHeard(ClientGameTestContext context, TestSingleplayerContext world) {
+		var server = world.getServer();
+		context.waitFor(mc -> clientHeads().isEmpty(), 40);
+		server.runCommand("tp @p 0.5 -60 0.5 -90 0");
+		server.runCommand("fill -2 -61 -2 2 -57 2 minecraft:stone");
+		server.runCommand("fill 0 -60 0 0 -59 0 minecraft:air");
+		server.runOnServer(s -> {
+			var level = s.overworld();
+			TheHead head = HeadEntities.THE_HEAD.create(level, EntitySpawnReason.COMMAND);
+			head.snapTo(12.5, -59.0, 0.5, 90.0f, 0.0f);
+			head.chase(s.getPlayerList().getPlayers().getFirst());
+			level.addFreshEntity(head);
+		});
+		context.waitFor(mc -> !clientHeads().isEmpty() && clientHeads().getFirst().phase() == HeadPhase.CHARGE, 200);
+		int before = HeadVoiceSound.started();
+		int cues = 0;
+		HeadCue last = HeadCue.INHALE;
+		for (int t = 0; t < 200 && last != HeadCue.UNDERGROUND; t++) {
+			context.waitTick();
+			HeadCue cue = context.computeOnClient(mc -> clientHeads().getFirst().cue());
+			if (cue != last && cue.clip() != null) {
+				cues++;
+			}
+			last = cue;
+		}
+		context.waitTicks(2);
+		int voices = HeadVoiceSound.started() - before;
+		LOG.info("[client-test] underground cue={} voiced_cues={} voices={}", last, cues, voices);
+		check(last == HeadCue.UNDERGROUND && voices == cues, "the announcement: cue " + last + ", " + voices + " voices for " + cues + " voiced cues");
+		server.runCommand("kill @e[type=mariohead:the_head]");
+		server.runCommand("fill -2 -61 -2 2 -57 2 minecraft:air");
 	}
 
 	private static TheHead serverHead(net.minecraft.server.MinecraftServer s) {

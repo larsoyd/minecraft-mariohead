@@ -11,6 +11,7 @@ public final class HeadSounds {
 	public static final SoundEvent MMM1 = register("entity.the_head.mmm1");
 	public static final SoundEvent MMM2 = register("entity.the_head.mmm2");
 	public static final SoundEvent MMM3 = register("entity.the_head.mmm3");
+	public static final SoundEvent UNDERGROUND = register("entity.the_head.underground");
 
 	private HeadSounds() {
 	}
@@ -21,6 +22,7 @@ public final class HeadSounds {
 			case MMM1 -> MMM1;
 			case MMM2 -> MMM2;
 			case MMM3 -> MMM3;
+			case UNDERGROUND -> UNDERGROUND;
 			default -> throw new IllegalArgumentException("no clip for cue " + cue);
 		};
 	}

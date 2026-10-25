@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -152,9 +153,20 @@ class BundledMesh(unittest.TestCase):
 class Voice(unittest.TestCase):
     def test_bundled_mouth_matches_the_shipped_head(self):
         got = bundled_voice()
-        self.assertEqual(sorted(got), sorted(SHIPPED_MOUTH))
+        self.assertEqual(sorted(got), sorted([*SHIPPED_MOUTH, "underground"]))
         for name, mouth in SHIPPED_MOUTH.items():
             self.assertEqual(got[name], (SHIPPED_MILLIS[name], mouth), name)
+
+    def test_underground_line_is_bundled_and_spoken(self):
+        millis, mouth = bundled_voice()["underground"]
+        self.assertTrue(2500 <= millis <= 2800, millis)
+        self.assertEqual(len(mouth), -(-millis * build_head.MOUTH_FPS // 1000), len(mouth))
+        self.assertGreater(max(mouth), 200)
+        self.assertGreater(sum(1 for v in mouth if v >= 70), len(mouth) // 3)
+        path = os.path.join(build_head.SOUND_DIR, "underground.ogg")
+        probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=sample_rate,channels",
+                                "-of", "csv=p=0", path], check=True, capture_output=True, text=True, timeout=60)
+        self.assertEqual(probe.stdout.strip(), "48000,1")
 
     def test_bundled_clips_exist(self):
         for name in SHIPPED_MOUTH:

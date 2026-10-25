@@ -20,10 +20,10 @@ public final class HeadPose {
 			double left = Math.max(0.0, INHALE_SECONDS - seconds) / INHALE_SECONDS;
 			return (int) (255.0 - 255.0 * Math.abs(left * 2.0 - 1.0));
 		}
-		if (cue != HeadCue.HELLO) {
+		if (!cue.spoken()) {
 			return 0;
 		}
-		int[] mouth = HeadVoice.HELLO.mouth();
+		int[] mouth = cue.clip().mouth();
 		int frame = (int) Math.floor(seconds * HeadVoice.MOUTH_FPS);
 		return frame >= 0 && frame < mouth.length ? mouth[frame] : 0;
 	}

@@ -46,10 +46,14 @@ The command needs operator rights (permission level 2).
 ## How he behaves
 
 - He floats about two blocks above the floor and plans his way along it, through doors, up stairs
-  and around walls. When he cannot walk there he flies straight at you.
-- He is about three blocks wide and shrinks to squeeze through doors, caves and gaps down to one
-  block, then swells back. He never pokes through blocks. A gap under one block stops him. Leaves,
-  grass and flowers do not stop him at all.
+  and around walls, and heads off a player who runs across his path. Where no floor leads to you he
+  finds the open way through caves, shafts and the air, and otherwise flies straight at you.
+- He is about three blocks wide and prefers a way round he fits through. He can shrink to squeeze
+  through doors, caves and gaps down to one block, but only while nobody is looking at him: watched,
+  he waits at a gap too small for him. He never pokes through blocks while he chases. A gap under
+  one block stops him. Leaves, grass and flowers do not stop him at all.
+- Wall yourself in completely and after five seconds he announces in chat that he is going to move
+  underground, and comes for you through the ground.
 - He cannot be hurt. `/kill` removes him. He leaves on Peaceful.
 - Before he says hello he will go after whoever else is near if his player leaves. After hello
   the chase belongs to that player, and he vanishes when they die, leave, change dimension or

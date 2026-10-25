@@ -649,11 +649,63 @@ public class HeadGameTests {
 		});
 	}
 
+	// walled in, the player hears him announce once after five seconds, then he comes through the ground
+	@GameTest(structure = ARENA, maxTicks = 600)
+	public void announcesAndBurrowsToASealedPlayer(GameTestHelper helper) {
+		fill(helper, 1, 0, 8, 5, 4, 12, Blocks.STONE.defaultBlockState());
+		fill(helper, 3, 1, 10, 3, 2, 10, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 1.0, 10.5), -90.0f);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(16.5, 0.5, 10.5));
+		head.chase(target);
+		int[] charged = { -1 };
+		List<Integer> announced = new ArrayList<>();
+		HeadCue[] last = { HeadCue.NONE };
+		helper.onEachTick(() -> {
+			if (head.isRemoved()) {
+				return;
+			}
+			int t = (int) helper.getTick();
+			if (charged[0] < 0 && head.phase() == HeadPhase.CHARGE) {
+				charged[0] = t;
+			}
+			if (head.cue() == HeadCue.UNDERGROUND && last[0] != HeadCue.UNDERGROUND) {
+				announced.add(t);
+			}
+			last[0] = head.cue();
+			if (announced.isEmpty()) {
+				helper.assertTrue(helper.getLevel().noCollision(head, head.getBoundingBox().deflate(1e-6)),
+					"went into the ground before announcing, at " + helper.relativeVec(head.position()));
+			}
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "sealed player alive, head " + helper.relativeVec(head.position()) + " announced " + announced);
+			helper.assertTrue(announced.size() == 1, "announced at " + announced);
+			int wait = announced.getFirst() - charged[0];
+			helper.assertTrue(wait >= 100 && wait <= 140, "announced " + wait + " ticks into the charge");
+			leave(helper, target);
+		});
+	}
+
+	// a shaft deeper than any walker drops and a tunnel off its foot, found by searching the open cells
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void followsThePlayerDownADeepShaft(GameTestHelper helper) {
+		fill(helper, 0, 8, 0, 19, 8, 19, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, 0, 0, 19, 6, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 12, 1, 10, 12, 6, 10, Blocks.AIR.defaultBlockState());
+		fill(helper, 4, 1, 10, 11, 1, 10, Blocks.AIR.defaultBlockState());
+		fill(helper, 3, 1, 10, 3, 2, 10, Blocks.AIR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 1.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 7.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
 	// buried by a player he squirms out to the nearest open air, never on through a wall to his target
 	@GameTest(structure = ARENA, maxTicks = 300)
 	public void escapesBeingBuriedButNotThroughAWall(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
-		fill(helper, 9, 0, 0, 9, 7, 19, Blocks.GLASS.defaultBlockState());
+		fill(helper, 9, 0, 0, 9, 7, 16, Blocks.GLASS.defaultBlockState());
+		AABB glass = new AABB(helper.absoluteVec(new Vec3(9, 0, 0)), helper.absoluteVec(new Vec3(10, 8, 17)));
 		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(14.5, 0.5, 10.5));
 		head.chase(target);
@@ -664,7 +716,7 @@ public class HeadGameTests {
 			buried[0] = true;
 		});
 		helper.onEachTick(() -> {
-			helper.assertTrue(helper.relativeVec(head.position()).x > 9.0, "through the glass at " + helper.relativeVec(head.position()));
+			helper.assertFalse(!head.isRemoved() && head.getBoundingBox().intersects(glass), "into the glass at " + helper.relativeVec(head.position()));
 			boolean clear = helper.getLevel().noCollision(head, head.getBoundingBox().deflate(1e-6));
 			if (buried[0] && freeAt[0] < 0 && clear) {
 				freeAt[0] = (int) helper.getTick();
@@ -675,7 +727,7 @@ public class HeadGameTests {
 		});
 		helper.runAtTickTime(290, () -> {
 			helper.assertTrue(freeAt[0] >= 0 && freeAt[0] < 140, "free at " + freeAt[0] + ", head " + helper.relativeVec(head.position()));
-			helper.assertFalse(target.isDeadOrDying(), "caught through glass");
+			leave(helper, target);
 			helper.succeed();
 		});
 	}
@@ -784,8 +836,17 @@ public class HeadGameTests {
 				}
 			}
 		}
+		// one small hole keeps the box open, and the player keeps an eye on him so he cannot shrink for it
+		helper.setBlock(new BlockPos(5, 0, 10), Blocks.AIR);
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		helper.onEachTick(() -> {
+			if (!head.isRemoved()) {
+				Vec3 to = head.centre().subtract(target.getEyePosition());
+				target.setYRot((float) (Math.toDegrees(Math.atan2(to.z, to.x)) - 90.0));
+				target.setXRot((float) -Math.toDegrees(Math.atan2(to.y, to.horizontalDistance())));
+			}
+		});
 		List<double[]> humStarts = new ArrayList<>();
 		double[] last = { -1.0 };
 		HeadCue[] lastCue = { HeadCue.NONE };
@@ -822,7 +883,7 @@ public class HeadGameTests {
 			helper.assertTrue(heads.size() == 1, "heads " + heads.size());
 			TheHead head = heads.getFirst();
 			Vec3 to = head.getBoundingBox().getCenter().subtract(target.getEyePosition());
-			double distance = to.horizontalDistance();
+			double distance = to.length();
 			helper.assertTrue(distance >= HeadTuning.SPAWN_MIN - 0.01 && distance <= HeadTuning.SPAWN_MAX + 0.01, "distance " + distance);
 			helper.assertTrue(to.normalize().dot(target.getLookAngle()) > 0.7, "not in view " + to);
 			helper.assertTrue(head.chased() == target, "wrong target " + head.chased());

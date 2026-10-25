@@ -21,6 +21,14 @@ class HeadPoseTest {
 	}
 
 	@Test
+	void theUndergroundLineIsSpokenInTheCharge() {
+		for (int f = 0; f < HeadVoice.UNDERGROUND.frames(); f++) {
+			boolean want = HeadVoice.UNDERGROUND.mouth()[f] >= 70;
+			assertEquals(want, HeadPose.mouthOpen(HeadPhase.CHARGE, HeadCue.UNDERGROUND, frame(f + 0.5), 1.0), "frame " + f);
+		}
+	}
+
+	@Test
 	void humsAreShut() {
 		for (HeadCue hum : new HeadCue[] { HeadCue.MMM1, HeadCue.MMM2, HeadCue.MMM3 }) {
 			for (double t = 0.0; t < 2.5; t += 0.01) {

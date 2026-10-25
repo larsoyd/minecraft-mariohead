@@ -16,15 +16,19 @@ import net.minecraft.world.phys.Vec3;
 // his voice follows him, as loud as his distance to whoever is listening says
 public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 	// his words are mixed quieter than his hums, so they get twice the curve
-	private static final float HELLO_GAIN = 2.0f;
+	private static final float WORDS_GAIN = 2.0f;
+	// the underground line is an announcement, everyone around hears it
+	private static final float ANNOUNCE_FLOOR = 0.6f;
 	private static final AtomicInteger STARTED = new AtomicInteger();
 	private final TheHead head;
 	private final float gain;
+	private final float floor;
 
 	private HeadVoiceSound(TheHead head, HeadCue cue) {
 		super(HeadSounds.of(cue), SoundSource.HOSTILE, SoundInstance.createUnseededRandom());
 		this.head = head;
-		this.gain = cue == HeadCue.HELLO ? HELLO_GAIN : 1.0f;
+		this.gain = cue.spoken() ? WORDS_GAIN : 1.0f;
+		this.floor = cue == HeadCue.UNDERGROUND ? ANNOUNCE_FLOOR : 0.0f;
 		this.attenuation = SoundInstance.Attenuation.NONE;
 		this.looping = false;
 		this.delay = 0;
@@ -62,6 +66,6 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 		this.z = c.z;
 		Player listener = Minecraft.getInstance().player;
 		double distance = listener == null ? Double.MAX_VALUE : listener.getEyePosition().distanceTo(c);
-		this.volume = Math.min(1.0f, VoiceCurve.volume(distance) * this.gain);
+		this.volume = Math.max(this.floor, Math.min(1.0f, VoiceCurve.volume(distance) * this.gain));
 	}
 }

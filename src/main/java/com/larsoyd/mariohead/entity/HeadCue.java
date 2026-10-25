@@ -9,7 +9,8 @@ public enum HeadCue {
 	MMM1,
 	MMM2,
 	MMM3,
-	INHALE;
+	INHALE,
+	UNDERGROUND;
 
 	private static final HeadCue[] BY_ID = values();
 	private static final HeadCue[] HUMS = { MMM1, MMM2, MMM3 };
@@ -21,8 +22,14 @@ public enum HeadCue {
 			case MMM1 -> HeadVoice.MMM1;
 			case MMM2 -> HeadVoice.MMM2;
 			case MMM3 -> HeadVoice.MMM3;
+			case UNDERGROUND -> HeadVoice.UNDERGROUND;
 			default -> null;
 		};
+	}
+
+	// words move his mouth, a hum keeps it shut
+	public boolean spoken() {
+		return this == HELLO || this == UNDERGROUND;
 	}
 
 	public static HeadCue hum(int rev) {

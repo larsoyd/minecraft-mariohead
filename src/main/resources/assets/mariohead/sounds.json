@@ -18,5 +18,9 @@
 	"entity.the_head.mmm3": {
 		"subtitle": "subtitles.mariohead.the_head.hum",
 		"sounds": ["mariohead:the_head/mmm3"]
+	},
+	"entity.the_head.underground": {
+		"subtitle": "subtitles.mariohead.the_head.underground",
+		"sounds": ["mariohead:the_head/underground"]
 	}
 }

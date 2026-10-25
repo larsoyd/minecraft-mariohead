@@ -2,10 +2,10 @@
 """Build the head's bundled assets from the user's source files.
 
 model: the blend and its PNGs -> the mesh, cap, iris and skin textures
-voice: the voice clip and the full voice track -> four OGG clips and HeadVoice.java
+voice: the voice clip, the full voice track and the underground line -> five OGG clips and HeadVoice.java
 
 Sources are pinned by SHA-256 in sources.json. Their paths come from local.properties at the
-repository root (head.blend, head.voice, head.track) or from the command line.
+repository root (head.blend, head.voice, head.track, head.underground) or from the command line.
 """
 
 import argparse
@@ -55,6 +55,7 @@ HELLO_CUT = ("track", 0.82, 1.38)
 FLY_CUT = ("voice", 0.20, 1.60)
 COMMA_PAUSE = 0.22
 HUM_CUTS = [("voice", 2.30, 3.85), ("voice", 3.96, 6.16), ("voice", 6.72, 8.66)]
+UNDERGROUND_CUT = ("underground", 0.0, 2.6165)
 SPEECH_GAIN_DB = 4.0
 HUM_GAIN_DB = 10.0
 FADE = 0.008
@@ -341,7 +342,7 @@ def mouth_envelope(audio, rate):
 
 
 def clips(sources, rate):
-    """The four clips as float audio at rate: hello first, then the three hums."""
+    """The clips as float audio at rate: hello, the three hums, then the underground line."""
     def cut(spec, gain_db):
         key, start, end = spec
         return decode_mono(sources[key], start, end, rate) * 10 ** (gain_db / 20)
@@ -350,6 +351,7 @@ def clips(sources, rate):
                             np.zeros(int(COMMA_PAUSE * rate)),
                             fade_ends(cut(FLY_CUT, SPEECH_GAIN_DB), rate)])
     out = [("hello", intro)] + [(f"mmm{i + 1}", cut(c, HUM_GAIN_DB)) for i, c in enumerate(HUM_CUTS)]
+    out.append(("underground", fade_ends(cut(UNDERGROUND_CUT, SPEECH_GAIN_DB), rate)))
     finished = []
     for name, audio in out:
         audio = fade_ends(limit(audio, CEILING, rate), rate)
@@ -402,8 +404,9 @@ def java_voice(tracks):
     return "\n".join(lines)
 
 
-def build_voice(voice, track):
-    sources = {"voice": verified(voice, "voice"), "track": verified(track, "track")}
+def build_voice(voice, track, underground):
+    sources = {"voice": verified(voice, "voice"), "track": verified(track, "track"),
+               "underground": verified(underground, "underground")}
     os.makedirs(SOUND_DIR, exist_ok=True)
     for name, audio in clips(sources, VOICE_RATE):
         path = os.path.join(SOUND_DIR, name + ".ogg")
@@ -425,11 +428,12 @@ def main():
     parser.add_argument("--blend", default=props.get("head.blend"))
     parser.add_argument("--voice", default=props.get("head.voice"))
     parser.add_argument("--track", default=props.get("head.track"))
+    parser.add_argument("--underground", default=props.get("head.underground"))
     args = parser.parse_args()
     if args.what in ("model", "all"):
         build_model(verified(args.blend, "blend"))
     if args.what in ("voice", "all"):
-        build_voice(args.voice, args.track)
+        build_voice(args.voice, args.track, args.underground)
 
 
 if __name__ == "__main__":
