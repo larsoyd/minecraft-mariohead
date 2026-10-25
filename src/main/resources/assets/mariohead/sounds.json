@@ -1,7 +1,7 @@
 {
 	"entity.the_head.appear": {
 		"subtitle": "subtitles.mariohead.the_head.appear",
-		"sounds": [{ "name": "minecraft:mob/illusion_illager/mirror_move1", "pitch": 0.75 }]
+		"sounds": [{"name": "minecraft:mob/illusion_illager/mirror_move1", "pitch": 0.75}]
 	},
 	"entity.the_head.hello": {
 		"subtitle": "subtitles.mariohead.the_head.hello",
@@ -34,5 +34,81 @@
 	"entity.the_head.underground": {
 		"subtitle": "subtitles.mariohead.the_head.underground",
 		"sounds": ["mariohead:the_head/underground"]
+	},
+	"entity.the_head.taunt_006": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_006"]
+	},
+	"entity.the_head.taunt_008": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_008"]
+	},
+	"entity.the_head.taunt_009": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_009"]
+	},
+	"entity.the_head.taunt_010": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_010"]
+	},
+	"entity.the_head.taunt_016": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_016"]
+	},
+	"entity.the_head.taunt_023": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_023"]
+	},
+	"entity.the_head.taunt_026": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_026"]
+	},
+	"entity.the_head.taunt_078": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_078"]
+	},
+	"entity.the_head.taunt_082": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_082"]
+	},
+	"entity.the_head.taunt_088": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_088"]
+	},
+	"entity.the_head.taunt_089": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_089"]
+	},
+	"entity.the_head.taunt_090": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_090"]
+	},
+	"entity.the_head.taunt_091": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_091"]
+	},
+	"entity.the_head.taunt_098": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_098"]
+	},
+	"entity.the_head.taunt_099": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_099"]
+	},
+	"entity.the_head.taunt_100": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_100"]
+	},
+	"entity.the_head.taunt_105": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_105"]
+	},
+	"entity.the_head.taunt_106": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_106"]
+	},
+	"entity.the_head.taunt_107": {
+		"subtitle": "subtitles.mariohead.the_head.taunt",
+		"sounds": ["mariohead:the_head/taunt_107"]
 	}
 }

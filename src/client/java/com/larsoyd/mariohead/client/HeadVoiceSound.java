@@ -6,6 +6,9 @@ import com.larsoyd.mariohead.entity.HeadCue;
 import com.larsoyd.mariohead.entity.TheHead;
 import com.larsoyd.mariohead.entity.VoiceCurve;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.lang.ref.WeakReference;
+import java.util.Map;
+import java.util.WeakHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
@@ -21,6 +24,7 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 	private static final float ANNOUNCE_FLOOR = 0.6f;
 	private static final AtomicInteger STARTED = new AtomicInteger();
 	private static final AtomicInteger LOUD = new AtomicInteger();
+	private static final Map<TheHead, WeakReference<HeadVoiceSound>> VOICES = new WeakHashMap<>();
 	private final TheHead head;
 	private final float gain;
 	private final float floor;
@@ -39,7 +43,14 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 	public static void play(TheHead head, HeadCue cue) {
 		Minecraft minecraft = Minecraft.getInstance();
 		boolean loud = head.digging() && !cue.spoken();
-		minecraft.getSoundManager().play(new HeadVoiceSound(head, cue, loud));
+		HeadVoiceSound next = new HeadVoiceSound(head, cue, loud);
+		WeakReference<HeadVoiceSound> previous = VOICES.put(head, new WeakReference<>(next));
+		HeadVoiceSound old = previous == null ? null : previous.get();
+		if (old != null) {
+			old.stop();
+			minecraft.getSoundManager().stop(old);
+		}
+		minecraft.getSoundManager().play(next);
 		if (loud) {
 			LOUD.incrementAndGet();
 		}
@@ -52,6 +63,11 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 
 	public static int loudStarted() {
 		return LOUD.get();
+	}
+
+	@Override
+	public boolean canPlaySound() {
+		return !this.isStopped();
 	}
 
 	@Override

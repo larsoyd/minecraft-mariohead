@@ -15,10 +15,11 @@ final class HeadContact {
 	private HeadContact() {
 	}
 
-	static boolean touches(Vec3 centre, float yaw, float pitch, float roll, float scale, AABB player, double reach) {
+	static boolean sweeps(Vec3 from, Vec3 to, float yaw, float pitch, float roll, float scale, AABB player, double reach) {
 		AABB box = player.inflate(reach);
 		double radius = Math.max(TheHead.WIDTH, TheHead.HEIGHT) * scale;
-		if (!box.intersects(centre.x - radius, centre.y - radius, centre.z - radius, centre.x + radius, centre.y + radius, centre.z + radius)) {
+		AABB broad = box.inflate(radius);
+		if (!broad.contains(from) && !broad.contains(to) && broad.clip(from, to).isEmpty()) {
 			return false;
 		}
 		Matrix3f pose = new Matrix3f().rotateY((float) Math.toRadians(-yaw)).rotateX((float) Math.toRadians(pitch))
@@ -26,11 +27,17 @@ final class HeadContact {
 		Vector3f p = new Vector3f();
 		for (int i = 0; i < POINTS.length; i += 3) {
 			pose.transform(POINTS[i], POINTS[i + 1], POINTS[i + 2], p);
-			if (box.contains(centre.x + p.x, centre.y + p.y, centre.z + p.z)) {
+			Vec3 start = from.add(p.x, p.y, p.z);
+			Vec3 end = to.add(p.x, p.y, p.z);
+			if (box.contains(start) || box.contains(end) || box.clip(start, end).isPresent()) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	static boolean touches(Vec3 centre, float yaw, float pitch, float roll, float scale, AABB player, double reach) {
+		return sweeps(centre, centre, yaw, pitch, roll, scale, player, reach);
 	}
 
 	// the coarse level of detail, every part, so an open or shut mouth both count

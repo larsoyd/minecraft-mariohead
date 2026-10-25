@@ -309,6 +309,19 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 				var constructor = HeadVoiceSound.class.getDeclaredConstructor(TheHead.class, HeadCue.class, boolean.class);
 				constructor.setAccessible(true);
 				TheHead probe = HeadEntities.THE_HEAD.create(mc.level, EntitySpawnReason.COMMAND);
+				String death = probe.damageSources().source(HeadEntities.CAUGHT, probe).getLocalizedDeathMessage(mc.player).getString();
+				check(death.contains("the Floating Mario Head"), "death message missing article: " + death);
+				String chat = net.minecraft.network.chat.Component.translatable("chat.mariohead.speech", probe.getDisplayName(),
+					net.minecraft.network.chat.Component.literal("test")).getString();
+				check(chat.equals("Floating Mario Head: test"), "chat name missing colon: " + chat);
+				for (HeadCue taunt : HeadCue.values()) {
+					if (taunt.taunt()) {
+						HeadVoiceSound sound = constructor.newInstance(probe, taunt, false);
+						check(sound.getOrResolve(mc.getSoundManager()) != null
+							&& sound.getSound() != net.minecraft.client.sounds.SoundManager.EMPTY_SOUND,
+							"unresolved taunt " + taunt);
+					}
+				}
 				float previous = Float.MAX_VALUE;
 				for (double distance : new double[] { 2.0, 15.0, 40.0, 51.0 }) {
 					var eye = mc.player.getEyePosition();
@@ -329,6 +342,24 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 					sound.tick();
 					check(Math.abs(sound.getX() - probe.centre().x) < 0.001
 						&& Math.abs(sound.getZ() - probe.centre().z) < 0.001, "voice did not follow the moving head");
+				}
+				probe.setPos(mc.player.position());
+				probe.setId(-1234567);
+				var played = new java.util.ArrayList<HeadVoiceSound>();
+				net.minecraft.client.sounds.SoundEventListener listener = (sound, events, range) -> {
+					if (sound instanceof HeadVoiceSound voice) {
+						played.add(voice);
+					}
+				};
+				mc.getSoundManager().addListener(listener);
+				try {
+					HeadVoiceSound.play(probe, HeadCue.MMM1);
+					HeadVoiceSound.play(probe, HeadCue.UNDERGROUND);
+					check(played.size() == 2 && played.getFirst().isStopped() && !played.getLast().isStopped(),
+						"late voice replacement left two recordings active");
+				} finally {
+					mc.getSoundManager().removeListener(listener);
+					played.forEach(mc.getSoundManager()::stop);
 				}
 			} catch (ReflectiveOperationException e) {
 				throw new IllegalStateException(e);

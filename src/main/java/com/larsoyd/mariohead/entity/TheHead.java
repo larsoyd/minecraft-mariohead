@@ -86,6 +86,11 @@ public class TheHead extends Monster {
 	private int phaseTicks = -1;
 	private int cueTicks = -1;
 	private int revs;
+	private final ChaseTempo tempo = new ChaseTempo();
+	private final HeadSpeech speech = new HeadSpeech();
+	private HeadCue pendingVoice = HeadCue.NONE;
+	private boolean teasing;
+	private double dashBoost = 1.0;
 	private double chargeSpeed;
 	private double moveSpeed;
 	private float moveYaw;
@@ -96,6 +101,7 @@ public class TheHead extends Monster {
 	private int pathCells = 1;
 	private boolean cellRoute;
 	private Vec3 chasedLast = Vec3.ZERO;
+	private Vec3 tempoLast = Vec3.ZERO;
 	private Vec3 chasedVelocity = Vec3.ZERO;
 	private double pace;
 	private boolean climbing;
@@ -216,6 +222,7 @@ public class TheHead extends Monster {
 	public void chase(Player player) {
 		this.chased = player;
 		this.chasedLast = player.position();
+		this.tempoLast = player.position();
 	}
 
 	public Vec3 centre() {
@@ -228,10 +235,23 @@ public class TheHead extends Monster {
 	}
 
 	private void setCue(HeadCue cue) {
+		long now = this.level().getGameTime();
+		if (cue.clip() != null && !this.speech.canStart(cue, now)) {
+			this.pendingVoice = cue;
+			return;
+		}
+		this.speech.started(cue, now);
+		if (this.pendingVoice == cue) {
+			this.pendingVoice = HeadCue.NONE;
+		}
 		this.entityData.set(DATA_CUE, HeadCue.pack(cue, this.level().getGameTime()));
 		this.cueTicks = -1;
 		if (cue.clip() != null && this.level() instanceof ServerLevel level) {
 			this.voiceBeyondSight(level, cue);
+			if (cue == HeadCue.UNDERGROUND) {
+				level.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("chat.mariohead.speech",
+					this.getDisplayName(), Component.translatable("chat.mariohead.the_head.underground")), false);
+			}
 		}
 	}
 
@@ -264,6 +284,13 @@ public class TheHead extends Monster {
 		this.phaseTicks++;
 		this.cueTicks++;
 		Player target = this.validTarget(level);
+		if (target != null) {
+			boolean onFoot = !target.isPassenger() && !target.isInWater() && !target.isFallFlying()
+				&& (target.onGround() || !Double.isNaN(HeadRoom.surface(this, target.position().add(0, 0.05, 0), -1.55)));
+			this.tempo.observe(target.getRootVehicle() instanceof net.minecraft.world.entity.vehicle.boat.AbstractBoat,
+				target.isFallFlying(), onFoot, target.position().subtract(this.tempoLast).horizontalDistance());
+			this.tempoLast = target.position();
+		}
 		HeadPhase phase = this.phase();
 		this.seen = HeadSight.seen(level, this.getBoundingBox());
 		if (this.burrowing) {
@@ -321,18 +348,28 @@ public class TheHead extends Monster {
 	}
 
 	private void charge(ServerLevel level, Player target) {
+		this.trackPace(target);
 		HeadCue cue = this.cue();
 		HeadCue before = cue;
-		if (cue == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
-			&& Math.abs(this.getXRot() - this.pitchTo(target)) <= PITCH_RATE) {
-			this.revs++;
-			this.setCue(HeadCue.hum(this.revs));
-		} else if (cue != HeadCue.INHALE && this.cueTicks >= ticks(clipSeconds(cue))) {
+		if (this.pendingVoice != HeadCue.NONE) {
+			this.setCue(this.pendingVoice);
+		} else if (cue == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
+			&& Math.abs(this.getXRot() - this.pitchTo(target)) <= PITCH_RATE
+			&& this.speech.canStart(HeadCue.hum(this.revs + 1), level.getGameTime())) {
+			if (this.teasing || !this.tryTaunt(target, this.random.nextDouble())) {
+				this.revs++;
+				this.tempo.dash();
+				this.dashBoost = this.teasing ? 1.1 : 1.0;
+				this.teasing = false;
+				this.setCue(HeadCue.hum(this.revs));
+			}
+		} else if (cue != HeadCue.INHALE && this.cueTicks >= ticks(this.dashSeconds(cue))) {
 			this.setCue(HeadCue.INHALE);
 		}
 		cue = this.cue();
-		double sag = cue == HeadCue.INHALE ? 1.0 : Math.clamp(this.cueTicks * DT / clipSeconds(cue), 0.0, 1.0);
-		this.chargeSpeed = RevSpring.speed(this.revs, sag, this.trackPace(target));
+		double sag = cue == HeadCue.INHALE ? 1.0 : Math.clamp(this.cueTicks * DT / this.dashSeconds(cue), 0.0, 1.0);
+		double boost = cue.clip() != null && !cue.spoken() ? this.dashBoost : 1.0;
+		this.chargeSpeed = this.teasing ? this.pace : RevSpring.speed(this.revs, sag, this.pace) * this.tempo.multiplier() * boost;
 		Vec3 goal = this.lead(target);
 
 		Vec3 centre = this.centre();
@@ -367,6 +404,9 @@ public class TheHead extends Monster {
 		if (this.halted) {
 			this.moveSpeed = approach(this.moveSpeed, 0.0);
 		}
+		if (this.teasing) {
+			this.moveSpeed = Math.min(this.pace, Math.max(0.0, target.position().subtract(centre).horizontalDistance() - 3.0));
+		}
 		this.faceTowards(this.moveYaw, target);
 		if (this.burrowing) {
 			this.burrow(target, cue);
@@ -375,11 +415,45 @@ public class TheHead extends Monster {
 		} else {
 			this.fly(target, straight);
 		}
-		if (this.touching(target)) {
+		if (!this.teasing && this.touching(target, centre)) {
 			this.caught(level, target);
 			return;
 		}
 		this.watchForSeal(level);
+	}
+
+	private double dashSeconds(HeadCue cue) {
+		return clipSeconds(cue) * (cue.clip() != null && !cue.spoken() ? this.tempo.multiplier() * this.dashBoost : 1.0);
+	}
+
+	private boolean tryTaunt(Player target, double chance) {
+		if (this.teasing || this.pendingVoice != HeadCue.NONE || this.burrowing || this.digging
+			|| this.phaseTicks >= 6000 || chance >= 0.55 || !target.onGround() || target.isPassenger() || target.isInWater()) {
+			return false;
+		}
+		Vec3 centre = this.centre();
+		Vec3 goal = target.position().add(0.0, HOVER * this.squeeze(), 0.0);
+		if (Math.abs(goal.y - centre.y) > 0.5 || !HeadRoom.sweep(this, centre, goal, this.squeeze())) {
+			return false;
+		}
+		double multiplier = this.tempo.nextMultiplier();
+		double duration = clipSeconds(HeadCue.hum(this.revs + 1)) * multiplier;
+		double away = this.chasedVelocity.dot(goal.subtract(centre).normalize());
+		double speed = this.moveSpeed;
+		double reach = 0.0;
+		double best = 0.0;
+		for (int tick = 0, count = Math.min(6000, ticks(duration)); tick < count; tick++) {
+			speed = approach(speed, RevSpring.speed(this.revs + 1, tick * DT / duration, this.pace) * multiplier);
+			reach += speed - away;
+			best = Math.max(best, reach);
+		}
+		double gap = Math.max(0.0, goal.subtract(centre).horizontalDistance() - 1.0 * this.squeeze());
+		if (!ChaseTempo.canTaunt(this.phaseTicks, true, gap, best, chance)) {
+			return false;
+		}
+		this.teasing = true;
+		this.setCue(HeadCue.taunt(this.random.nextInt(TauntVoice.CLIPS.length)));
+		return true;
 	}
 
 	// sealed in or under rock with no way in at his size, he says so once and makes his own way
@@ -396,8 +470,6 @@ public class TheHead extends Monster {
 			if (!this.announced) {
 				this.announced = true;
 				this.setCue(HeadCue.UNDERGROUND);
-				level.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("chat.type.announcement",
-					this.getDisplayName(), Component.translatable("chat.mariohead.the_head.underground")), false);
 			}
 			boolean griefing = level.getGameRules().get(GameRules.MOB_GRIEFING);
 			this.setDigging(this.roofed && griefing);
@@ -887,9 +959,9 @@ public class TheHead extends Monster {
 	}
 
 	// his head as drawn against the player's box, with a line between their middles so walls stop him
-	private boolean touching(Player target) {
+	private boolean touching(Player target, Vec3 from) {
 		Vec3 c = this.centre();
-		return HeadContact.touches(c, this.getYRot(), this.getXRot(), this.roll, this.squeeze(), target.getBoundingBox(), CONTACT_REACH)
+		return HeadContact.sweeps(from, c, this.getYRot(), this.getXRot(), this.roll, this.squeeze(), target.getBoundingBox(), CONTACT_REACH)
 			&& this.clearLine(c, target.getEyePosition());
 	}
 

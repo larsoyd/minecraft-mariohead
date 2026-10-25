@@ -29,6 +29,19 @@ class HeadContactTest {
 	}
 
 	@Test
+	void aFastDashCannotSkipAcrossThePlayer() {
+		AABB player = new AABB(-0.3, -1.6, -0.3, 0.3, 0.2, 0.3);
+		for (double distance : new double[] { 3.0, 10.0, 80.0, 200.0 }) {
+			Vec3 from = new Vec3(0, 0, -distance);
+			Vec3 to = new Vec3(0, 0, distance);
+			assertFalse(HeadContact.touches(from, 0, 0, 0, 1, player, 0.05));
+			assertFalse(HeadContact.touches(to, 0, 0, 0, 1, player, 0.05));
+			assertTrue(HeadContact.sweeps(from, to, 0, 0, 0, 1, player, 0.05));
+			assertFalse(HeadContact.sweeps(from.add(5, 0, 0), to.add(5, 0, 0), 0, 0, 0, 1, player, 0.05));
+		}
+	}
+
+	@Test
 	void aBoxCornerDoesNot() {
 		AABB aboveBehind = new AABB(CENTRE.x - 0.3, CENTRE.y + 1.2, CENTRE.z - 2.1, CENTRE.x + 0.3, CENTRE.y + 3.0, CENTRE.z - 1.5);
 		assertFalse(HeadContact.touches(CENTRE, 0.0f, 0.0f, 0.0f, 1.0f, aboveBehind, 0.05));

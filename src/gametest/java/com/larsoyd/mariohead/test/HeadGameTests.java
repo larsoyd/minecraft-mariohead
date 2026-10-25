@@ -702,11 +702,23 @@ public class HeadGameTests {
 		int[] charged = { -1 };
 		List<Integer> announced = new ArrayList<>();
 		HeadCue[] last = { HeadCue.NONE };
+		HeadCue[] spoken = { HeadCue.NONE };
+		int[] spokenAt = { 0 };
 		helper.onEachTick(() -> {
 			if (head.isRemoved()) {
 				return;
 			}
 			int t = (int) helper.getTick();
+			if (head.cue() != last[0] && head.cue().clip() != null) {
+				if (spoken[0].clip() != null) {
+					int gap = spoken[0] == HeadCue.UNDERGROUND || head.cue() == HeadCue.UNDERGROUND ? 10 : 0;
+					int earliest = spokenAt[0] + (spoken[0].clip().millis() + 49) / 50 + gap;
+					helper.assertTrue(t >= earliest, "voice overlap: " + spoken[0] + " at " + spokenAt[0]
+						+ " then " + head.cue() + " at " + t + " earliest=" + earliest);
+				}
+				spoken[0] = head.cue();
+				spokenAt[0] = t;
+			}
 			if (charged[0] < 0 && head.phase() == HeadPhase.CHARGE) {
 				charged[0] = t;
 			}
@@ -1001,9 +1013,158 @@ public class HeadGameTests {
 		});
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void boatDashesGrowInSpeedAndDuration(GameTestHelper helper) {
+		boatDashGrowth(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void iceBoatReboardingRetainsDashGrowth(GameTestHelper helper) {
+		boatDashGrowth(helper, true);
+	}
+
+	private static void boatDashGrowth(GameTestHelper helper, boolean reboard) {
+		if (reboard) {
+			fill(helper, 1, -1, 8, 5, -1, 12, Blocks.BLUE_ICE.defaultBlockState());
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), -90.0f);
+		var boat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(3.5, 0.0, 10.5));
+		var otherBoat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(3.5, 0.0, 7.5));
+		helper.assertTrue(target.startRiding(boat, true, false), "could not board boat");
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		HeadCue[] last = { HeadCue.NONE };
+		long[] started = { 0 };
+		int[] dashes = { 0 };
+		helper.onEachTick(() -> {
+			if (reboard && helper.getTick() % 20 == 5) {
+				target.stopRiding();
+				target.setPos(helper.absoluteVec(new Vec3(3.5, 0, 10.5)));
+				target.setOnGround(true);
+			} else if (reboard && helper.getTick() % 20 == 6) {
+				var next = helper.getTick() % 40 == 6 ? otherBoat : boat;
+				next.setPos(helper.absoluteVec(new Vec3(3.5, 0, 10.5)));
+				helper.assertTrue(target.startRiding(next, true, false), "reboarding failed");
+			}
+			head.setPos(helper.absoluteVec(new Vec3(16.5, 0.5, 10.5)));
+			HeadCue cue = head.cue();
+			if (cue != last[0]) {
+				if (cue.clip() != null && !cue.spoken()) {
+					dashes[0]++;
+					started[0] = helper.getTick();
+					double expected = RevSpring.peak(head.revs()) * Math.pow(1.03, dashes[0]);
+					helper.assertTrue(Math.abs(head.chargeSpeed() - expected) < 1e-6,
+						"dash " + dashes[0] + " speed=" + head.chargeSpeed() + " expected=" + expected);
+				} else if (cue == HeadCue.INHALE && last[0].clip() != null && !last[0].spoken()) {
+					long duration = helper.getTick() - started[0];
+					int expected = (int) Math.ceil(last[0].clip().frames() / 30.0 * 20 * Math.pow(1.03, dashes[0]));
+					helper.assertTrue(duration >= expected, "dash duration=" + duration + " expected at least=" + expected);
+					if (dashes[0] == 3) {
+						head.discard();
+						helper.succeed();
+					}
+				}
+				last[0] = cue;
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 280)
+	public void sustainedRunningAndJumpingResetsBoatGrowth(GameTestHelper helper) {
+		transportReset(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 280)
+	public void elytraGrowthSurvivesLandingAndRunning(GameTestHelper helper) {
+		transportReset(helper, true);
+	}
+
+	private static void transportReset(GameTestHelper helper, boolean fly) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
+		var boat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(3.5, 0, 10.5));
+		helper.assertTrue(target.startRiding(boat, true, false), "could not board");
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		helper.onEachTick(() -> {
+			long tick = helper.getTick();
+			head.setPos(helper.absoluteVec(new Vec3(16.5, 0.5, 10.5)));
+			if (tick == 90) {
+				helper.assertTrue(head.revs() >= 0, "no mounted dash before dismount");
+				target.stopRiding();
+				target.setNoGravity(true);
+				try {
+					Field phaseTicks = TheHead.class.getDeclaredField("phaseTicks");
+					phaseTicks.setAccessible(true);
+					phaseTicks.setInt(head, 6000);
+				} catch (ReflectiveOperationException e) {
+					throw new IllegalStateException(e);
+				}
+			}
+			if (fly && tick >= 90 && tick < 110) {
+				target.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA));
+				target.setPos(helper.absoluteVec(new Vec3(3.5, 4, 10.5)));
+				target.setOnGround(false);
+				target.startFallFlying();
+				helper.assertTrue(target.isFallFlying(), "elytra flag did not activate");
+			}
+			if (tick >= 110) {
+				target.stopFallFlying();
+				double jump = Math.max(0.0, Math.sin(tick * Math.PI / 12.0)) * 1.25;
+				target.setPos(helper.absoluteVec(new Vec3(3.5, jump, 10.5 + 2.0 * Math.sin(tick * 0.15))));
+				target.setOnGround(jump < 0.01);
+			}
+		});
+		helper.runAtTickTime(250, () -> {
+			try {
+				Field field = TheHead.class.getDeclaredField("tempo");
+				field.setAccessible(true);
+				double multiplier = ((com.larsoyd.mariohead.entity.ChaseTempo) field.get(head)).multiplier();
+				helper.assertTrue(fly ? multiplier > 1.03 : multiplier == 1.0, "fly=" + fly + " multiplier=" + multiplier);
+				head.discard();
+				helper.succeed();
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 250)
 	public void tiltsDownDuringInhale(GameTestHelper helper) {
 		firstDashPitch(helper, 0.0, true, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 500)
+	public void tauntProtectsPlayerThenBoostsOneDash(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		boolean[] taunted = { false };
+		boolean[] resumed = { false };
+		helper.runAtTickTime(80, () -> {
+			target.setOnGround(true);
+			head.setPos(helper.absoluteVec(new Vec3(7.0, 0.5, 10.5)));
+			try {
+				var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class);
+				taunt.setAccessible(true);
+				helper.assertFalse((boolean) taunt.invoke(head, target, 0.55), "55 percent boundary accepted");
+				helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "reachable player did not trigger taunt");
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+		helper.onEachTick(() -> {
+			if (head.cue().taunt()) {
+				taunted[0] = true;
+				helper.assertFalse(target.isDeadOrDying(), "taunt killed the player");
+				helper.assertTrue(head.chargeSpeed() <= 0.01, "stationary player chased during taunt");
+			}
+			if (taunted[0] && !resumed[0] && head.cue().clip() != null && !head.cue().spoken()) {
+				resumed[0] = true;
+				double expected = RevSpring.peak(head.revs()) * 1.1;
+				helper.assertTrue(Math.abs(head.chargeSpeed() - expected) < 1e-6,
+					"post-taunt dash speed=" + head.chargeSpeed() + " expected=" + expected);
+			}
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(taunted[0] && resumed[0] && target.isDeadOrDying(), "taunt did not resume into a catch");
+		});
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 250)

@@ -38,6 +38,20 @@ class HeadPoseTest {
 	}
 
 	@Test
+	void everyTauntUsesItsOwnMouthEnvelope() {
+		for (int index = 0; index < TauntVoice.CLIPS.length; index++) {
+			HeadCue cue = HeadCue.taunt(index);
+			assertTrue(cue.spoken());
+			assertEquals(TauntVoice.CLIPS[index], cue.clip());
+			for (int f = 0; f < cue.clip().frames(); f++) {
+				assertEquals(cue.clip().mouth()[f] >= 70,
+					HeadPose.mouthOpen(HeadPhase.CHARGE, cue, frame(f + 0.5), 5.0), cue + " frame " + f);
+			}
+			assertFalse(HeadPose.mouthOpen(HeadPhase.CHARGE, cue, 20.0, 5.0));
+		}
+	}
+
+	@Test
 	void breathOpensInTheMiddle() {
 		assertFalse(HeadPose.mouthOpen(HeadPhase.CHARGE, HeadCue.INHALE, frame(0.0), 5.0));
 		assertTrue(HeadPose.mouthOpen(HeadPhase.CHARGE, HeadCue.INHALE, frame(6.5), 5.0));

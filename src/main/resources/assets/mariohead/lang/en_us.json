@@ -1,7 +1,7 @@
 {
 	"entity.mariohead.the_head": "Floating Mario Head",
 	"item.mariohead.the_head_spawn_egg": "Floating Mario Head Spawn Egg",
-	"death.attack.mariohead.the_head": "%1$s let %2$s fly for them",
+	"death.attack.mariohead.the_head": "%1$s let the %2$s fly for them",
 	"subtitles.mariohead.the_head.appear": "Floating Mario Head appears",
 	"subtitles.mariohead.the_head.hello": "Floating Mario Head says hello",
 	"subtitles.mariohead.the_head.hum": "Floating Mario Head hums",
@@ -9,5 +9,7 @@
 	"chat.mariohead.the_head.underground": "Finally, I'm gonna get to move underground!",
 	"commands.mariohead.summon.success": "Summoned the Floating Mario Head for %s player(s)",
 	"commands.mariohead.summon.no_room": "No open space in view of %s for the Floating Mario Head",
-	"commands.mariohead.summon.not_survival": "%s must be in survival or adventure for the Floating Mario Head"
+	"commands.mariohead.summon.not_survival": "%s must be in survival or adventure for the Floating Mario Head",
+	"chat.mariohead.speech": "%1$s: %2$s",
+	"subtitles.mariohead.the_head.taunt": "Floating Mario Head taunts"
 }

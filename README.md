@@ -50,6 +50,13 @@ The command needs operator rights (permission level 2).
   off a player who runs across his path. Boats do not stop the chase.
 - He tilts toward players above or below him and finishes turning before each dash. At his normal
   hover height he stays level.
+- Against boats, including boats on ice, each dash grows 3% faster and longer. Quick exits and
+  switching boats keep the buildup. It resets after at least five seconds on foot and eight blocks
+  of movement. Once you have used elytra during the chase, the buildup never resets.
+- During the first five minutes, a dash that could catch you on land has a 55% chance of becoming
+  a taunt instead. He follows at your pace while speaking, giving you a chance to escape, then
+  resumes with one dash that is 10% faster and longer. His lines do not overlap, and taunts and the
+  underground announcement get half a second of breathing room before and after.
 - He is about three blocks wide and prefers a way round he fits through. He can shrink to squeeze
   through doors, caves and gaps down to one block, but only while nobody is looking at him: watched,
   he waits at a gap too small for him. He never pokes through blocks while he chases. A gap under

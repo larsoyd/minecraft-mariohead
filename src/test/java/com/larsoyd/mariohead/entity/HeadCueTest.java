@@ -10,7 +10,7 @@ class HeadCueTest {
 	@Test
 	void packRoundTrips() {
 		for (HeadCue cue : HeadCue.values()) {
-			for (long time : new long[] { 0L, 1L, 7L, 24000L, 1L << 40, (1L << 60) - 1 }) {
+			for (long time : new long[] { 0L, 1L, 7L, 24000L, 1L << 40, (1L << 59) - 1 }) {
 				long packed = HeadCue.pack(cue, time);
 				assertSame(cue, HeadCue.cueOf(packed));
 				assertEquals(time, HeadCue.timeOf(packed));

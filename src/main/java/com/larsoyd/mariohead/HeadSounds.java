@@ -15,11 +15,15 @@ public final class HeadSounds {
 	public static final SoundEvent MMM1_LOUD = register("entity.the_head.mmm1_loud");
 	public static final SoundEvent MMM2_LOUD = register("entity.the_head.mmm2_loud");
 	public static final SoundEvent MMM3_LOUD = register("entity.the_head.mmm3_loud");
+	private static final java.util.Map<HeadCue, SoundEvent> TAUNTS = registerTaunts();
 
 	private HeadSounds() {
 	}
 
 	public static SoundEvent of(HeadCue cue) {
+		if (cue.taunt()) {
+			return TAUNTS.get(cue);
+		}
 		return switch (cue) {
 			case HELLO -> HELLO;
 			case MMM1 -> MMM1;
@@ -43,6 +47,16 @@ public final class HeadSounds {
 	private static SoundEvent register(String name) {
 		var id = MarioHead.id(name);
 		return Registry.register(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id));
+	}
+
+	private static java.util.Map<HeadCue, SoundEvent> registerTaunts() {
+		var sounds = new java.util.EnumMap<HeadCue, SoundEvent>(HeadCue.class);
+		for (HeadCue cue : HeadCue.values()) {
+			if (cue.taunt()) {
+				sounds.put(cue, register("entity.the_head." + cue.clip().name()));
+			}
+		}
+		return sounds;
 	}
 
 	static void init() {
