@@ -38,6 +38,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			this.seenAndHeard(context, world);
 			this.twoHeadsTwoVoices(context, world);
 			this.turnsWithoutWobble(context, world);
+			this.heardBeyondRenderDistance(context, world);
 			this.lateObserver(context, world);
 			this.announcementIsHeard(context, world);
 		}
@@ -100,6 +101,36 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		context.getInput().pressKey(options -> options.keyToggleGui);
 		server.runCommand("tp @p " + back.x + " " + back.y + " " + back.z);
 		server.runCommand("tick unfreeze");
+	}
+
+	// at render distance 2 the client never gets him 42 blocks out, but it still hears his hello once
+	private void heardBeyondRenderDistance(ClientGameTestContext context, TestSingleplayerContext world) {
+		var server = world.getServer();
+		context.runOnClient(mc -> mc.options.renderDistance().set(2));
+		context.waitTicks(20);
+		server.runCommand("tp @p 0.5 -60 0.5 -90 0");
+		int[] hellos = { 0 };
+		context.runOnClient(mc -> mc.getSoundManager().addListener((sound, events, range) -> {
+			if (sound.getIdentifier().getPath().equals("entity.the_head.hello")) {
+				hellos[0]++;
+			}
+		}));
+		int before = HeadVoiceSound.started();
+		server.runOnServer(s -> {
+			var level = s.overworld();
+			TheHead head = HeadEntities.THE_HEAD.create(level, EntitySpawnReason.COMMAND);
+			head.snapTo(0.5, -59.0, 42.5, 180.0f, 0.0f);
+			head.chase(s.getPlayerList().getPlayers().getFirst());
+			level.addFreshEntity(head);
+		});
+		server.waitFor(s -> serverHead(s) != null && serverHead(s).cue() == HeadCue.HELLO, 200);
+		context.waitTicks(5);
+		boolean tracked = context.computeOnClient(mc -> !clientHeads().isEmpty());
+		LOG.info("[client-test] far hello plays={} entity_voices={} tracked={}", hellos[0], HeadVoiceSound.started() - before, tracked);
+		check(!tracked && hellos[0] == 1 && HeadVoiceSound.started() == before, "far hello: tracked " + tracked + ", plays " + hellos[0]);
+		server.runCommand("kill @e[type=mariohead:the_head]");
+		context.runOnClient(mc -> mc.options.renderDistance().set(12));
+		context.waitTicks(20);
 	}
 
 	// he says hello while nobody watches, then the player arrives partway through
