@@ -731,6 +731,19 @@ public class HeadGameTests {
 		});
 	}
 
+	// a dugout whose roof broke open at one corner, the way a hillside cut leaves it
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void dropsThroughABrokenCornerOfADugout(GameTestHelper helper) {
+		fill(helper, 0, 0, 0, 19, 2, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 8, 0, 8, 12, 1, 12, Blocks.AIR.defaultBlockState());
+		fill(helper, 11, 2, 8, 12, 2, 8, Blocks.AIR.defaultBlockState());
+		helper.setBlock(new BlockPos(12, 2, 9), Blocks.AIR);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 0.0, 10.5), 0.0f);
+		TheHead head = head(helper, new Vec3(14.5, 3.5, 15.5), target);
+		caughtWithin(helper, target, head);
+	}
+
 	// a fence ring keeps walkers out, he floats over it
 	@GameTest(structure = ARENA, maxTicks = 700)
 	public void floatsOverAFenceRing(GameTestHelper helper) {

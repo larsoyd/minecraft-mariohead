@@ -498,7 +498,7 @@ public class TheHead extends Monster {
 		if (p != null && this.pathIndex < p.getNodeCount()) {
 			Node node = p.getNode(this.pathIndex);
 			Vec3 at = this.nodeAt(node, c.y);
-			if (at.distanceTo(c) < PULL_REACH && HeadRoom.sweep(this, c, at, this.squeeze())) {
+			if (at.distanceTo(c) < PULL_REACH && this.levelWith(node, c) && HeadRoom.sweep(this, c, at, this.squeeze())) {
 				return new Vec3(node.x + 0.5, node.y, node.z + 0.5);
 			}
 		}
