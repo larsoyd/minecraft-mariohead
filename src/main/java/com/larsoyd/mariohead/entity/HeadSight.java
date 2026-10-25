@@ -38,23 +38,24 @@ public final class HeadSight {
 	}
 
 	public static boolean seen(ServerLevel level, AABB box) {
-		Vec3 c = box.getCenter();
-		double radius = Math.sqrt(box.getXsize() * box.getXsize() + box.getYsize() * box.getYsize() + box.getZsize() * box.getZsize()) / 2.0;
 		for (ServerPlayer player : level.players()) {
-			if (player.isSpectator() || player.distanceToSqr(c) > RANGE * RANGE) {
-				continue;
-			}
-			Vec3 eye = player.getEyePosition();
-			Vec3 look = player.getLookAngle();
-			View view = view(player.getUUID());
-			boolean framed = eye.distanceTo(c) <= radius || inView(eye, look, c, radius)
-				|| view == View.BACK && inView(camera(level, player, eye, look.scale(-1.0)), look, c, radius)
-				|| view == View.FRONT && inView(camera(level, player, eye, look), look.scale(-1.0), c, radius);
-			if (framed && sightLine(level, player, eye, box)) {
-				return true;
-			}
+			if (seenBy(player, box)) return true;
 		}
 		return false;
+	}
+
+	public static boolean seenBy(ServerPlayer player, AABB box) {
+		Vec3 c = box.getCenter();
+		if (player.isSpectator() || player.distanceToSqr(c) > RANGE * RANGE) return false;
+		ServerLevel level = player.level();
+		double radius = Math.sqrt(box.getXsize() * box.getXsize() + box.getYsize() * box.getYsize() + box.getZsize() * box.getZsize()) / 2.0;
+		Vec3 eye = player.getEyePosition();
+		Vec3 look = player.getLookAngle();
+		View view = view(player.getUUID());
+		boolean framed = eye.distanceTo(c) <= radius || inView(eye, look, c, radius)
+			|| view == View.BACK && inView(camera(level, player, eye, look.scale(-1.0)), look, c, radius)
+			|| view == View.FRONT && inView(camera(level, player, eye, look), look.scale(-1.0), c, radius);
+		return framed && sightLine(level, player, eye, box);
 	}
 
 	// a third person camera out along a direction, pulled in by whatever is in the way like the real one

@@ -100,6 +100,10 @@ public class TheHead extends Monster {
 	private boolean tauntRolled;
 	private long tauntReadyAt;
 	private double dashBoost = 1.0;
+	private final BehindPrank prank = new BehindPrank();
+	private long prankDashUntil;
+	private boolean prankDigging;
+	private boolean prankBurrowing;
 	private double chargeSpeed;
 	private double moveSpeed;
 	private float moveYaw;
@@ -386,13 +390,13 @@ public class TheHead extends Monster {
 
 	private void charge(ServerLevel level, Player target) {
 		Vec3 before = this.centre();
-		if (this.tickHome(level, target)) {
-			if (this.touching(target, before)) this.caught(level, target);
+		if (this.tickPrank(level, target) || this.tickHome(level, target)) {
+			if (!this.isRemoved() && this.touching(target, before)) this.caught(level, target);
 			return;
 		}
 		this.trackPace(target);
 		this.pearlBoost = this.pearlPursuit.boost(this.centre().distanceTo(target.position()));
-		this.tryTaunt(target, this.random.nextDouble());
+		if (this.homeStage != HomeStage.RETURN) this.tryTaunt(target, this.random.nextDouble());
 		HeadCue cue = this.cue();
 		boolean undergroundRhythm = this.digging || this.burrowing || cue.chatter() || this.dashLine != HeadCue.NONE;
 		boolean digDash = false;
@@ -424,6 +428,11 @@ public class TheHead extends Monster {
 		}
 		double boost = cue.clip() != null && !cue.spoken() ? this.dashBoost : 1.0;
 		this.chargeSpeed = this.teasing ? this.pace : RevSpring.speed(this.revs, sag, this.pace) * this.tempo.multiplier() * this.tempo.humMultiplier() * boost + this.pearlBoost;
+		if (this.homeStage == HomeStage.RETURN) this.chargeSpeed *= 1.25;
+		this.moveChase(level, target, cue, digDash);
+	}
+
+	private void moveChase(ServerLevel level, Player target, HeadCue cue, boolean digDash) {
 		Vec3 goal = this.lead(target);
 
 		Vec3 centre = this.centre();
@@ -474,6 +483,133 @@ public class TheHead extends Monster {
 			return;
 		}
 		this.watchForSeal(level);
+	}
+
+	private boolean tickPrank(ServerLevel level, Player target) {
+		if (this.prank.stage() == BehindPrank.Stage.DONE) return false;
+		long now = level.getGameTime();
+		boolean looking = target instanceof ServerPlayer player && HeadSight.seenBy(player, this.getBoundingBox());
+		boolean eligible = this.homeStage == HomeStage.NONE
+			&& !this.teasing && this.pendingVoice == HeadCue.NONE && !this.cue().spoken();
+		boolean escaped = eligible && !looking && VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) == 0;
+		if (this.prank.observe(now, escaped, this.prank.readyToRoll(now) && escaped ? this.random.nextDouble() : 1)) {
+			this.prankDigging = this.digging;
+			this.prankBurrowing = this.burrowing;
+			this.setDigging(false);
+			this.burrowing = false;
+			this.setCue(HeadCue.NONE);
+			this.path = null;
+			this.replanIn = 0;
+			this.moveSpeed = 0;
+			this.dashLine = HeadCue.NONE;
+			this.chatterRoll = false;
+		}
+		BehindPrank.Stage stage = this.prank.stage();
+		if (stage == BehindPrank.Stage.WAITING || stage == BehindPrank.Stage.DONE) return false;
+		if (this.centre().distanceTo(target.getEyePosition()) > DIALOGUE_REACH
+			&& (looking && (stage == BehindPrank.Stage.APPROACH || stage == BehindPrank.Stage.WARNING)
+				|| stage == BehindPrank.Stage.WARNING && this.prank.answered()
+				|| stage == BehindPrank.Stage.GREETING)) {
+			this.endPrank();
+			return false;
+		}
+		this.trackPace(target);
+		if (stage == BehindPrank.Stage.APPROACH) {
+			if (looking) this.prank.greeting();
+			else if (this.prank.expired(now) || this.digging || this.burrowing) {
+				this.endPrank();
+				return false;
+			} else if (!this.speech.canStart(HeadCue.INHALE, now)) {
+				this.moveSpeed = 0;
+				this.setDeltaMovement(Vec3.ZERO);
+				return true;
+			} else {
+				double yaw = Math.toRadians(target.getYRot());
+				Vec3 behind = target.position().add(Math.sin(yaw) * 8, 0, -Math.cos(yaw) * 8);
+				Vec3 goal = behind.add(0, HOVER * this.squeeze(), 0);
+				Vec3 c = this.centre();
+				if (c.distanceTo(goal) <= 1.5 && c.distanceTo(target.getEyePosition()) >= 6
+					&& this.clearLine(c, target.getEyePosition()) && this.speech.canStart(HeadCue.PRANK_WARNING, now)) {
+					this.moveSpeed = 0;
+					this.setDeltaMovement(Vec3.ZERO);
+					this.setCue(HeadCue.PRANK_WARNING);
+					this.prank.warning(now, (HeadCue.PRANK_WARNING.clip().millis() + 49) / 50);
+				} else {
+					this.chargeSpeed = Math.max(0.45, this.pace * 1.15);
+					boolean direct = HeadRoom.sweep(this, c, goal, this.squeeze());
+					if (direct) {
+						this.path = null;
+						this.moveSpeed = approach(this.moveSpeed, this.chargeSpeed);
+						Vec3 delta = goal.subtract(c);
+						Vec3 step = delta.normalize().scale(Math.min(delta.length(), this.moveSpeed));
+						this.body(step.x, step.y, step.z);
+					} else {
+						if (--this.replanIn <= 0) this.replan(behind, target);
+						if (this.steer(c, behind)) this.fly(target, false);
+						else {
+							this.moveSpeed = 0;
+							this.setDeltaMovement(Vec3.ZERO);
+						}
+					}
+				}
+				this.faceTowards(yawTo(this.centre(), target.position()), target);
+				return true;
+			}
+		}
+		stage = this.prank.stage();
+		if (stage == BehindPrank.Stage.GREETING) {
+			if (this.cue() != HeadCue.TAUNT_026 && this.cue() != HeadCue.TAUNT_078) {
+				HeadCue greeting = this.random.nextBoolean() ? HeadCue.TAUNT_026 : HeadCue.TAUNT_078;
+				if (this.speech.canStart(greeting, now)) this.setCue(greeting);
+			} else if (this.speech.canStart(HeadCue.INHALE, now)) {
+				this.endPrank();
+				return false;
+			}
+		} else if (stage == BehindPrank.Stage.WARNING) {
+			if (looking) this.prank.sawPlayerLook();
+			if (this.prank.answered() && this.speech.canStart(HeadCue.PRANK_RESPONSE, now)) {
+				this.setCue(HeadCue.PRANK_RESPONSE);
+				this.prank.response();
+			} else if (!this.prank.answered() && this.prank.expired(now)) {
+				this.startPrankDash(now, true);
+			}
+		} else if (stage == BehindPrank.Stage.RESPONSE && this.cueTicks >= 30) {
+			this.startPrankDash(now, false);
+		}
+		if (this.prank.stage() == BehindPrank.Stage.DASH) {
+			if (now >= this.prankDashUntil) {
+				this.endPrank();
+				return false;
+			}
+			double boost = this.prank.punishment() ? 1.5 : 1.0;
+			this.chargeSpeed = RevSpring.speed(this.revs, 0, this.pace) * this.tempo.multiplier() * this.tempo.humMultiplier() * boost;
+			this.moveChase(level, target, this.cue(), false);
+		} else {
+			this.moveSpeed = 0;
+			this.setDeltaMovement(Vec3.ZERO);
+			this.faceTowards(yawTo(this.centre(), target.position()), target);
+		}
+		return true;
+	}
+
+	private void startPrankDash(long now, boolean punishment) {
+		this.prank.dash(punishment);
+		this.revs++;
+		this.tempo.dash();
+		HeadCue hum = HeadCue.hum(this.revs);
+		this.prankDashUntil = now + ticks(clipSeconds(hum) * this.tempo.multiplier() * (punishment ? 1.5 : 1.0));
+		this.dashBoost = 1;
+		if (punishment) this.setCue(hum);
+	}
+
+	private void endPrank() {
+		this.prank.finish();
+		if (this.prankDigging) this.setDigging(true);
+		this.burrowing |= this.prankBurrowing;
+		this.path = null;
+		this.replanIn = 0;
+		this.dashBoost = 1;
+		this.setCue(HeadCue.INHALE);
 	}
 
 	private boolean tickHome(ServerLevel level, Player target) {
@@ -539,13 +675,26 @@ public class TheHead extends Monster {
 		if (this.homeStage == HomeStage.RAID) {
 			BlockPos chest = this.homeChests.stream().min(java.util.Comparator.comparingDouble(pos -> Vec3.atCenterOf(pos).distanceToSqr(this.centre()))).orElseThrow();
 			Vec3 to = Vec3.atCenterOf(chest);
+			if (!this.faceChest(to)) {
+				this.hover();
+				return true;
+			}
 			boolean dash = this.tickDigDash(now);
 			this.chargeSpeed = Math.max(0.8, RevSpring.speed(this.revs, 0.0, this.pace));
-			Vec3 delta = to.subtract(this.centre());
-			this.setFacing(yawTo(this.centre(), to), (float) -Math.toDegrees(Math.atan2(delta.y, delta.horizontalDistance())));
 			this.digToward(level, to, this.cue(), dash);
 			if (this.getBoundingBox().inflate(0.3).contains(to)) this.destroyRaidChest(level, chest);
 			return true;
+		}
+		if (this.homeStage == HomeStage.RETURN && this.centre().distanceTo(target.getEyePosition()) > DIALOGUE_REACH) return false;
+		boolean chestDialogue = this.homeStage == HomeStage.LOOT || this.homeStage == HomeStage.RAID_START;
+		if (chestDialogue) {
+			Vec3 to = this.homeChests.stream().map(Vec3::atCenterOf)
+				.min(java.util.Comparator.comparingDouble(this.centre()::distanceToSqr)).orElseThrow();
+			if (!this.faceChest(to)) {
+				this.moveSpeed = 0;
+				this.hover();
+				return true;
+			}
 		}
 		HeadCue line = switch (this.homeStage) {
 			case NICE -> HeadCue.HOME_NICE;
@@ -594,11 +743,19 @@ public class TheHead extends Monster {
 				default -> HomeStage.NONE;
 			};
 		}
-		if (this.homeStage == HomeStage.RETURN || line == HeadCue.HOME_RETURN) return false;
+		if (line == HeadCue.HOME_RETURN && this.homeStage == HomeStage.NONE) return false;
 		this.moveSpeed = 0;
-		this.faceTowards(yawTo(this.centre(), target.position()), target);
+		if (!chestDialogue) this.faceTowards(yawTo(this.centre(), target.position()), target);
 		this.hover();
 		return true;
+	}
+
+	private boolean faceChest(Vec3 to) {
+		Vec3 delta = to.subtract(this.centre());
+		float yaw = yawTo(this.centre(), to);
+		float pitch = (float) -Math.toDegrees(Math.atan2(delta.y, delta.horizontalDistance()));
+		this.setFacing(Mth.approachDegrees(this.getYRot(), yaw, TURN_DEGREES), Mth.approach(this.getXRot(), pitch, PITCH_RATE));
+		return Math.abs(Mth.wrapDegrees(this.getYRot() - yaw)) < 1 && Math.abs(this.getXRot() - pitch) < 1;
 	}
 
 	private void destroyRaidChest(ServerLevel level, BlockPos pos) {
@@ -611,10 +768,6 @@ public class TheHead extends Monster {
 	}
 
 	private boolean tickDigDash(long now) {
-		if (this.homeStage == HomeStage.RETURN) {
-			this.nextDigDash = -1;
-			return false;
-		}
 		if (this.homeStage != HomeStage.NONE) this.chatterRoll = false;
 		if (this.pendingVoice != HeadCue.NONE) {
 			this.setCue(this.pendingVoice);

@@ -154,5 +154,17 @@
 	"entity.the_head.home_036": {
 		"subtitle": "subtitles.mariohead.home_036",
 		"sounds": ["mariohead:the_head/home_036"]
-	}
+	},
+  "entity.the_head.prank_056": {
+    "subtitle": "subtitles.mariohead.the_head.prank_056",
+    "sounds": [
+      "mariohead:the_head/prank_056"
+    ]
+  },
+  "entity.the_head.prank_057": {
+    "subtitle": "subtitles.mariohead.the_head.prank_057",
+    "sounds": [
+      "mariohead:the_head/prank_057"
+    ]
+  }
 }

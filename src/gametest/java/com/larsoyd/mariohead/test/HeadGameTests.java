@@ -527,6 +527,320 @@ public class HeadGameTests {
 		});
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 160)
+	public void prankWarningDoesNotGrantContactImmunity(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(5.5, 1, 5.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(5.5, 1, 5.5));
+		head.chase(target);
+		head.setNoAi(true);
+		helper.runAtTickTime(120, () -> {
+			try {
+				var field = TheHead.class.getDeclaredField("prank");
+				field.setAccessible(true);
+				var prank = (com.larsoyd.mariohead.entity.BehindPrank) field.get(head);
+				prank.warning(helper.getLevel().getGameTime(), 31);
+				Vec3 c = head.centre();
+				target.setPos(c.x, c.y - 0.9, c.z);
+				var charge = TheHead.class.getDeclaredMethod("charge", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+				charge.setAccessible(true);
+				charge.invoke(head, helper.getLevel(), target);
+				helper.assertTrue(target.isDeadOrDying(), "prank warning granted contact immunity");
+				helper.succeed();
+			} catch (ReflectiveOperationException e) {
+				throw new AssertionError(e);
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA)
+	public void prankWithoutRouteDoesNotDriftOnOldSteering(GameTestHelper helper) throws ReflectiveOperationException {
+		fill(helper, 0, 0, 6, 19, 7, 6, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 1, 15.5), 0);
+		TheHead head = head(helper, new Vec3(12.5, 1, 3.5), target);
+		head.setNoAi(true);
+		var field = TheHead.class.getDeclaredField("prank");
+		field.setAccessible(true);
+		var prank = (com.larsoyd.mariohead.entity.BehindPrank) field.get(head);
+		long now = helper.getLevel().getGameTime();
+		prank.observe(now, true, 0);
+		prank.observe(now + 100, true, 0);
+		for (String name : List.of("replanIn", "moveSpeed", "moveYaw", "aimDistance")) {
+			var value = TheHead.class.getDeclaredField(name);
+			value.setAccessible(true);
+			if (name.equals("replanIn")) value.setInt(head, 20);
+			else if (name.equals("moveYaw")) value.setFloat(head, 90);
+			else value.setDouble(head, name.equals("moveSpeed") ? 0.3 : 10);
+		}
+		var tick = TheHead.class.getDeclaredMethod("tickPrank", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		tick.setAccessible(true);
+		Vec3 before = head.position();
+		tick.invoke(head, helper.getLevel(), target);
+		helper.assertTrue(head.position().distanceTo(before) < 0.001, "no-route prank drifted on stale steering");
+		var deadline = com.larsoyd.mariohead.entity.BehindPrank.class.getDeclaredField("deadline");
+		deadline.setAccessible(true);
+		deadline.setLong(prank, now);
+		helper.assertTrue(!(boolean) tick.invoke(head, helper.getLevel(), target), "expired approach did not release chase");
+		helper.assertTrue(prank.stage() == com.larsoyd.mariohead.entity.BehindPrank.Stage.DONE, "expired approach can retry");
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 140)
+	public void prankTriggersAfterFiveSecondsOutsideHumRange(GameTestHelper helper) throws ReflectiveOperationException {
+		prankEscape(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 140)
+	public void prankTemporarilySuspendsPersistentTnt(GameTestHelper helper) throws ReflectiveOperationException {
+		prankEscape(helper, true);
+	}
+
+	private void prankEscape(GameTestHelper helper, boolean tnt) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 1, 12.5), 0);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(12.5, 100, 4.5));
+		head.chase(target);
+		head.setNoAi(true);
+		if (tnt) {
+			var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
+			digging.setAccessible(true);
+			digging.invoke(head, true);
+		}
+		var field = TheHead.class.getDeclaredField("prank");
+		field.setAccessible(true);
+		var prank = (com.larsoyd.mariohead.entity.BehindPrank) field.get(head);
+		var tick = TheHead.class.getDeclaredMethod("tickPrank", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		tick.setAccessible(true);
+		var finish = TheHead.class.getDeclaredMethod("endPrank");
+		finish.setAccessible(true);
+		long[] start = { -1 };
+		helper.onEachTick(() -> {
+			try {
+				long now = helper.getLevel().getGameTime();
+				if (start[0] < 0) start[0] = now;
+				head.getRandom().setSeed(12345);
+				boolean active = (boolean) tick.invoke(head, helper.getLevel(), target);
+				if (now - start[0] < 100) helper.assertTrue(!active, "prank rolled before five seconds");
+				else {
+					helper.assertTrue(active && prank.stage() == com.larsoyd.mariohead.entity.BehindPrank.Stage.APPROACH, "escaped player did not trigger quiet approach");
+					helper.assertTrue(head.cue() == HeadCue.NONE && !head.digging(), "quiet approach retained hum or TNT");
+					finish.invoke(head);
+					helper.assertTrue(head.digging() == tnt, "prank lost persistent TNT mode");
+					helper.succeed();
+				}
+			} catch (ReflectiveOperationException e) {
+				throw new AssertionError(e);
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 180)
+	public void prankLookDuringWarningDashesOnClosedMouthLaugh(GameTestHelper helper) throws ReflectiveOperationException {
+		prankReaction(helper, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 180)
+	public void prankIgnoringWarningGetsExactlyOneBoostedDash(GameTestHelper helper) throws ReflectiveOperationException {
+		prankReaction(helper, false);
+	}
+
+	private void prankReaction(GameTestHelper helper, boolean look) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 1, 12.5), 0);
+		TheHead head = head(helper, new Vec3(12.5, 1.0, 4.5), target);
+		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+		phase.setAccessible(true);
+		phase.invoke(head, HeadPhase.CHARGE);
+		var field = TheHead.class.getDeclaredField("prank");
+		field.setAccessible(true);
+		var prank = (com.larsoyd.mariohead.entity.BehindPrank) field.get(head);
+		long now = helper.getLevel().getGameTime();
+		prank.observe(now, true, 0);
+		prank.observe(now + 100, true, 0);
+		long[] warning = { -1 };
+		long[] response = { -1 };
+		long[] dash = { -1 };
+		Vec3[] stopped = { head.position() };
+		helper.onEachTick(() -> {
+			long tick = helper.getLevel().getGameTime();
+			if (head.cue() == HeadCue.PRANK_WARNING && warning[0] < 0) {
+				warning[0] = tick;
+				stopped[0] = head.position();
+			}
+			if (look && warning[0] >= 0) target.setYRot(tick - warning[0] >= 5 && tick - warning[0] < 8 ? 180 : 0);
+			if (head.cue() == HeadCue.PRANK_RESPONSE && response[0] < 0) response[0] = tick;
+			if (prank.stage() == com.larsoyd.mariohead.entity.BehindPrank.Stage.DASH) {
+				if (dash[0] < 0) {
+					dash[0] = tick;
+					helper.assertTrue(warning[0] >= 0, "dash skipped warning");
+					helper.assertTrue(prank.punishment() != look, "wrong response branch");
+					if (look) {
+						helper.assertTrue(response[0] >= 0 && tick - response[0] >= 30, "dash interrupted spoken made-you-look");
+						helper.assertTrue(!com.larsoyd.mariohead.entity.HeadPose.mouthOpen(HeadPhase.CHARGE, head.cue(), 1.5, 0), "laugh mouth flapped");
+					} else {
+						helper.assertTrue(tick - warning[0] == 51, "punishment must wait warning plus one second: " + (tick - warning[0]));
+						helper.assertTrue(response[0] < 0, "ignored warning got made-you-look");
+						helper.assertTrue(head.chargeSpeed() >= RevSpring.speed(head.revs(), 0, 0) * 1.49,
+							"punishment dash was not faster: " + head.chargeSpeed());
+					}
+					target.setPos(helper.absoluteVec(new Vec3(12.5, 1, 21.5)));
+				}
+			} else if (dash[0] < 0 && warning[0] >= 0) {
+				helper.assertTrue(head.position().distanceTo(stopped[0]) < 0.01, "moved while waiting for reaction");
+			}
+			if (prank.stage() == com.larsoyd.mariohead.entity.BehindPrank.Stage.DONE) {
+				helper.assertTrue(dash[0] >= 0, "prank ended without a dash");
+				int expected = (int) Math.ceil(com.larsoyd.mariohead.entity.HeadCue.hum(head.revs()).clip().frames() / 30.0 * 20 * (look ? 1 : 1.5));
+				helper.assertTrue(tick - dash[0] == expected, "wrong one-dash duration: " + (tick - dash[0]) + " expected=" + expected);
+				helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA)
+	public void prankSpottedBeyondEarshotResumesWithoutGreeting(GameTestHelper helper) throws ReflectiveOperationException {
+		prankDistantLook(helper, false);
+	}
+
+	@GameTest(structure = ARENA)
+	public void prankDistantLookAfterWarningSkipsReply(GameTestHelper helper) throws ReflectiveOperationException {
+		prankDistantLook(helper, true);
+	}
+
+	@GameTest(structure = ARENA)
+	public void prankRememberedLookCannotQueueDistantReply(GameTestHelper helper) throws ReflectiveOperationException {
+		prankDistantLook(helper, true, true);
+	}
+
+	private void prankDistantLook(GameTestHelper helper, boolean warned) throws ReflectiveOperationException {
+		prankDistantLook(helper, warned, false);
+	}
+
+	private void prankDistantLook(GameTestHelper helper, boolean warned, boolean left) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, 1, 16.5), 135);
+		TheHead head = head(helper, new Vec3(3.5, 1, 3.5), target);
+		head.setNoAi(true);
+		helper.assertTrue(HeadSight.seenBy(target, head.getBoundingBox()), "fixture must show distant head");
+		var field = TheHead.class.getDeclaredField("prank");
+		field.setAccessible(true);
+		var prank = (com.larsoyd.mariohead.entity.BehindPrank) field.get(head);
+		long now = helper.getLevel().getGameTime();
+		prank.observe(now, true, 0);
+		prank.observe(now + 100, true, 0);
+		if (warned) prank.warning(now - 50, 31);
+		if (left) {
+			prank.sawPlayerLook();
+			target.setYRot(0);
+		}
+		var tick = TheHead.class.getDeclaredMethod("tickPrank", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		tick.setAccessible(true);
+		helper.assertTrue(!(boolean) tick.invoke(head, helper.getLevel(), target), "distant sighting kept prank active");
+		helper.assertTrue(prank.stage() == com.larsoyd.mariohead.entity.BehindPrank.Stage.DONE, "distant sighting did not resume chase");
+		helper.assertTrue(head.cue() == HeadCue.INHALE, "distant sighting played inaudible speech: " + head.cue());
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA)
+	public void prankApproachWaitsForPreviousHum(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 1, 15.5), 0);
+		TheHead head = head(helper, new Vec3(12.5, 1, 4.5), target);
+		head.setNoAi(true);
+		var field = TheHead.class.getDeclaredField("prank");
+		field.setAccessible(true);
+		var prank = (com.larsoyd.mariohead.entity.BehindPrank) field.get(head);
+		long now = helper.getLevel().getGameTime();
+		prank.observe(now, true, 0);
+		prank.observe(now + 100, true, 0);
+		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+		cue.setAccessible(true);
+		cue.invoke(head, HeadCue.MMM1);
+		var tick = TheHead.class.getDeclaredMethod("tickPrank", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		tick.setAccessible(true);
+		Vec3 before = head.position();
+		tick.invoke(head, helper.getLevel(), target);
+		helper.assertTrue(head.position().distanceTo(before) < 0.001, "quiet approach moved during previous hum");
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA)
+	public void prankStopsBehindPlayerAndWarns(GameTestHelper helper) throws ReflectiveOperationException {
+		prankRehearsal(helper, false);
+	}
+
+	@GameTest(structure = ARENA)
+	public void prankSpottedEarlyUsesGreeting(GameTestHelper helper) throws ReflectiveOperationException {
+		prankRehearsal(helper, true);
+	}
+
+	private void prankRehearsal(GameTestHelper helper, boolean spotted) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 1, 12.5), spotted ? 180 : 0);
+		TheHead head = head(helper, new Vec3(12.5, 1.0, 4.5), target);
+		head.setNoAi(true);
+		var field = TheHead.class.getDeclaredField("prank");
+		field.setAccessible(true);
+		var prank = (com.larsoyd.mariohead.entity.BehindPrank) field.get(head);
+		long now = helper.getLevel().getGameTime();
+		prank.observe(now, true, 0);
+		prank.observe(now + 100, true, 0);
+		var tick = TheHead.class.getDeclaredMethod("tickPrank", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		tick.setAccessible(true);
+		Vec3 before = head.position();
+		helper.assertTrue((boolean) tick.invoke(head, helper.getLevel(), target), "prank did not take over chase");
+		if (spotted) {
+			helper.assertTrue(head.cue() == HeadCue.TAUNT_026 || head.cue() == HeadCue.TAUNT_078, "spotted approach did not greet: " + head.cue());
+		} else {
+			helper.assertTrue(head.cue() == HeadCue.PRANK_WARNING, "behind approach did not warn: " + head.cue());
+			helper.assertTrue(head.position().distanceTo(before) < 0.01, "warning moved instead of stopping");
+		}
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA)
+	public void chestDialogueTurnsBeforeSpeaking(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 1, 14.5), 0);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(8.5, 1, 8.5));
+		head.chase(target);
+		head.setNoAi(true);
+		head.setYRot(90);
+		BlockPos chest = helper.absolutePos(new BlockPos(11, 1, 8));
+		helper.getLevel().setBlock(chest, Blocks.CHEST.defaultBlockState(), 3);
+		var stage = TheHead.class.getDeclaredField("homeStage");
+		stage.setAccessible(true);
+		for (Object value : stage.getType().getEnumConstants()) if (value.toString().equals("LOOT")) stage.set(head, value);
+		var chests = TheHead.class.getDeclaredField("homeChests");
+		chests.setAccessible(true);
+		@SuppressWarnings("unchecked")
+		List<BlockPos> targets = (List<BlockPos>) chests.get(head);
+		targets.add(chest);
+		var tick = TheHead.class.getDeclaredMethod("tickHome", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		tick.setAccessible(true);
+		tick.invoke(head, helper.getLevel(), target);
+		helper.assertTrue(head.cue() != HeadCue.HOME_HUNGRY && head.cue() != HeadCue.HOME_THIRSTY, "food speech began facing away from chest");
+		float change = Math.abs(net.minecraft.util.Mth.wrapDegrees(head.getYRot() - 90));
+		helper.assertTrue(change > 0 && change <= HeadTuning.TURN_DEGREES + 0.001, "chest turn snapped or did not start: " + change);
+		for (int i = 0; i < 60; i++) tick.invoke(head, helper.getLevel(), target);
+		helper.assertTrue(head.cue() == HeadCue.HOME_HUNGRY || head.cue() == HeadCue.HOME_THIRSTY, "aligned chest never got food speech");
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA)
+	public void returnThreatWaitsForEarshot(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(30.5, 1, 8.5), 0);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(3.5, 1, 8.5));
+		head.chase(target);
+		head.setNoAi(true);
+		var stage = TheHead.class.getDeclaredField("homeStage");
+		stage.setAccessible(true);
+		for (Object value : stage.getType().getEnumConstants()) if (value.toString().equals("RETURN")) stage.set(head, value);
+		var tick = TheHead.class.getDeclaredMethod("charge", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		tick.setAccessible(true);
+		Vec3 before = head.position();
+		tick.invoke(head, helper.getLevel(), target);
+		helper.assertTrue(head.cue() != HeadCue.HOME_RETURN, "return threat played outside clear earshot");
+		helper.assertTrue(head.position().distanceTo(target.position()) < before.distanceTo(target.position()), "return approach did not advance");
+		target.setPos(head.position().add(10, 0, 0));
+		tick.invoke(head, helper.getLevel(), target);
+		helper.assertTrue(head.cue() == HeadCue.HOME_RETURN, "return threat did not play in earshot");
+		helper.succeed();
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 180)
 	public void replacingChestsCannotExtendRaidDeadline(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(17.5, 1, 9.5), 90);

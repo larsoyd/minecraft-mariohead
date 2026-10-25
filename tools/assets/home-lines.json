@@ -27,10 +27,6 @@
     "id": "036_02m09s_hmm_guess_what_time_it_is_it_s_time_for_you_to_tie",
     "sha256": "de4b8287b2378271c65f4d6b3e39522fb03386f589a53ff750a49aebc71f6d2b",
     "millis": 4351,
-    "text": "Hmm, guess what time it is? It's time for you to die!",
-    "mixed_sha256": "3e4b931a41dfd03dd3143d62bf1fbf474cbab7b4da6d6a9be42977657c16834a",
-    "mixed_millis": 4340,
-    "donor_id": "103_06m41s_i_know_you_re_going_to_be_a_great_typist_one_day",
-    "donor_sha256": "e61a9d2b65acbef263c2ca79bc902a240566e7aa2e35f0059c4db5fd60dfecf1"
+    "text": "Hmm, guess what time it is? It's time for you to die!"
   }
 ]

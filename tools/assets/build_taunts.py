@@ -27,6 +27,9 @@ def build(source, manifest="taunts.json", prefix="taunt", class_name="TauntVoice
         name = prefix + "_" + entry["id"].split("_")[0]
         audio = build_head.decode_mono(str(path), 0, entry["millis"] / 1000, build_head.MOUTH_RATE)
         mouth = build_head.mouth_envelope(audio, build_head.MOUTH_RATE)
+        if "mouth_end_millis" in entry:
+            end = entry["mouth_end_millis"] * build_head.MOUTH_FPS // 1000
+            mouth[end:] = [0] * (len(mouth) - end)
         lines.append(f'\t\tnew HeadVoice.Clip("{name}", {entry["millis"]}, new int[] {{')
         for start in range(0, len(mouth), 24):
             lines.append("\t\t\t" + ", ".join(map(str, mouth[start:start + 24])) + ("," if start + 24 < len(mouth) else ""))

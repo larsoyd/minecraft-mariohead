@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check home dialogue assets, mixing provenance and chat wiring."""
+"""Check original home dialogue assets and chat wiring."""
 
 import hashlib
 import json
@@ -12,7 +12,7 @@ ASSETS = ROOT / 'src/main/resources/assets/mariohead'
 
 
 class HomeVoiceTests(unittest.TestCase):
-    def test_requested_sources_and_mix_are_bundled(self):
+    def test_requested_original_sources_are_bundled(self):
         entries = json.loads(Path(__file__).with_name('home-lines.json').read_text())
         self.assertEqual([int(e['id'][:3]) for e in entries], [53, 5, 59, 60, 36])
         sounds = json.loads((ASSETS / 'sounds.json').read_text())
@@ -21,7 +21,7 @@ class HomeVoiceTests(unittest.TestCase):
             name = 'home_' + entry['id'][:3]
             path = ASSETS / 'sounds/the_head' / (name + '.ogg')
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
-            self.assertEqual(digest, entry.get('mixed_sha256', entry['sha256']))
+            self.assertEqual(digest, entry['sha256'])
             event = sounds['entity.the_head.' + name]
             self.assertEqual(event['sounds'], ['mariohead:the_head/' + name])
             self.assertEqual(language[event['subtitle']], entry['text'])
@@ -32,8 +32,7 @@ class HomeVoiceTests(unittest.TestCase):
             self.assertEqual(stream['channels'], 1)
             self.assertEqual(stream['sample_rate'], '48000')
             self.assertAlmostEqual(float(stream['duration']),
-                                   entry.get('mixed_millis', entry['millis']) / 1000, delta=0.002)
-        self.assertNotEqual(entries[-1]['sha256'], entries[-1]['mixed_sha256'])
+                                   entry['millis'] / 1000, delta=0.002)
         self.assertIn('die!', language['chat.mariohead.the_head.home_return'])
         self.assertEqual(language['chat.mariohead.the_head.home_nice'], 'Hmm, you have a nice place here!')
         self.assertEqual(language['chat.mariohead.the_head.home_ask'], 'Can I have it?')

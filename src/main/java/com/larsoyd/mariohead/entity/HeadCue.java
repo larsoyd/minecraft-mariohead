@@ -40,7 +40,9 @@ public enum HeadCue {
 	HOME_ASK,
 	HOME_HUNGRY,
 	HOME_THIRSTY,
-	HOME_RETURN;
+	HOME_RETURN,
+	PRANK_WARNING,
+	PRANK_RESPONSE;
 
 	private static final HeadCue[] BY_ID = values();
 	private static final HeadCue[] HUMS = { MMM1, MMM2, MMM3 };
@@ -53,6 +55,7 @@ public enum HeadCue {
 
 	public HeadVoice.@Nullable Clip clip() {
 		return switch (this) {
+			case PRANK_WARNING, PRANK_RESPONSE -> PrankVoice.CLIPS[this.ordinal() - PRANK_WARNING.ordinal()];
 			case HOME_NICE, HOME_ASK, HOME_HUNGRY, HOME_THIRSTY, HOME_RETURN -> HomeVoice.CLIPS[this.ordinal() - HOME_NICE.ordinal()];
 			case HELLO -> HeadVoice.HELLO;
 			case MMM1 -> HeadVoice.MMM1;
@@ -67,7 +70,7 @@ public enum HeadCue {
 
 	// words move his mouth, a hum keeps it shut
 	public boolean spoken() {
-		return this == HELLO || this == UNDERGROUND || this.taunt() || this.chatter() || this.home();
+		return this == HELLO || this == UNDERGROUND || this.taunt() || this.chatter() || this.home() || this.prank();
 	}
 
 	public boolean taunt() {
@@ -79,7 +82,11 @@ public enum HeadCue {
 	}
 
 	public boolean home() {
-		return this.ordinal() >= HOME_NICE.ordinal();
+		return this.ordinal() >= HOME_NICE.ordinal() && this.ordinal() <= HOME_RETURN.ordinal();
+	}
+
+	public boolean prank() {
+		return this == PRANK_WARNING || this == PRANK_RESPONSE;
 	}
 
 	public boolean digHum() {
