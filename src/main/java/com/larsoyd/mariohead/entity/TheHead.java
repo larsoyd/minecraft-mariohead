@@ -677,15 +677,10 @@ public class TheHead extends Monster {
 		return HeadRoom.clearLine(this, this.level(), from, to);
 	}
 
-	// his hull against the player's, with a line between their middles so walls stop him
+	// his head as drawn against the player's box, with a line between their middles so walls stop him
 	private boolean touching(Player target) {
 		Vec3 c = this.centre();
-		double reach = WIDTH * this.squeeze() / 2.0 + target.getBbWidth() / 2.0 + CONTACT_REACH;
-		double dx = c.x - target.getX();
-		double dz = c.z - target.getZ();
-		double tall = HEIGHT * this.squeeze() / 2.0 + target.getBbHeight() / 2.0 + CONTACT_REACH;
-		return dx * dx + dz * dz < reach * reach
-			&& Math.abs(c.y - (target.getY() + target.getBbHeight() / 2.0)) < tall
+		return HeadContact.touches(c, this.getYRot(), this.getXRot(), this.roll, this.squeeze(), target.getBoundingBox(), CONTACT_REACH)
 			&& this.clearLine(c, target.getEyePosition());
 	}
 
@@ -744,14 +739,13 @@ public class TheHead extends Monster {
 		this.setXRot(pitch);
 	}
 
+	// both sides lean him, the client to draw it and the server to catch with it
 	@Override
 	public void tick() {
 		super.tick();
-		if (this.level().isClientSide()) {
-			float turn = Mth.wrapDegrees(this.getYRot() - this.yRotO);
-			this.rollO = this.roll;
-			this.roll = Mth.approach(this.roll, Mth.clamp(turn * ROLL_PER_TURN, -ROLL_MAX, ROLL_MAX), ROLL_RATE);
-		}
+		float turn = Mth.wrapDegrees(this.getYRot() - this.yRotO);
+		this.rollO = this.roll;
+		this.roll = Mth.approach(this.roll, Mth.clamp(turn * ROLL_PER_TURN, -ROLL_MAX, ROLL_MAX), ROLL_RATE);
 	}
 
 	@Override
