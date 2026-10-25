@@ -73,6 +73,7 @@ public class TheHead extends Monster {
 	private boolean seen;
 	private boolean halted;
 	private boolean wedged;
+	private int blockedTicks;
 	private boolean sealed;
 	private long sealedSince = -1L;
 	private boolean burrowing;
@@ -446,7 +447,8 @@ public class TheHead extends Monster {
 	private boolean fitsAhead(List<Vec3> ahead, double y, float size) {
 		for (Vec3 point : ahead) {
 			double at = Double.isNaN(point.y) ? y : point.y + HOVER * size;
-			if (!HeadRoom.fitsNear(this, point.x, point.z, at, size, this.moveYaw)) {
+			// pressed against something for a while, room off to the side no longer counts, only the spot itself
+			if (!HeadRoom.fitsNear(this, point.x, point.z, at, size, this.moveYaw, this.blockedTicks > BLOCKED_TICKS)) {
 				return false;
 			}
 		}
@@ -606,7 +608,9 @@ public class TheHead extends Monster {
 		double speed = Math.min(this.aimDistance, this.moveSpeed * Mth.clamp(1.0 - (want - y - CLIMB_FREE) / CLIMB_SLOW, MIN_TURN_SPEED, 1.0));
 		double dx = -Math.sin(yaw) * speed;
 		double dz = Math.cos(yaw) * speed;
+		Vec3 before = this.position();
 		this.body(dx, Mth.clamp(want - y, -CLIMB, CLIMB), dz);
+		this.blockedTicks = this.horizontalCollision && this.position().subtract(before).horizontalDistance() < speed * 0.5 ? this.blockedTicks + 1 : 0;
 		Vec3 c = this.centre();
 		// a wall he flies up when he has no path, a step only when a block higher clears it
 		this.climbing = this.horizontalCollision && (straight || HeadRoom.fits(this, c.x + dx, c.y + STEP_UP, c.z + dz, this.squeeze()));

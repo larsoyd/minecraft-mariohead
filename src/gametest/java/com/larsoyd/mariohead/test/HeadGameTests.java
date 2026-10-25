@@ -700,6 +700,95 @@ public class HeadGameTests {
 		caughtWithin(helper, target, head);
 	}
 
+	// his hello is harmless, walking into him only counts once the chase is on
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void touchingHimBeforeTheChargeIsSafe(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(12.5, 0.5, 10.5), target);
+		helper.runAtTickTime(30, () -> {
+			Vec3 c = head.centre();
+			target.teleportTo(helper.getLevel(), c.x, c.y - 0.9, c.z, java.util.Set.of(), -90.0f, 0.0f, true);
+		});
+		helper.runAtTickTime(60, () -> helper.assertTrue(!target.isDeadOrDying() && head.phase() != HeadPhase.CHARGE,
+			"phase " + head.phase() + " target dead " + target.isDeadOrDying()));
+		caughtWithin(helper, target, head);
+	}
+
+	// a fence ring keeps walkers out, he floats over it
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void floatsOverAFenceRing(GameTestHelper helper) {
+		var fence = Blocks.OAK_FENCE.defaultBlockState();
+		for (int x = 1; x <= 5; x++) {
+			for (int z = 8; z <= 12; z++) {
+				if (x == 1 || x == 5 || z == 8 || z == 12) {
+					helper.setBlock(new BlockPos(x, 0, z), fence);
+				}
+			}
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), 90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	// a shut door he cannot open makes a sealed room, so he says so and comes up through the floor
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void aShutDoorSealsTheRoom(GameTestHelper helper) {
+		fill(helper, 1, 0, 8, 5, 3, 12, Blocks.STONE.defaultBlockState());
+		fill(helper, 2, 0, 9, 4, 2, 11, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
+		var door = Blocks.OAK_DOOR.defaultBlockState().setValue(net.minecraft.world.level.block.DoorBlock.FACING, net.minecraft.core.Direction.WEST);
+		helper.setBlock(new BlockPos(5, 0, 10), door.setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.LOWER));
+		helper.setBlock(new BlockPos(5, 1, 10), door.setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), 90.0f);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(16.5, 0.5, 10.5));
+		head.chase(target);
+		boolean[] announced = { false };
+		helper.onEachTick(() -> announced[0] |= !head.isRemoved() && head.cue() == HeadCue.UNDERGROUND);
+		helper.succeedWhen(() -> {
+			helper.assertBlockPresent(Blocks.OAK_DOOR, new BlockPos(5, 0, 10));
+			helper.assertTrue(target.isDeadOrDying() && announced[0], "dead " + target.isDeadOrDying() + " announced " + announced[0] + " head " + helper.relativeVec(head.position()));
+			leave(helper, target);
+		});
+	}
+
+	// boxed in himself, the player cannot be reached either, so he goes under the box
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void boxedInHeComesOutUnderground(GameTestHelper helper) {
+		fill(helper, 12, 0, 7, 18, 5, 13, Blocks.STONE.defaultBlockState());
+		fill(helper, 13, 0, 8, 17, 4, 12, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), 90.0f);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(15.5, 0.5, 10.5));
+		head.chase(target);
+		caughtWithin(helper, target, head);
+	}
+
+	// a U of wall opening away from him, so the way in starts by going round the far side
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void goesRoundAWallOpeningAway(GameTestHelper helper) {
+		var stone = Blocks.STONE.defaultBlockState();
+		fill(helper, 8, 0, 3, 8, 7, 17, stone);
+		fill(helper, 1, 0, 3, 7, 7, 3, stone);
+		fill(helper, 1, 0, 17, 7, 7, 17, stone);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(5.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(15.5, 0.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	// the chase is his player's, anyone else in the way is flown through unharmed
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void passesOtherPlayersUnharmed(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		ServerPlayer bystander = player(helper, GameType.SURVIVAL, new Vec3(7.5, 0.0, 10.5), 90.0f);
+		TheHead head = head(helper, new Vec3(14.5, 0.5, 10.5), target);
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + helper.relativeVec(head.position()));
+			helper.assertFalse(bystander.isDeadOrDying(), "the bystander died");
+			leave(helper, target);
+			leave(helper, bystander);
+		});
+	}
+
 	// buried by a player he squirms out to the nearest open air, never on through a wall to his target
 	@GameTest(structure = ARENA, maxTicks = 300)
 	public void escapesBeingBuriedButNotThroughAWall(GameTestHelper helper) {

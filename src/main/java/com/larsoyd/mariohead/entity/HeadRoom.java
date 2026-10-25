@@ -16,6 +16,7 @@ final class HeadRoom {
 	private static final double SWEEP_STEP = 0.5;
 	private static final double FOOTPRINT_INSET = 1e-3;
 	private static final double[] SIDE_STEPS = { 0.0, 0.5, -0.5, 1.0, -1.0 };
+	private static final double[] ON_THE_SPOT = { 0.0 };
 	private static final double RISE = 2.0;
 	private static final double RISE_STEP = 0.5;
 
@@ -63,10 +64,10 @@ final class HeadRoom {
 	}
 
 	// whether his box fits close to a spot, settled there, risen up to two blocks or shifted a block aside
-	static boolean fitsNear(Entity head, double x, double z, double centreY, float squeeze, float yaw) {
+	static boolean fitsNear(Entity head, double x, double z, double centreY, float squeeze, float yaw, boolean onTheSpot) {
 		double sideX = Math.cos(Math.toRadians(yaw));
 		double sideZ = Math.sin(Math.toRadians(yaw));
-		for (double side : SIDE_STEPS) {
+		for (double side : onTheSpot ? ON_THE_SPOT : SIDE_STEPS) {
 			double px = x + sideX * side;
 			double pz = z + sideZ * side;
 			double y = settle(head, new Vec3(px, centreY, pz), centreY, squeeze);

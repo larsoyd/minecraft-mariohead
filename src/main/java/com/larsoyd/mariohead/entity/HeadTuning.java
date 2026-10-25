@@ -79,6 +79,7 @@ public final class HeadTuning {
 	public static final double AHEAD_SETTLE = 1.0;
 	public static final int AHEAD_NODES = 3;
 	public static final double AHEAD_REACH = 2.5;
+	public static final int BLOCKED_TICKS = 5;
 	public static final double ESCAPE_REACH = 6.0;
 	public static final double ESCAPE_SPEED = 0.15;
 	public static final int CELL_LIMIT = 4096;
