@@ -66,6 +66,8 @@ public final class HeadTuning {
 	public static final float PITCH_MAX = HeadShape.PITCH_MAX;
 	public static final float PITCH_RATE = 2.637f;
 	public static final double LOD_DISTANCE = 24.0;
+	// how far his voice carries, the same edge as the client's loudness curve
+	public static final double VOICE_REACH = 50.0;
 	// radius 4 keeps two rings of chunks around his own loaded and ticking before he flies into them
 	public static final int TICKET_RADIUS = 4;
 	public static final int TICKET_REFRESH = 20;

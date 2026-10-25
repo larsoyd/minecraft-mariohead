@@ -50,6 +50,13 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 
 	private void seenAndHeard(ClientGameTestContext context, TestSingleplayerContext world) {
 		int before = HeadVoiceSound.started();
+		// every hello this client plays, so a sound sent by the server as well would count twice
+		int[] hellos = { 0 };
+		context.runOnClient(mc -> mc.getSoundManager().addListener((sound, events, range) -> {
+			if (sound.getIdentifier().getPath().equals("entity.the_head.hello")) {
+				hellos[0]++;
+			}
+		}));
 		world.getServer().runCommand("give @p mariohead:the_head_spawn_egg");
 		world.getServer().runCommand("mariohead summon @p");
 		context.waitFor(mc -> !clientHeads().isEmpty(), 100);
@@ -59,6 +66,8 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		context.waitTicks(12);
 		context.takeScreenshot("the-head-hello");
 		check(HeadVoiceSound.started() == before + 1, "hello started " + (HeadVoiceSound.started() - before) + " voices");
+		LOG.info("[client-test] hello plays={}", hellos[0]);
+		check(hellos[0] == 1, "the tracking client played the hello " + hellos[0] + " times");
 		context.waitFor(mc -> clientHeads().getFirst().cue() == HeadCue.HELLO
 			&& com.larsoyd.mariohead.entity.HeadPose.mouthOpen(HeadPhase.TALK, HeadCue.HELLO, clientHeads().getFirst().cueSeconds(0.0f), 1.0), 60);
 		this.portrait(context, world, "the-head-portrait-open");

@@ -30,12 +30,13 @@ import net.minecraft.world.phys.Vec3;
 
 public class HeadGameTests {
 	private static final String ARENA = "mariohead-gametest:arena";
+	private static final java.util.Map<ServerPlayer, EmbeddedChannel> CHANNELS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
 
 	private static ServerPlayer player(GameTestHelper helper, GameType mode, Vec3 relative, float yaw) {
 		var cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), HeadTestSetup.PLAYER_PREFIX + UUID.randomUUID().toString().substring(0, 12)), false);
 		var player = new ServerPlayer(helper.getLevel().getServer(), helper.getLevel(), cookie.gameProfile(), cookie.clientInformation());
 		var connection = new Connection(PacketFlow.SERVERBOUND);
-		new EmbeddedChannel(connection);
+		CHANNELS.put(player, new EmbeddedChannel(connection));
 		helper.getLevel().getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
 		player.setGameMode(mode);
 		Vec3 at = helper.absoluteVec(relative);
@@ -963,6 +964,33 @@ public class HeadGameTests {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(4.5, 1.5, 10.5), 90.0f);
 		TheHead head = head(helper, new Vec3(15.5, 4.5, 10.5), target);
 		caughtWithin(helper, target, head);
+	}
+
+	// a player the server does not track him for, as at a low render distance, still hears his hello
+	@GameTest(structure = ARENA, maxTicks = 80)
+	public void untrackedPlayersHearHisVoice(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(14.5, 0.0, 10.5 - 44.0), 0.0f);
+		TheHead head = head(helper, new Vec3(14.5, 0.5, 10.5), target);
+		List<String> heard = new ArrayList<>();
+		helper.onEachTick(() -> drainSounds(channel(target), heard));
+		helper.runAtTickTime(60, () -> {
+			helper.assertTrue(head.cue() == HeadCue.HELLO, "cue " + head.cue());
+			helper.assertTrue(heard.contains("entity.the_head.hello"), "heard " + heard);
+			leave(helper, target);
+			helper.succeed();
+		});
+	}
+
+	private static void drainSounds(EmbeddedChannel channel, List<String> heard) {
+		for (Object out; (out = channel.readOutbound()) != null; ) {
+			if (out instanceof net.minecraft.network.protocol.game.ClientboundSoundPacket sound) {
+				heard.add(sound.getSound().value().location().getPath());
+			}
+		}
+	}
+
+	private static EmbeddedChannel channel(ServerPlayer player) {
+		return CHANNELS.get(player);
 	}
 
 	// a fence ring keeps walkers out, he floats over it

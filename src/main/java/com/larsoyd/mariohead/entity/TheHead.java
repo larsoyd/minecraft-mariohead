@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.HashSet;
 import java.util.Set;
+import com.larsoyd.mariohead.mixin.ChunkMapAccess;
+import com.larsoyd.mariohead.mixin.TrackedEntityAccess;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.ExplosionDamageCalculator;
@@ -19,11 +21,16 @@ import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerPlayerConnection;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
@@ -216,6 +223,23 @@ public class TheHead extends Monster {
 	private void setCue(HeadCue cue) {
 		this.entityData.set(DATA_CUE, HeadCue.pack(cue, this.level().getGameTime()));
 		this.cueTicks = -1;
+		if (cue.clip() != null && this.level() instanceof ServerLevel level) {
+			this.voiceBeyondSight(level, cue);
+		}
+	}
+
+	// a client that does not track him cannot play his voice, so it gets the sound sent with his reach
+	private void voiceBeyondSight(ServerLevel level, HeadCue cue) {
+		Object tracked = ((ChunkMapAccess) level.getChunkSource().chunkMap).mariohead$entityMap().get(this.getId());
+		Set<ServerPlayerConnection> seenBy = tracked == null ? Set.of() : ((TrackedEntityAccess) tracked).mariohead$seenBy();
+		Vec3 c = this.centre();
+		SoundEvent sound = this.digging && !cue.spoken() ? HeadSounds.loud(cue) : HeadSounds.of(cue);
+		for (ServerPlayer player : level.players()) {
+			if (player.distanceToSqr(c) < VOICE_REACH * VOICE_REACH && !seenBy.contains(player.connection)) {
+				player.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound), SoundSource.HOSTILE,
+					c.x, c.y, c.z, (float) (VOICE_REACH / 16.0), 1.0f, this.random.nextLong()));
+			}
+		}
 	}
 
 	private static double clipSeconds(HeadCue cue) {
