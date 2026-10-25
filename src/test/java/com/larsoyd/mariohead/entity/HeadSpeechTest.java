@@ -7,6 +7,19 @@ import org.junit.jupiter.api.Test;
 
 class HeadSpeechTest {
 	@Test
+	void homeDialogueUsesHalfSecondThenPointTwoSecondPause() {
+		HeadSpeech speech = new HeadSpeech();
+		speech.started(HeadCue.HOME_NICE, 100);
+		long ask = 100 + (HeadCue.HOME_NICE.clip().millis() + 49) / 50 + 10;
+		assertFalse(speech.canStart(HeadCue.HOME_ASK, ask - 1));
+		assertTrue(speech.canStart(HeadCue.HOME_ASK, ask));
+		speech.started(HeadCue.HOME_ASK, ask);
+		long hum = ask + (HeadCue.HOME_ASK.clip().millis() + 49) / 50 + 4;
+		assertFalse(speech.canStart(HeadCue.DIG_MMM1, hum - 1));
+		assertTrue(speech.canStart(HeadCue.DIG_MMM1, hum));
+	}
+
+	@Test
 	void diggingHumsFinishBeforeTheNextHumOrDialogue() {
 		HeadSpeech speech = new HeadSpeech();
 		speech.started(HeadCue.DIG_MMM1, 100);

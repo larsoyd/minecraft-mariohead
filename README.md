@@ -78,6 +78,13 @@ The command needs operator rights (permission level 2).
   Wall yourself in out in the open and he comes up under you the same way.
 - Ender-pearl escapes trigger a temporary catch-up burst until he recovers the distance you gained.
   Repeated pearls keep the burst active; he still has to navigate or tunnel through obstacles.
+- Hide near a bed in a sealed room, or behind a closed house door, and he says "Hmm, you have a
+  nice place here!", pauses half a second, then asks "Can I have it?" His TNT dash starts after
+  another 0.2 seconds. This sequence can happen even after he has started digging.
+- A room with multiple chests can distract him once per chase. He asks for food or a drink, then
+  attacks the chests for at most five seconds, destroying their contents when mobGriefing is on.
+  Adding more chests cannot extend the diversion. He returns to his original player with
+  "Hmm, guess what time it is? It's time for you to die!"
 - He cannot be hurt. `/kill` removes him. He leaves on Peaceful.
 - Before he says hello he will go after whoever else is near if his player leaves. After hello
   the chase belongs to that player, and he vanishes when they die, leave, change dimension or

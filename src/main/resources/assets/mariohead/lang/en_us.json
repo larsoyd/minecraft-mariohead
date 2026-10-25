@@ -14,5 +14,15 @@
 	"subtitles.mariohead.the_head.taunt": "Floating Mario Head taunts",
 	"subtitles.mariohead.the_head.dash_067": "Hmm, Mario's Smash and Dash!",
 	"subtitles.mariohead.the_head.dash_073": "Ooh, Mario's tunnel of doom. Very scary.",
-	"subtitles.mariohead.the_head.dash_086": "Hey, I wonder if there's a hidden treasure down there."
+	"subtitles.mariohead.the_head.dash_086": "Hey, I wonder if there's a hidden treasure down there.",
+	"subtitles.mariohead.home_053": "Hmm, you have a nice place here. Hmm.",
+	"subtitles.mariohead.home_005": "Can I have it?",
+	"subtitles.mariohead.home_059": "Say, I'm hungry. Have you got any food?",
+	"subtitles.mariohead.home_060": "Hey, I'm a thirsty. You got something to drinky?",
+	"subtitles.mariohead.home_036": "Hmm, guess what time it is? It's time for you to die!",
+	"chat.mariohead.the_head.home_nice": "Hmm, you have a nice place here!",
+	"chat.mariohead.the_head.home_ask": "Can I have it?",
+	"chat.mariohead.the_head.home_hungry": "Say, I'm hungry. Have you got any food?",
+	"chat.mariohead.the_head.home_thirsty": "Hey, I'm thirsty. You got something to drink?",
+	"chat.mariohead.the_head.home_return": "Hmm, guess what time it is? It's time for you to die!"
 }

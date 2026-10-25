@@ -128,6 +128,13 @@ public class TheHead extends Monster {
 	private int stalledBlasts;
 	private @Nullable Vec3 lastBlastAt;
 	private boolean announced;
+	private enum HomeStage { NONE, NICE, ASK, IGNITE, LOOT, RAID_START, RAID, RETURN }
+	private HomeStage homeStage = HomeStage.NONE;
+	private boolean homeUsed;
+	private boolean raidUsed;
+	private long homeScanAt;
+	private long raidUntil;
+	private final List<BlockPos> homeChests = new ArrayList<>();
 	private @Nullable Vec3 escape;
 	private @Nullable ChunkPos ticketChunk;
 
@@ -264,9 +271,9 @@ public class TheHead extends Monster {
 		this.cueTicks = -1;
 		if (cue.clip() != null && this.level() instanceof ServerLevel level) {
 			this.voiceBeyondSight(level, cue);
-			if (cue == HeadCue.UNDERGROUND) {
+			if (cue == HeadCue.UNDERGROUND || cue.home()) {
 				level.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("chat.mariohead.speech",
-					this.getDisplayName(), Component.translatable("chat.mariohead.the_head.underground")), false);
+					this.getDisplayName(), Component.translatable("chat.mariohead.the_head." + (cue.home() ? cue.name().toLowerCase(java.util.Locale.ROOT) : "underground"))), false);
 			}
 		}
 	}
@@ -375,6 +382,9 @@ public class TheHead extends Monster {
 	}
 
 	private void charge(ServerLevel level, Player target) {
+		if (this.tickHome(level, target)) {
+			return;
+		}
 		this.trackPace(target);
 		this.pearlBoost = this.pearlPursuit.boost(this.centre().distanceTo(target.position()));
 		this.tryTaunt(target, this.random.nextDouble());
@@ -454,14 +464,106 @@ public class TheHead extends Monster {
 		} else {
 			this.fly(target, straight);
 		}
-		if (!this.teasing && this.touching(target, centre)) {
+		if (!this.teasing && this.homeStage != HomeStage.RETURN && !(cue == HeadCue.HOME_RETURN
+			&& this.cueTicks < ticks(clipSeconds(cue))) && this.touching(target, centre)) {
 			this.caught(level, target);
 			return;
 		}
 		this.watchForSeal(level);
 	}
 
+	private boolean tickHome(ServerLevel level, Player target) {
+		long now = level.getGameTime();
+		if (this.homeStage == HomeStage.NONE && (!this.homeUsed || !this.raidUsed) && now >= this.homeScanAt) {
+			this.homeScanAt = now + 20;
+			if (this.distanceToSqr(target) <= 24 * 24 && this.underRoof(target) && this.pendingVoice == HeadCue.NONE) {
+				HeadShelter room = HeadShelter.inspect(level, target.blockPosition(), BlockPos.containing(this.centre()));
+				boolean home = !this.homeUsed && room.sheltered();
+				boolean loot = !this.raidUsed && room.chests().size() >= 2 && level.getGameRules().get(GameRules.MOB_GRIEFING);
+				if (home || loot) {
+					this.homeUsed |= home;
+					this.raidUsed |= loot;
+					if (loot) this.homeChests.addAll(room.chests());
+					this.homeStage = home ? HomeStage.NICE : HomeStage.LOOT;
+					this.teasing = false;
+					this.dashLine = HeadCue.NONE;
+					this.chatterRoll = false;
+				}
+			}
+		}
+		if (this.homeStage == HomeStage.NONE) return false;
+		if (this.homeStage == HomeStage.RAID) {
+			this.homeChests.removeIf(pos -> !(level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.ChestBlock));
+			if (now >= this.raidUntil || this.homeChests.isEmpty() || !level.getGameRules().get(GameRules.MOB_GRIEFING)) {
+				this.homeChests.clear();
+				this.homeStage = HomeStage.RETURN;
+				this.replanIn = 0;
+				this.path = null;
+			} else {
+				BlockPos chest = this.homeChests.stream().min(java.util.Comparator.comparingDouble(pos -> Vec3.atCenterOf(pos).distanceToSqr(this.centre()))).orElseThrow();
+				Vec3 to = Vec3.atCenterOf(chest);
+				boolean dash = this.tickDigDash(now);
+				this.chargeSpeed = Math.max(0.8, RevSpring.speed(this.revs, 0.0, this.pace));
+				Vec3 delta = to.subtract(this.centre());
+				this.setFacing(yawTo(this.centre(), to), (float) -Math.toDegrees(Math.atan2(delta.y, delta.horizontalDistance())));
+				this.digToward(level, to, this.cue(), dash);
+				if (this.getBoundingBox().inflate(0.3).contains(to)) this.destroyRaidChest(level, chest);
+				return true;
+			}
+		}
+		HeadCue line = switch (this.homeStage) {
+			case NICE -> HeadCue.HOME_NICE;
+			case ASK -> HeadCue.HOME_ASK;
+			case LOOT -> this.random.nextBoolean() ? HeadCue.HOME_HUNGRY : HeadCue.HOME_THIRSTY;
+			case RETURN -> HeadCue.HOME_RETURN;
+			default -> HeadCue.digHum(this.revs + 1);
+		};
+		if (this.speech.canStart(line, now)) {
+			HomeStage stage = this.homeStage;
+			if (stage == HomeStage.IGNITE || stage == HomeStage.RAID_START) {
+				this.burrowing = false;
+				this.setDigging(true);
+				this.nextDigDash = -1;
+				this.stalledBlasts = 0;
+				this.lastBlastAt = null;
+				boolean dash = this.tickDigDash(now);
+				this.chargeSpeed = Math.max(0.8, this.chargeSpeed);
+				this.dig(level, target, this.cue(), dash);
+				if (stage == HomeStage.RAID_START) {
+					this.raidUntil = now + 100;
+					this.homeStage = HomeStage.RAID;
+				} else {
+					this.homeStage = this.homeChests.isEmpty() ? HomeStage.NONE : HomeStage.LOOT;
+				}
+				return true;
+			}
+			this.setCue(line);
+			this.homeStage = switch (stage) {
+				case NICE -> HomeStage.ASK;
+				case ASK -> HomeStage.IGNITE;
+				case LOOT -> HomeStage.RAID_START;
+				default -> HomeStage.NONE;
+			};
+		}
+		if (this.homeStage == HomeStage.RETURN || line == HeadCue.HOME_RETURN) return false;
+		this.moveSpeed = 0;
+		this.faceTowards(yawTo(this.centre(), target.position()), target);
+		this.hover();
+		return true;
+	}
+
+	private void destroyRaidChest(ServerLevel level, BlockPos pos) {
+		if (!level.getGameRules().get(GameRules.MOB_GRIEFING)) return;
+		if (level.getBlockEntity(pos) instanceof net.minecraft.world.Container container) container.clearContent();
+		level.destroyBlock(pos, false, this);
+	}
+
 	private boolean tickDigDash(long now) {
+		if (this.homeStage == HomeStage.RETURN) {
+			this.nextDigDash = -1;
+			return false;
+		}
+		if (this.homeStage != HomeStage.NONE) this.chatterRoll = false;
 		if (this.pendingVoice != HeadCue.NONE) {
 			this.setCue(this.pendingVoice);
 			return false;
@@ -499,7 +601,7 @@ public class TheHead extends Monster {
 		this.dashBoost = 1.0;
 		if (this.dashLine == HeadCue.NONE && this.speech.canStart(hum, now)) {
 			this.setCue(hum);
-			this.chatterRoll = true;
+			this.chatterRoll = this.homeStage == HomeStage.NONE;
 		}
 		return true;
 	}
@@ -542,12 +644,13 @@ public class TheHead extends Monster {
 		} else if (this.sealedSince < 0L) {
 			this.sealedSince = now;
 		}
-		if (!this.burrowing && !this.digging && this.sealedSince >= 0L && now - this.sealedSince >= ticks(SEAL_SECONDS)) {
+		boolean sealedLongEnough = this.sealedSince >= 0L && now - this.sealedSince >= ticks(SEAL_SECONDS);
+		if (sealedLongEnough && !this.announced) {
+			this.announced = true;
+			this.setCue(HeadCue.UNDERGROUND);
+		}
+		if (!this.burrowing && !this.digging && sealedLongEnough) {
 			this.path = null;
-			if (!this.announced) {
-				this.announced = true;
-				this.setCue(HeadCue.UNDERGROUND);
-			}
 			boolean griefing = level.getGameRules().get(GameRules.MOB_GRIEFING);
 			this.setDigging(this.roofed && griefing);
 			this.burrowing = !this.digging;
@@ -582,7 +685,11 @@ public class TheHead extends Monster {
 				|| state.getBlock().getExplosionResistance() >= HARD_BLOCK) {
 				continue;
 			}
-			level.destroyBlock(pos, !decay || this.random.nextFloat() < 1.0f / DIG_POWER, this);
+			if (this.homeChests.contains(pos)) {
+				this.destroyRaidChest(level, pos);
+			} else {
+				level.destroyBlock(pos, !decay || this.random.nextFloat() < 1.0f / DIG_POWER, this);
+			}
 			broken++;
 		}
 		MarioHead.LOG.debug("[head] tunnel id={} at={} cut={} broken={}", this.getId(), this.blockPosition(), cut.size(), broken);
@@ -595,8 +702,11 @@ public class TheHead extends Monster {
 
 	// straight at the player, a blast on every dash, and through the rock once blasts stop working
 	private void dig(ServerLevel level, Player target, HeadCue cue, boolean dash) {
+		this.digToward(level, target.position().add(0.0, target.getBbHeight() / 2.0, 0.0), cue, dash);
+	}
+
+	private void digToward(ServerLevel level, Vec3 to, HeadCue cue, boolean dash) {
 		Vec3 c = this.centre();
-		Vec3 to = target.position().add(0.0, target.getBbHeight() / 2.0, 0.0);
 		Vec3 way = to.subtract(c);
 		Vec3 dir = way.length() > 1e-6 ? way.normalize() : Vec3.ZERO;
 		this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(c, to), TURN_DEGREES);

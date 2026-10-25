@@ -45,6 +45,10 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			for (int index = 0; index < 3; index++) {
 				this.spokenIsSeenAndHeard(context, world, HeadCue.chatter(index), "the-head-dash-" + index);
 			}
+			for (HeadCue cue : new HeadCue[] { HeadCue.HOME_NICE, HeadCue.HOME_ASK, HeadCue.HOME_HUNGRY,
+				HeadCue.HOME_THIRSTY, HeadCue.HOME_RETURN }) {
+				this.spokenIsSeenAndHeard(context, world, cue, "the-head-" + cue.name().toLowerCase(java.util.Locale.ROOT));
+			}
 			this.tiltedPortraits(context, world);
 		}
 	}

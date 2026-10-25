@@ -114,6 +114,191 @@ public class HeadGameTests {
 		});
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 180)
+	public void replacingChestsCannotExtendRaidDeadline(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(17.5, 1, 9.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(3.5, 1, 9.5));
+		head.chase(target);
+		head.setNoAi(true);
+		try {
+			var stage = TheHead.class.getDeclaredField("homeStage");
+			stage.setAccessible(true);
+			for (Object value : stage.getType().getEnumConstants()) {
+				if (value.toString().equals("RAID")) stage.set(head, value);
+			}
+			var until = TheHead.class.getDeclaredField("raidUntil");
+			until.setAccessible(true);
+			long deadline = helper.getLevel().getGameTime() + 100;
+			until.setLong(head, deadline);
+			var chests = TheHead.class.getDeclaredField("homeChests");
+			chests.setAccessible(true);
+			@SuppressWarnings("unchecked")
+			List<BlockPos> targets = (List<BlockPos>) chests.get(head);
+			var tick = TheHead.class.getDeclaredMethod("tickHome", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+			tick.setAccessible(true);
+			helper.onEachTick(() -> {
+				try {
+					BlockPos pos = helper.absolutePos(new BlockPos(15, 1, 5));
+					helper.getLevel().setBlock(pos, Blocks.CHEST.defaultBlockState(), 3);
+					if (!targets.contains(pos)) targets.add(pos);
+					head.setPos(helper.absoluteVec(new Vec3(3.5, 1, 9.5)));
+					tick.invoke(head, helper.getLevel(), target);
+					if (helper.getLevel().getGameTime() >= deadline) {
+						helper.assertTrue(!stage.get(head).toString().equals("RAID"), "new chests extended five-second raid");
+						helper.assertTrue(targets.isEmpty(), "raid retained chest targets after its deadline");
+						helper.assertTrue(head.chased() == target, "deadline lost the original player");
+						helper.succeed();
+					}
+				} catch (ReflectiveOperationException e) {
+					throw new AssertionError(e);
+				}
+			});
+		} catch (ReflectiveOperationException e) {
+			throw new AssertionError(e);
+		}
+	}
+
+	@GameTest(structure = ARENA)
+	public void chestInventorySurvivesWhenGriefingIsOff(GameTestHelper helper) {
+		BlockPos pos = helper.absolutePos(new BlockPos(6, 1, 6));
+		helper.getLevel().setBlock(pos, Blocks.CHEST.defaultBlockState(), 3);
+		var container = (net.minecraft.world.Container) helper.getLevel().getBlockEntity(pos);
+		container.setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND, 17));
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(3.5, 1, 6.5));
+		var rules = helper.getLevel().getGameRules();
+		var rule = net.minecraft.world.level.gamerules.GameRules.MOB_GRIEFING;
+		boolean previous = rules.get(rule);
+		try {
+			rules.set(rule, false, helper.getLevel().getServer());
+			var destroy = TheHead.class.getDeclaredMethod("destroyRaidChest", ServerLevel.class, BlockPos.class);
+			destroy.setAccessible(true);
+			destroy.invoke(head, helper.getLevel(), pos);
+			helper.assertTrue(helper.getLevel().getBlockState(pos).is(Blocks.CHEST), "griefing-off destroyed chest");
+			helper.assertTrue(container.getItem(0).getCount() == 17, "griefing-off deleted belongings");
+		} catch (ReflectiveOperationException e) {
+			throw new AssertionError(e);
+		} finally {
+			rules.set(rule, previous, helper.getLevel().getServer());
+		}
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 160)
+	public void homeDiggingDoesNotConsumeUndergroundAnnouncement(GameTestHelper helper) {
+		helper.runAtTickTime(120, () -> {
+			TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(4.5, 1, 4.5));
+			try {
+				for (String name : List.of("digging", "homeUsed", "sealed")) {
+					var field = TheHead.class.getDeclaredField(name);
+					field.setAccessible(true);
+					field.setBoolean(head, true);
+				}
+				var since = TheHead.class.getDeclaredField("sealedSince");
+				since.setAccessible(true);
+				since.setLong(head, helper.getLevel().getGameTime() - 120);
+				var watch = TheHead.class.getDeclaredMethod("watchForSeal", ServerLevel.class);
+				watch.setAccessible(true);
+				watch.invoke(head, helper.getLevel());
+				helper.assertTrue(head.cue() == HeadCue.UNDERGROUND, "home TNT mode suppressed underground announcement");
+				helper.succeed();
+			} catch (ReflectiveOperationException e) {
+				throw new AssertionError(e);
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 650)
+	public void chestRaidDestroysContentsAndReturnsToOriginalPlayer(GameTestHelper helper) {
+		fill(helper, 8, 0, 4, 18, 5, 14, Blocks.STONE.defaultBlockState());
+		fill(helper, 9, 1, 5, 17, 4, 13, Blocks.AIR.defaultBlockState());
+		var chests = List.of(new BlockPos(10, 1, 7), new BlockPos(10, 1, 10));
+		for (BlockPos pos : chests) {
+			helper.setBlock(pos, Blocks.CHEST.defaultBlockState());
+			((net.minecraft.world.Container) helper.getLevel().getBlockEntity(helper.absolutePos(pos)))
+				.setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND, 17));
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, 1, 9.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(3.5, 1, 9.5));
+		head.chase(target);
+		boolean[] hungry = { false };
+		long[] raid = { -1 };
+		helper.onEachTick(() -> {
+			if (head.cue() == HeadCue.HOME_HUNGRY || head.cue() == HeadCue.HOME_THIRSTY) hungry[0] = true;
+			long now = helper.getLevel().getGameTime();
+			if (hungry[0] && head.cue().digHum() && raid[0] < 0) {
+				raid[0] = now;
+				Vec3 away = helper.absoluteVec(new Vec3(25.5, 1, 9.5));
+				target.setPos(away);
+			}
+			if (head.cue() == HeadCue.HOME_RETURN) {
+				helper.assertTrue(hungry[0], "raid needs a food or drink line");
+				helper.assertTrue(raid[0] >= 0 && now - raid[0] <= 160, "raid and return voice must be bounded");
+				for (BlockPos pos : chests) helper.assertTrue(helper.getLevel().getBlockState(helper.absolutePos(pos)).isAir(), "target chest survived " + pos);
+				helper.assertTrue(head.chased() == target, "return must preserve the original chase owner");
+				var drops = helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+					new AABB(helper.absolutePos(new BlockPos(7, 0, 3))).expandTowards(13, 7, 13),
+					item -> item.getItem().is(net.minecraft.world.item.Items.DIAMOND));
+				helper.assertTrue(drops.isEmpty(), "chest contents escaped as item drops");
+				helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 600)
+	public void homeDialogueStillRunsAfterDiggingStarts(GameTestHelper helper) {
+		fill(helper, 8, 0, 4, 16, 5, 12, Blocks.STONE.defaultBlockState());
+		fill(helper, 9, 1, 5, 15, 4, 11, Blocks.AIR.defaultBlockState());
+		helper.setBlock(new BlockPos(12, 1, 9), Blocks.BED.red().defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 1, 8.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(3.5, 1, 8.5));
+		head.chase(target);
+		try {
+			var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
+			digging.setAccessible(true);
+			digging.invoke(head, true);
+		} catch (ReflectiveOperationException e) {
+			throw new AssertionError(e);
+		}
+		long[] spoken = { -1, -1 };
+		helper.onEachTick(() -> {
+			long now = helper.getLevel().getGameTime();
+			if (head.cue() == HeadCue.HOME_NICE && spoken[0] < 0) spoken[0] = now;
+			if (head.cue() == HeadCue.HOME_ASK && spoken[1] < 0) {
+				spoken[1] = now;
+				helper.assertTrue(now - spoken[0] == (HeadCue.HOME_NICE.clip().millis() + 49) / 50 + 10, "nice-place pause must be half a second");
+			}
+			if (spoken[1] >= 0 && head.cue().digHum()) {
+				helper.assertTrue(now - spoken[1] == (HeadCue.HOME_ASK.clip().millis() + 49) / 50 + 4, "first TNT hum must follow ask by 0.2 seconds");
+				helper.assertTrue(head.digging(), "TNT dash mode must be enabled");
+				helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA)
+	public void shelterRequiresEnclosureAndBedOrDoor(GameTestHelper helper) {
+		fill(helper, 3, 1, 3, 11, 5, 11, Blocks.STONE.defaultBlockState());
+		fill(helper, 4, 2, 4, 10, 4, 10, Blocks.AIR.defaultBlockState());
+		var player = helper.absolutePos(new BlockPos(7, 2, 7));
+		var outside = helper.absolutePos(new BlockPos(1, 2, 7));
+		var level = helper.getLevel();
+		helper.assertTrue(!com.larsoyd.mariohead.entity.HeadShelter.inspect(level, player, outside).sheltered(), "bare sealed room is not a home");
+		helper.setBlock(new BlockPos(7, 2, 8), Blocks.BED.red().defaultBlockState());
+		helper.setBlock(new BlockPos(8, 2, 8), Blocks.CHEST.defaultBlockState());
+		helper.setBlock(new BlockPos(9, 2, 8), Blocks.CHEST.defaultBlockState());
+		var shelter = com.larsoyd.mariohead.entity.HeadShelter.inspect(level, player, outside);
+		helper.assertTrue(shelter.sheltered(), "enclosed bed room should trigger");
+		helper.assertTrue(shelter.chests().size() == 2, "both room chests must be captured");
+		helper.assertTrue(!com.larsoyd.mariohead.entity.HeadShelter.inspect(level, player, player).sheltered(), "head already inside must not trigger");
+		fill(helper, 3, 2, 6, 3, 4, 8, Blocks.AIR.defaultBlockState());
+		helper.assertTrue(!com.larsoyd.mariohead.entity.HeadShelter.inspect(level, player, outside).sheltered(), "open room must not trigger");
+		fill(helper, 3, 2, 6, 3, 4, 8, Blocks.STONE.defaultBlockState());
+		helper.setBlock(new BlockPos(7, 2, 8), Blocks.AIR.defaultBlockState());
+		helper.setBlock(new BlockPos(3, 2, 7), Blocks.OAK_DOOR.defaultBlockState());
+		helper.assertTrue(com.larsoyd.mariohead.entity.HeadShelter.inspect(level, player, outside).sheltered(), "closed door home needs no bed");
+		helper.succeed();
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 400, dimension = "minecraft:the_end")
 	public void catchesRepeatedRealPearlEscapes(GameTestHelper helper) {
 		pearlEscape(helper, false);
@@ -198,6 +383,11 @@ public class HeadGameTests {
 				}
 				if (talkAt[0] >= 0 && helper.getTick() - talkAt[0] < (talking[0].clip().millis() + 49) / 50) {
 					helper.assertTrue(head.cue() == talking[0], "dash interrupted dialogue");
+				}
+				if (beats[0] >= 2 && talkingBeats[0] < 3 && head.cue().digHum()) {
+					Field line = TheHead.class.getDeclaredField("dashLine");
+					line.setAccessible(true);
+					if (line.get(head) == HeadCue.NONE) line.set(head, HeadCue.DASH_073);
 				}
 				Field blast = TheHead.class.getDeclaredField("lastBlastAt");
 				blast.setAccessible(true);
@@ -1728,7 +1918,7 @@ public class HeadGameTests {
 		head.chase(target);
 		neverShrinks(helper, head);
 		boolean[] announced = { false };
-		helper.onEachTick(() -> announced[0] |= !head.isRemoved() && head.cue() == HeadCue.UNDERGROUND);
+		helper.onEachTick(() -> announced[0] |= !head.isRemoved() && head.cue() == HeadCue.HOME_NICE);
 		helper.succeedWhen(() -> {
 			helper.assertTrue(target.isDeadOrDying() && announced[0], "dead " + target.isDeadOrDying() + " announced " + announced[0] + " head " + helper.relativeVec(head.position()));
 			leave(helper, target);

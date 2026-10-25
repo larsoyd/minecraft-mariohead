@@ -134,5 +134,25 @@
 	"entity.the_head.dig_mmm3": {
 		"subtitle": "subtitles.mariohead.the_head.hum",
 		"sounds": ["mariohead:the_head/dig_mmm3"]
+	},
+	"entity.the_head.home_053": {
+		"subtitle": "subtitles.mariohead.home_053",
+		"sounds": ["mariohead:the_head/home_053"]
+	},
+	"entity.the_head.home_005": {
+		"subtitle": "subtitles.mariohead.home_005",
+		"sounds": ["mariohead:the_head/home_005"]
+	},
+	"entity.the_head.home_059": {
+		"subtitle": "subtitles.mariohead.home_059",
+		"sounds": ["mariohead:the_head/home_059"]
+	},
+	"entity.the_head.home_060": {
+		"subtitle": "subtitles.mariohead.home_060",
+		"sounds": ["mariohead:the_head/home_060"]
+	},
+	"entity.the_head.home_036": {
+		"subtitle": "subtitles.mariohead.home_036",
+		"sounds": ["mariohead:the_head/home_036"]
 	}
 }
