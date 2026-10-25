@@ -114,6 +114,64 @@ public class HeadGameTests {
 		});
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 600)
+	public void diggingDashesEveryHalfSecondWhileDialogueKeepsPlaying(GameTestHelper helper) {
+		fill(helper, 0, 6, 0, 19, 6, 19, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		head.getRandom().setSeed(12345);
+		int[] previousRev = { -1 };
+		long[] previousDash = { -1 };
+		int[] beats = { 0 };
+		int[] talkingBeats = { 0 };
+		HeadCue[] talking = { HeadCue.NONE };
+		long[] talkAt = { -1 };
+		helper.onEachTick(() -> {
+			if (helper.getTick() < 80) {
+				return;
+			}
+			try {
+				var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
+				digging.setAccessible(true);
+				digging.invoke(head, true);
+				Field stalls = TheHead.class.getDeclaredField("stalledBlasts");
+				stalls.setAccessible(true);
+				stalls.setInt(head, 0);
+				head.setPos(helper.absoluteVec(new Vec3(16.5, 0.5, 10.5)));
+				if (head.cue().chatter() && talking[0] != head.cue()) {
+					talking[0] = head.cue();
+					talkAt[0] = helper.getTick();
+				}
+				if (talkAt[0] >= 0 && helper.getTick() - talkAt[0] < (talking[0].clip().millis() + 49) / 50) {
+					helper.assertTrue(head.cue() == talking[0], "dash interrupted dialogue");
+				}
+				Field blast = TheHead.class.getDeclaredField("lastBlastAt");
+				blast.setAccessible(true);
+				if ((head.cue().digHum() || head.cue().chatter()) && head.revs() != previousRev[0]) {
+					if (previousDash[0] >= 0) {
+						helper.assertTrue(helper.getTick() - previousDash[0] == 10,
+							"dig dash interval=" + (helper.getTick() - previousDash[0]));
+					}
+					previousDash[0] = helper.getTick();
+					previousRev[0] = head.revs();
+					beats[0]++;
+					helper.assertTrue(blast.get(head) != null, "dash did not blast while cue=" + head.cue());
+					if (head.cue().chatter()) {
+						talkingBeats[0]++;
+						helper.assertTrue(head.chargeSpeed() > 0.1 && head.getDeltaMovement().length() > 0.01, "dialogue stopped dash movement");
+					}
+				}
+				blast.set(head, null);
+				if (beats[0] >= 30 && talkingBeats[0] >= 3) {
+					head.discard();
+					helper.succeed();
+				}
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+	}
+
 	// alone in its own dimension, so only his own ticket can keep the chunks he flies into ticking
 	@GameTest(structure = ARENA, maxTicks = 2000, dimension = "minecraft:the_nether")
 	public void keepsFlyingWhenThePlayerOutrunsTheLoadedWorld(GameTestHelper helper) {
@@ -898,7 +956,7 @@ public class HeadGameTests {
 				target.teleportTo(helper.getLevel(), to.x, to.y, to.z, java.util.Set.of(), -90.0f, 0.0f, true);
 			}
 			if (!head.isRemoved() && head.phase() == HeadPhase.CHARGE) {
-				helper.assertTrue(head.chargeSpeed() <= RevSpring.peak(head.revs()) + 1e-9,
+				helper.assertTrue(head.chargeSpeed() <= RevSpring.peak(head.revs()) * (1.0 + (head.revs() + 1) * 0.003) + 1e-9,
 					"speed " + head.chargeSpeed() + " over the rev " + head.revs() + " peak after a hop");
 			}
 		});
@@ -1059,7 +1117,7 @@ public class HeadGameTests {
 				if (cue.clip() != null && !cue.spoken()) {
 					dashes[0]++;
 					started[0] = helper.getTick();
-					double expected = RevSpring.peak(head.revs()) * Math.pow(1.03, dashes[0]);
+					double expected = RevSpring.peak(head.revs()) * Math.pow(1.03, head.revs() + 1) * (1.0 + (head.revs() + 1) * 0.003);
 					helper.assertTrue(Math.abs(head.chargeSpeed() - expected) < 1e-6,
 						"dash " + dashes[0] + " speed=" + head.chargeSpeed() + " expected=" + expected);
 				} else if (cue == HeadCue.INHALE && last[0].clip() != null && !last[0].spoken()) {
@@ -1230,7 +1288,7 @@ public class HeadGameTests {
 			}
 			if (taunted[0] && !resumed[0] && head.cue().clip() != null && !head.cue().spoken()) {
 				resumed[0] = true;
-				double expected = RevSpring.peak(head.revs()) * 1.1;
+				double expected = RevSpring.peak(head.revs()) * 1.1 * 1.003;
 				helper.assertTrue(Math.abs(head.chargeSpeed() - expected) < 1e-6,
 					"post-taunt dash speed=" + head.chargeSpeed() + " expected=" + expected);
 			}
@@ -1426,7 +1484,7 @@ public class HeadGameTests {
 			if (tauntAt[0] >= 0 && cue != last[0]) {
 				if (cue.clip() != null && !cue.spoken()) {
 					resumed[0]++;
-					double expected = RevSpring.peak(head.revs()) * (resumed[0] == 1 ? 1.1 : 1.0);
+					double expected = RevSpring.peak(head.revs()) * (resumed[0] == 1 ? 1.1 : 1.0) * (1.0 + resumed[0] * 0.003);
 					helper.assertTrue(Math.abs(head.chargeSpeed() - expected) < 1e-6, "dash " + resumed[0] + " speed=" + head.chargeSpeed());
 					if (resumed[0] == 1) {
 						boostAt[0] = tick;

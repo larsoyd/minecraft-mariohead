@@ -29,10 +29,21 @@ public enum HeadCue {
 	TAUNT_100,
 	TAUNT_105,
 	TAUNT_106,
-	TAUNT_107;
+	TAUNT_107,
+	DASH_067,
+	DASH_073,
+	DASH_086,
+	DIG_MMM1,
+	DIG_MMM2,
+	DIG_MMM3;
 
 	private static final HeadCue[] BY_ID = values();
 	private static final HeadCue[] HUMS = { MMM1, MMM2, MMM3 };
+	private static final HeadVoice.Clip[] DIG_CLIPS = {
+		new HeadVoice.Clip("dig_mmm1", 500, new int[15]),
+		new HeadVoice.Clip("dig_mmm2", 500, new int[15]),
+		new HeadVoice.Clip("dig_mmm3", 500, new int[15])
+	};
 	private static final int CUE_BITS = 5;
 
 	public HeadVoice.@Nullable Clip clip() {
@@ -42,17 +53,35 @@ public enum HeadCue {
 			case MMM2 -> HeadVoice.MMM2;
 			case MMM3 -> HeadVoice.MMM3;
 			case UNDERGROUND -> HeadVoice.UNDERGROUND;
+			case DASH_067, DASH_073, DASH_086 -> DashVoice.CLIPS[this.ordinal() - DASH_067.ordinal()];
+			case DIG_MMM1, DIG_MMM2, DIG_MMM3 -> DIG_CLIPS[this.ordinal() - DIG_MMM1.ordinal()];
 			default -> this.taunt() ? TauntVoice.CLIPS[this.ordinal() - TAUNT_006.ordinal()] : null;
 		};
 	}
 
 	// words move his mouth, a hum keeps it shut
 	public boolean spoken() {
-		return this == HELLO || this == UNDERGROUND || this.taunt();
+		return this == HELLO || this == UNDERGROUND || this.taunt() || this.chatter();
 	}
 
 	public boolean taunt() {
-		return this.ordinal() >= TAUNT_006.ordinal();
+		return this.ordinal() >= TAUNT_006.ordinal() && this.ordinal() <= TAUNT_107.ordinal();
+	}
+
+	public boolean chatter() {
+		return this.ordinal() >= DASH_067.ordinal() && this.ordinal() <= DASH_086.ordinal();
+	}
+
+	public boolean digHum() {
+		return this.ordinal() >= DIG_MMM1.ordinal();
+	}
+
+	public static HeadCue digHum(int rev) {
+		return BY_ID[DIG_MMM1.ordinal() + Math.floorMod(rev, 3)];
+	}
+
+	public static HeadCue chatter(int index) {
+		return BY_ID[DASH_067.ordinal() + index];
 	}
 
 	public static HeadCue taunt(int index) {

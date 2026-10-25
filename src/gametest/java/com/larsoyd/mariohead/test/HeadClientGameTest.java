@@ -41,7 +41,10 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			this.heardBeyondRenderDistance(context, world);
 			this.lateObserver(context, world);
 			this.announcementIsHeard(context, world);
-			this.tauntIsSeenAndHeard(context, world);
+			this.spokenIsSeenAndHeard(context, world, HeadCue.TAUNT_098, "the-head-taunt");
+			for (int index = 0; index < 3; index++) {
+				this.spokenIsSeenAndHeard(context, world, HeadCue.chatter(index), "the-head-dash-" + index);
+			}
 			this.tiltedPortraits(context, world);
 		}
 	}
@@ -51,7 +54,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		return level.getEntities(HeadEntities.THE_HEAD, new AABB(-400, -100, -400, 400, 100, 400), h -> true);
 	}
 
-	private void tauntIsSeenAndHeard(ClientGameTestContext context, TestSingleplayerContext world) {
+	private void spokenIsSeenAndHeard(ClientGameTestContext context, TestSingleplayerContext world, HeadCue spoken, String image) {
 		var server = world.getServer();
 		server.runCommand("tp @p 20.5 -60 0.5 -90 0");
 		context.waitFor(mc -> clientHeads().isEmpty(), 40);
@@ -71,17 +74,17 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 				phase.setAccessible(true);
 				cue.setAccessible(true);
 				phase.invoke(serverHead(s), HeadPhase.CHARGE);
-				cue.invoke(serverHead(s), HeadCue.TAUNT_098);
+				cue.invoke(serverHead(s), spoken);
 			} catch (ReflectiveOperationException e) {
 				throw new IllegalStateException(e);
 			}
 		});
-		context.waitFor(mc -> clientHeads().getFirst().cue() == HeadCue.TAUNT_098
-			&& com.larsoyd.mariohead.entity.HeadPose.mouthOpen(HeadPhase.CHARGE, HeadCue.TAUNT_098,
+		context.waitFor(mc -> clientHeads().getFirst().cue() == spoken
+			&& com.larsoyd.mariohead.entity.HeadPose.mouthOpen(HeadPhase.CHARGE, spoken,
 				clientHeads().getFirst().cueSeconds(0), 0), 80);
-		check(HeadVoiceSound.started() == before + 1, "taunt voice did not start exactly once");
-		this.screenshot(context, "the-head-taunt");
-		LOG.info("[client-test] taunt={} voices={}", HeadCue.TAUNT_098, HeadVoiceSound.started() - before);
+		check(HeadVoiceSound.started() == before + 1, "voice did not start exactly once: " + spoken);
+		this.screenshot(context, image);
+		LOG.info("[client-test] spoken={} voices={}", spoken, HeadVoiceSound.started() - before);
 		server.runCommand("kill @e[type=mariohead:the_head]");
 		context.waitFor(mc -> clientHeads().isEmpty(), 40);
 	}
@@ -363,7 +366,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 					net.minecraft.network.chat.Component.literal("test")).getString();
 				check(chat.equals("Floating Mario Head: test"), "chat name missing colon: " + chat);
 				for (HeadCue taunt : HeadCue.values()) {
-					if (taunt.taunt()) {
+					if (taunt.taunt() || taunt.chatter() || taunt.digHum()) {
 						HeadVoiceSound sound = constructor.newInstance(probe, taunt, false);
 						check(sound.getOrResolve(mc.getSoundManager()) != null
 							&& sound.getSound() != net.minecraft.client.sounds.SoundManager.EMPTY_SOUND,

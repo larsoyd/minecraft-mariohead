@@ -11,5 +11,8 @@
 	"commands.mariohead.summon.no_room": "No open space in view of %s for the Floating Mario Head",
 	"commands.mariohead.summon.not_survival": "%s must be in survival or adventure for the Floating Mario Head",
 	"chat.mariohead.speech": "%1$s: %2$s",
-	"subtitles.mariohead.the_head.taunt": "Floating Mario Head taunts"
+	"subtitles.mariohead.the_head.taunt": "Floating Mario Head taunts",
+	"subtitles.mariohead.the_head.dash_067": "Hmm, Mario's Smash and Dash!",
+	"subtitles.mariohead.the_head.dash_073": "Ooh, Mario's tunnel of doom. Very scary.",
+	"subtitles.mariohead.the_head.dash_086": "Hey, I wonder if there's a hidden treasure down there."
 }

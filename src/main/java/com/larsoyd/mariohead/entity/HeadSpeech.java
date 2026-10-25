@@ -12,7 +12,7 @@ public final class HeadSpeech {
 		HeadVoice.Clip clip = cue.clip();
 		if (clip != null) {
 			// allow a late observer to finish the whole recording before the next one
-			this.end = tick + (clip.millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS;
+			this.end = tick + (clip.millis() + 49) / 50 + (cue.digHum() ? 0 : HeadClock.LATE_VOICE_TICKS);
 			this.ready = this.end + (breathes(cue) ? 10 : 0);
 		}
 	}

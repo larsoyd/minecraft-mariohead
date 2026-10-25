@@ -8,6 +8,32 @@ import org.junit.jupiter.api.Test;
 
 class ChaseTempoTest {
 	@Test
+	void everyHumAddsThreeTenthsOfAPercentUntilATaunt() {
+		ChaseTempo tempo = new ChaseTempo();
+		for (int hum = 1; hum <= 200; hum++) {
+			tempo.dash();
+			tempo.hum();
+			assertEquals(1.0 + hum * 0.003, tempo.humMultiplier(), 1e-12);
+		}
+		tempo.taunt();
+		assertEquals(1.0, tempo.humMultiplier());
+		tempo.dash();
+		tempo.hum();
+		assertEquals(1.003, tempo.humMultiplier());
+	}
+
+	@Test
+	void tauntResetsHumGrowthWithoutErasingTransportGrowth() {
+		ChaseTempo tempo = new ChaseTempo();
+		tempo.observe(true, false, false, 0);
+		tempo.dash();
+		tempo.hum();
+		tempo.taunt();
+		assertEquals(1.03, tempo.multiplier());
+		assertEquals(1.0, tempo.humMultiplier());
+	}
+
+	@Test
 	void boatsCompoundBothDashSpeedAndLength() {
 		ChaseTempo tempo = new ChaseTempo();
 		tempo.observe(true, false, false, 0.0);

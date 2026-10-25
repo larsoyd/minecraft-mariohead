@@ -2,6 +2,7 @@ package com.larsoyd.mariohead.entity;
 
 public final class ChaseTempo {
 	private double multiplier = 1.0;
+	private int hums;
 	private boolean flown;
 	private boolean accelerating;
 	private int footTicks;
@@ -21,6 +22,18 @@ public final class ChaseTempo {
 			this.footTicks = 0;
 			this.footDistance = 0.0;
 		}
+	}
+
+	public double humMultiplier() {
+		return 1.0 + this.hums * 0.003;
+	}
+
+	public void taunt() {
+		this.hums = 0;
+	}
+
+	public void hum() {
+		this.hums++;
 	}
 
 	public void dash() {

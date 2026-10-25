@@ -1,0 +1,20 @@
+[
+  {
+    "id": "067_04m01s_hmm_mario_s_smash_and_dash",
+    "sha256": "c0242720cd78bce56fad9df8009db7348319b95cb159a47ccef8b0a6933592c5",
+    "millis": 3348,
+    "text": "Hmm, Mario's Smash and Dash!"
+  },
+  {
+    "id": "073_04m25s_ooh_mario_s_tunnel_of_a_doom_very_scary",
+    "sha256": "f4a95635b46d5dd03dd0d55ec7dbd02ec6c2929409fde3bb3b0432639035dd1e",
+    "millis": 4476,
+    "text": "Ooh, Mario's tunnel of doom. Very scary."
+  },
+  {
+    "id": "086_05m22s_hey_i_wonder_if_there_s_a_hidden_treasure_down_there",
+    "sha256": "6b05b592cf0acbfd13594455cc76b0ae229cada33685ea618bbaa87bab11bb60",
+    "millis": 3306,
+    "text": "Hey, I wonder if there's a hidden treasure down there."
+  }
+]

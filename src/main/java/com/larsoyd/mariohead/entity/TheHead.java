@@ -88,6 +88,10 @@ public class TheHead extends Monster {
 	private int revs;
 	private final ChaseTempo tempo = new ChaseTempo();
 	private final HeadSpeech speech = new HeadSpeech();
+	private final DashChatter dashChatter = new DashChatter();
+	private HeadCue dashLine = HeadCue.NONE;
+	private long nextDigDash = -1;
+	private boolean chatterRoll;
 	private HeadCue pendingVoice = HeadCue.NONE;
 	private boolean teasing;
 	private boolean tauntRolled;
@@ -243,7 +247,11 @@ public class TheHead extends Monster {
 			return;
 		}
 		this.speech.started(cue, now);
+		if (cue.clip() != null && !cue.spoken()) {
+			this.tempo.hum();
+		}
 		if (cue.taunt()) {
+			this.tempo.taunt();
 			this.tauntReadyAt = now + (cue.clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS + 600;
 		}
 		if (this.pendingVoice == cue) {
@@ -356,8 +364,11 @@ public class TheHead extends Monster {
 		this.trackPace(target);
 		this.tryTaunt(target, this.random.nextDouble());
 		HeadCue cue = this.cue();
-		HeadCue before = cue;
-		if (this.pendingVoice != HeadCue.NONE) {
+		boolean undergroundRhythm = this.digging || this.burrowing || cue.chatter() || this.dashLine != HeadCue.NONE;
+		boolean digDash = false;
+		if (undergroundRhythm) {
+			digDash = this.tickDigDash(level.getGameTime());
+		} else if (this.pendingVoice != HeadCue.NONE) {
 			this.setCue(this.pendingVoice);
 		} else if (cue == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
 			&& Math.abs(this.getXRot() - this.pitchTo(target)) <= PITCH_RATE
@@ -374,9 +385,15 @@ public class TheHead extends Monster {
 			this.setCue(HeadCue.INHALE);
 		}
 		cue = this.cue();
+		if (!undergroundRhythm) {
+			this.nextDigDash = -1;
+		}
 		double sag = cue == HeadCue.INHALE ? 1.0 : Math.clamp(this.cueTicks * DT / this.dashSeconds(cue), 0.0, 1.0);
+		if (undergroundRhythm && this.nextDigDash >= 0) {
+			sag = Math.clamp(1.0 - (this.nextDigDash - level.getGameTime()) / 10.0, 0.0, 1.0);
+		}
 		double boost = cue.clip() != null && !cue.spoken() ? this.dashBoost : 1.0;
-		this.chargeSpeed = this.teasing ? this.pace : RevSpring.speed(this.revs, sag, this.pace) * this.tempo.multiplier() * boost;
+		this.chargeSpeed = this.teasing ? this.pace : RevSpring.speed(this.revs, sag, this.pace) * this.tempo.multiplier() * this.tempo.humMultiplier() * boost;
 		Vec3 goal = this.lead(target);
 
 		Vec3 centre = this.centre();
@@ -418,7 +435,7 @@ public class TheHead extends Monster {
 		if (this.burrowing) {
 			this.burrow(target, cue);
 		} else if (this.digging) {
-			this.dig(level, target, cue, cue != before && cue.clip() != null && !cue.spoken());
+			this.dig(level, target, cue, digDash);
 		} else {
 			this.fly(target, straight);
 		}
@@ -429,12 +446,54 @@ public class TheHead extends Monster {
 		this.watchForSeal(level);
 	}
 
+	private boolean tickDigDash(long now) {
+		if (this.pendingVoice != HeadCue.NONE) {
+			this.setCue(this.pendingVoice);
+			return false;
+		}
+		HeadCue cue = this.cue();
+		HeadCue hum = HeadCue.digHum(this.revs + 1);
+		if (cue.spoken() && !cue.chatter() && !this.speech.canStart(hum, now)) {
+			this.nextDigDash = -1;
+			return false;
+		}
+		if (this.dashLine != HeadCue.NONE && this.speech.canStart(this.dashLine, now)) {
+			HeadCue line = this.dashLine;
+			this.dashLine = HeadCue.NONE;
+			this.setCue(line);
+			this.dashChatter.finishedAt(now + (line.clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS);
+		}
+		if (now < this.nextDigDash) {
+			return false;
+		}
+		if (this.nextDigDash < 0 && !this.speech.canStart(hum, now)) {
+			return false;
+		}
+		if (this.chatterRoll) {
+			this.chatterRoll = false;
+			int line = this.dashChatter.choose(now, this.random.nextDouble(), this.random.nextInt(3));
+			if (line >= 0) {
+				this.dashLine = HeadCue.chatter(line);
+			}
+		}
+		this.nextDigDash = now + 10;
+		this.teasing = false;
+		this.revs++;
+		this.tempo.dash();
+		this.dashBoost = 1.0;
+		if (this.dashLine == HeadCue.NONE && this.speech.canStart(hum, now)) {
+			this.setCue(hum);
+			this.chatterRoll = true;
+		}
+		return true;
+	}
+
 	private double dashSeconds(HeadCue cue) {
 		return clipSeconds(cue) * (cue.clip() != null && !cue.spoken() ? this.tempo.multiplier() * this.dashBoost : 1.0);
 	}
 
 	private boolean tryTaunt(Player target, double chance) {
-		if (this.teasing || this.tauntRolled || this.pendingVoice != HeadCue.NONE || this.burrowing || this.digging
+		if (this.teasing || this.cue().chatter() || this.dashLine != HeadCue.NONE || this.tauntRolled || this.pendingVoice != HeadCue.NONE || this.burrowing || this.digging
 			|| this.level().getGameTime() < this.tauntReadyAt || target.isPassenger() || target.isInWater() || target.isFallFlying()) {
 			return false;
 		}

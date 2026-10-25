@@ -53,6 +53,7 @@ The command needs operator rights (permission level 2).
 - Against boats, including boats on ice, each dash grows 3% faster and longer. Quick exits and
   switching boats keep the buildup. It resets after at least five seconds on foot and eight blocks
   of movement. Once you have used elytra during the chase, the buildup never resets.
+- Each "Mmmm" adds 0.3% speed, reset when he starts a taunt.
 - During the first five minutes, coming within eight blocks on land gives each dash one 55% chance
   of a taunt, including during ordinary jumps. After each taunt finishes, there is a 30-second
   cooldown. He follows at your pace while speaking, giving you a chance to escape, then
@@ -64,7 +65,9 @@ The command needs operator rights (permission level 2).
   one block stops him. Leaves, grass and flowers do not stop him at all.
 - Hide under rock where he does not fit, in a cave, a mountain or a dugout, and he does not shrink
   for you. After five seconds he announces in chat that he is going to move underground and blasts
-  a tunnel his own size to you, a TNT blast on every "Mmmm". Those hums are louder nearby and fade
+  a tunnel his own size to you, a TNT dash every half-second with shorter "Mmmm" hums. After each hum he has a 20% chance
+  of a tunnel-themed line while the dashes continue. These lines have a five-second cooldown after
+  finishing, cycle through all three before repeating, and never repeat back-to-back. Those hums are louder nearby and fade
   with distance. With mobGriefing off, or through obsidian, he passes through the ground instead.
   Wall yourself in out in the open and he comes up under you the same way.
 - He cannot be hurt. `/kill` removes him. He leaves on Peaceful.

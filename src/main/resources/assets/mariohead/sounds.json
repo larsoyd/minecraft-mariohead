@@ -110,5 +110,29 @@
 	"entity.the_head.taunt_107": {
 		"subtitle": "subtitles.mariohead.the_head.taunt",
 		"sounds": ["mariohead:the_head/taunt_107"]
+	},
+	"entity.the_head.dash_067": {
+		"subtitle": "subtitles.mariohead.the_head.dash_067",
+		"sounds": ["mariohead:the_head/dash_067"]
+	},
+	"entity.the_head.dash_073": {
+		"subtitle": "subtitles.mariohead.the_head.dash_073",
+		"sounds": ["mariohead:the_head/dash_073"]
+	},
+	"entity.the_head.dash_086": {
+		"subtitle": "subtitles.mariohead.the_head.dash_086",
+		"sounds": ["mariohead:the_head/dash_086"]
+	},
+	"entity.the_head.dig_mmm1": {
+		"subtitle": "subtitles.mariohead.the_head.hum",
+		"sounds": ["mariohead:the_head/dig_mmm1"]
+	},
+	"entity.the_head.dig_mmm2": {
+		"subtitle": "subtitles.mariohead.the_head.hum",
+		"sounds": ["mariohead:the_head/dig_mmm2"]
+	},
+	"entity.the_head.dig_mmm3": {
+		"subtitle": "subtitles.mariohead.the_head.hum",
+		"sounds": ["mariohead:the_head/dig_mmm3"]
 	}
 }
