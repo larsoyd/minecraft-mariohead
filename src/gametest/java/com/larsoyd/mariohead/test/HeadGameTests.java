@@ -719,6 +719,12 @@ public class HeadGameTests {
 		helper.succeedWhen(() -> {
 			helper.assertTrue(target.isDeadOrDying(), "sealed player alive, head " + helper.relativeVec(head.position()) + " announced " + announced);
 			helper.assertTrue(stoneLeft(helper, 1, 0, 8, 5, 4, 12) < 120, "no rock blasted, " + stoneLeft(helper, 1, 0, 8, 5, 4, 12) + " stone left");
+			// his box is under three blocks wide, so his tunnel can touch four rows of the block at most
+			int rows = 0;
+			for (int z = 8; z <= 12; z++) {
+				rows += stoneLeft(helper, 1, 0, z, 5, 4, z) < (z == 10 ? 23 : 25) ? 1 : 0;
+			}
+			helper.assertTrue(rows <= 4, "the blast cut into " + rows + " rows, wider than his tunnel");
 			helper.assertTrue(announced.size() == 1, "announced at " + announced);
 			int wait = announced.getFirst() - charged[0];
 			helper.assertTrue(wait >= 100 && wait <= 140, "announced " + wait + " ticks into the charge");

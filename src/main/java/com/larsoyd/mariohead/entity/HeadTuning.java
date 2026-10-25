@@ -87,9 +87,10 @@ public final class HeadTuning {
 	public static final double BURROW_DEPTH = 3.0;
 	public static final double BURROW_RISE = 1.5;
 	public static final int ROOF_REACH = 32;
-	// a blast of TNT strength, with every block weaker than obsidian giving like dirt
+	// looks and sounds like TNT, cuts his own shape this far ahead through anything short of obsidian
 	public static final float DIG_POWER = 4.0f;
-	public static final float DIG_RESISTANCE = 0.5f;
+	public static final double DIG_REACH = 3.0;
+	public static final double DIG_STEP = 0.5;
 	public static final float HARD_BLOCK = 100.0f;
 	public static final double DIG_PROGRESS = 1.0;
 	public static final int DIG_STALLS = 3;

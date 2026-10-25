@@ -8,15 +8,14 @@ import com.larsoyd.mariohead.MarioHead;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.Optional;
+import java.util.HashSet;
+import java.util.Set;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gamerules.GameRules;
-import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -58,13 +57,8 @@ public class TheHead extends Monster {
 	private static final EntityDataAccessor<Long> DATA_CUE = SynchedEntityData.defineId(TheHead.class, EntityDataSerializers.LONG);
 	private static final EntityDataAccessor<Float> DATA_SQUEEZE = SynchedEntityData.defineId(TheHead.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Boolean> DATA_DIGGING = SynchedEntityData.defineId(TheHead.class, EntityDataSerializers.BOOLEAN);
-	// blasts break blocks like TNT with rock giving like dirt, and they hurt nobody
+	// the blast is all flash and bang, the tunnel is cut separately and nobody gets hurt
 	private static final ExplosionDamageCalculator BLAST = new ExplosionDamageCalculator() {
-		@Override
-		public Optional<Float> getBlockExplosionResistance(Explosion explosion, BlockGetter level, BlockPos pos, BlockState state, FluidState fluid) {
-			return super.getBlockExplosionResistance(explosion, level, pos, state, fluid).map(r -> r < HARD_BLOCK ? Math.min(r, DIG_RESISTANCE) : r);
-		}
-
 		@Override
 		public boolean shouldDamageEntity(Explosion explosion, Entity entity) {
 			return false;
@@ -373,6 +367,31 @@ public class TheHead extends Monster {
 		}
 	}
 
+	// cuts exactly the blocks his box sweeps through ahead, so the hole is his own shape and size
+	private void tunnel(ServerLevel level, Vec3 c, Vec3 dir) {
+		if (!level.getGameRules().get(GameRules.MOB_GRIEFING)) {
+			return;
+		}
+		boolean decay = level.getGameRules().get(GameRules.MOB_EXPLOSION_DROP_DECAY);
+		CollisionContext context = CollisionContext.of(this);
+		Set<BlockPos> cut = new HashSet<>();
+		for (double d = 0.0; d <= DIG_REACH + 1e-9; d += DIG_STEP) {
+			Vec3 p = c.add(dir.scale(d));
+			BlockPos.betweenClosedStream(HeadRoom.box(p.x, p.y, p.z, this.squeeze()).deflate(1e-4)).forEach(pos -> cut.add(pos.immutable()));
+		}
+		int broken = 0;
+		for (BlockPos pos : cut) {
+			BlockState state = level.getBlockState(pos);
+			if (state.getCollisionShape(level, pos, context).isEmpty() || state.getDestroySpeed(level, pos) < 0.0f
+				|| state.getBlock().getExplosionResistance() >= HARD_BLOCK) {
+				continue;
+			}
+			level.destroyBlock(pos, !decay || this.random.nextFloat() < 1.0f / DIG_POWER, this);
+			broken++;
+		}
+		MarioHead.LOG.debug("[head] tunnel id={} at={} cut={} broken={}", this.getId(), this.blockPosition(), cut.size(), broken);
+	}
+
 	private void setDigging(boolean digging) {
 		this.digging = digging;
 		this.entityData.set(DATA_DIGGING, digging);
@@ -388,7 +407,8 @@ public class TheHead extends Monster {
 		this.moveSpeed = approach(this.moveSpeed, cue == HeadCue.UNDERGROUND ? 0.0 : this.chargeSpeed);
 		if (dash) {
 			Vec3 at = c.add(dir.scale(WIDTH * this.squeeze() / 2.0));
-			level.explode(this, null, BLAST, at.x, at.y, at.z, DIG_POWER, false, Level.ExplosionInteraction.MOB);
+			level.explode(this, null, BLAST, at.x, at.y, at.z, DIG_POWER, false, Level.ExplosionInteraction.NONE);
+			this.tunnel(level, c, dir);
 			this.stalledBlasts = this.lastBlastAt != null && this.lastBlastAt.distanceTo(c) < DIG_PROGRESS ? this.stalledBlasts + 1 : 0;
 			this.lastBlastAt = c;
 			if (this.stalledBlasts >= DIG_STALLS) {
