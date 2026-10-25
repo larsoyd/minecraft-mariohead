@@ -154,6 +154,11 @@ public class HeadGameTests {
 		villageHouseScenario(helper, "plains_small_house_1", true, true);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void raidsChestInsideTaigaArmorerHouse(GameTestHelper helper) {
+		villageHouseScenario(helper, "taiga/houses/taiga_armorer_house_1", true);
+	}
+
 	private void villageHouseScenario(GameTestHelper helper, String name, boolean withChest) {
 		villageHouseScenario(helper, name, withChest, false);
 	}
@@ -190,11 +195,18 @@ public class HeadGameTests {
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, helper.relativeVec(new Vec3(origin.getX() - 3.5, raised ? helper.absoluteVec(new Vec3(0, 0.5, 0)).y : playerPos.getY(), playerPos.getZ() + 0.5)));
 		head.chase(target);
 		Vec3 ownerEyes = target.getEyePosition();
+		var openings = com.larsoyd.mariohead.entity.HeadShelter.inspect(level, playerPos, head.blockPosition()).openings();
 		boolean[] home = { false };
 		boolean[] food = { false };
 		boolean[] entered = { false };
 		boolean[] returned = { false };
 		helper.onEachTick(() -> {
+			if (name.contains("armorer") && !home[0] && head.cue() == HeadCue.HOME_NICE) {
+				helper.assertTrue(openings.stream().anyMatch(opening -> level.clip(new net.minecraft.world.level.ClipContext(
+					ownerEyes, head.centre(), net.minecraft.world.level.ClipContext.Block.COLLIDER,
+					net.minecraft.world.level.ClipContext.Fluid.NONE, head)).getBlockPos().equals(opening.wall())),
+					"armorer greeting not visible through window at " + helper.relativeVec(head.centre()));
+			}
 			home[0] |= head.cue() == HeadCue.HOME_NICE;
 			food[0] |= head.cue() == HeadCue.HOME_HUNGRY || head.cue() == HeadCue.HOME_THIRSTY;
 			returned[0] |= head.cue() == HeadCue.HOME_RETURN;
@@ -269,6 +281,36 @@ public class HeadGameTests {
 		homeRaidScenario(helper, 10);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void houseApproachesWindowBeforeBreakingWall(GameTestHelper helper) {
+		homeRaidScenario(helper, 11);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void houseReturnWaitsForWholeThreatWithStationaryOwner(GameTestHelper helper) {
+		homeRaidScenario(helper, 12);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void houseReturnKeepsUpWithMovingOwnerDuringThreat(GameTestHelper helper) {
+		homeRaidScenario(helper, 13);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void houseRaidsChestOnAnotherFloor(GameTestHelper helper) {
+		homeRaidScenario(helper, 14);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void houseReturnWaitsForBusyHumBeforeThreat(GameTestHelper helper) {
+		homeRaidScenario(helper, 15);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void houseGreetsAtWindowWhenOwnerBehindJamb(GameTestHelper helper) {
+		homeRaidScenario(helper, 16);
+	}
+
 	private void homeRaidScenario(GameTestHelper helper, int scenario) {
 		fill(helper, 8, 0, 4, 18, 5, 14, Blocks.STONE.defaultBlockState());
 		fill(helper, 9, 1, 5, 17, scenario == 9 ? 2 : 4, 13, Blocks.AIR.defaultBlockState());
@@ -279,8 +321,15 @@ public class HeadGameTests {
 		} else {
 			helper.setBlock(new BlockPos(14, 1, 12), Blocks.BED.red().defaultBlockState());
 		}
+		if (scenario == 14) {
+			fill(helper, 8, 5, 4, 18, 9, 14, Blocks.STONE.defaultBlockState());
+			fill(helper, 9, 6, 5, 17, 8, 13, Blocks.AIR.defaultBlockState());
+			fill(helper, 14, 5, 10, 15, 5, 11, Blocks.AIR.defaultBlockState());
+		}
+		if (scenario == 16) helper.setBlock(new BlockPos(14, 1, 7), Blocks.BED.red().defaultBlockState());
+		if (scenario == 11 || scenario == 16) helper.setBlock(new BlockPos(13, 2, 4), Blocks.GLASS_PANE.defaultBlockState());
 		List<BlockPos> chests = scenario == 2 ? List.of(new BlockPos(9, 1, 9), new BlockPos(9, 1, 10))
-			: List.of(new BlockPos(9, scenario == 8 ? 3 : 1, 9));
+			: List.of(new BlockPos(9, scenario == 14 ? 6 : scenario == 8 ? 3 : 1, 9));
 		Runnable place = () -> {
 			for (int index = 0; index < chests.size(); index++) {
 				var state = (scenario == 1 ? Blocks.TRAPPED_CHEST : Blocks.CHEST).defaultBlockState();
@@ -296,7 +345,7 @@ public class HeadGameTests {
 			}
 		};
 		if (scenario != 3) place.run();
-		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, 1, 9.5), 90);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, scenario == 16 ? new Vec3(12.3, 1, 5.462) : new Vec3(16.5, 1, 9.5), 90);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(6.0, 1, 9.5));
 		head.chase(target);
 		if (scenario == 5) {
@@ -313,10 +362,25 @@ public class HeadGameTests {
 		Vec3[] ignitionPos = { Vec3.ZERO };
 		boolean[] food = { false };
 		boolean[] changed = { false };
+		boolean[] window = { false };
+		long[] returnAt = { -1 };
+		Vec3[] returnPos = { Vec3.ZERO };
+		int[] waitingRevs = { -1 };
 		helper.onEachTick(() -> {
 			HeadCue cue = head.cue();
 			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
-			if (cues.contains(HeadCue.HOME_ASK) && cue.digHum()) target.setPos(helper.absoluteVec(new Vec3(25.5, 1, 9.5)));
+			if (waitingRevs[0] < 0 && returnAt[0] < 0 && cues.contains(HeadCue.HOME_ASK) && cue.digHum()) target.setPos(helper.absoluteVec(new Vec3(25.5, 1, 9.5)));
+			if (scenario == 16 && cue == HeadCue.HOME_NICE) {
+				Vec3 c = helper.relativeVec(head.centre());
+				helper.assertTrue(c.z < 4 && c.distanceTo(new Vec3(13.5, 2.5, 4.5)) < 5, "occluded owner skipped exterior window: " + c);
+			}
+			if (scenario == 11) {
+				Vec3 c = helper.relativeVec(head.centre());
+				window[0] |= c.z < 4 && helper.getLevel().clip(new net.minecraft.world.level.ClipContext(
+					helper.absoluteVec(new Vec3(16.5, 2.62, 9.5)), head.centre(), net.minecraft.world.level.ClipContext.Block.COLLIDER,
+					net.minecraft.world.level.ClipContext.Fluid.NONE, head)).getBlockPos().equals(helper.absolutePos(new BlockPos(13, 2, 4)));
+				if (cue.digHum()) helper.assertTrue(window[0], "house burst before approaching its window: " + c);
+			}
 			if (scenario == 3 && cue.digHum() && !food[0]) fill(helper, 8, 1, 7, 8, 3, 9, Blocks.AIR.defaultBlockState());
 			if (scenario == 10 && cue.digHum() && !food[0]) {
 				if (ignitionAt[0] < 0) {
@@ -352,8 +416,43 @@ public class HeadGameTests {
 				for (BlockPos pos : chests) helper.assertTrue(helper.getLevel().getBlockEntity(helper.absolutePos(pos)) instanceof net.minecraft.world.Container,
 					"ignition destroyed chest before food line, scenario=" + scenario + " cues=" + cues);
 			}
-			if (changed[0]) helper.assertTrue(cue != HeadCue.UNDERGROUND && !target.isDeadOrDying(),
+			if (changed[0] && returnAt[0] < 0) helper.assertTrue(cue != HeadCue.UNDERGROUND && !target.isDeadOrDying(),
 				"home raid fell back to player/underground, scenario=" + scenario + " cues=" + cues);
+			if (scenario == 15 && food[0] && returnAt[0] < 0) {
+				if (waitingRevs[0] < 0 && chests.stream().allMatch(pos -> helper.getBlockState(pos).isAir())) {
+					waitingRevs[0] = head.revs();
+					target.setPos(head.position().add(4, 0, 0));
+					try {
+						var next = TheHead.class.getDeclaredField("nextDigDash");
+						next.setAccessible(true);
+						next.setLong(head, helper.getLevel().getGameTime());
+					} catch (ReflectiveOperationException e) {
+						throw new AssertionError(e);
+					}
+				}
+				if (waitingRevs[0] >= 0) helper.assertTrue(head.revs() == waitingRevs[0], "new dash before pending return threat");
+			}
+			if ((scenario == 12 || scenario == 13 || scenario == 15) && (cue == HeadCue.HOME_RETURN || returnAt[0] >= 0)) {
+				if (returnAt[0] < 0) {
+					returnAt[0] = helper.getTick();
+					returnPos[0] = head.position();
+					target.setPos(head.position().add(4, 0, 0));
+				}
+				long elapsed = helper.getTick() - returnAt[0];
+				if (scenario == 13 && elapsed > 0) target.setPos(target.position().add(0.2, 0, 0));
+				if (elapsed < (HeadCue.HOME_RETURN.clip().millis() + 49) / 50 + 15) {
+					helper.assertFalse(target.isDeadOrDying(), "house return charged during threat at tick " + elapsed);
+					if (elapsed > 20) helper.assertTrue(head.chargeSpeed() <= (scenario == 13 ? 0.23 : 0.02), "return threat did not match owner pace: " + head.chargeSpeed());
+					return;
+				}
+				if (scenario == 13) helper.assertTrue(head.position().distanceTo(returnPos[0]) > 1, "return threat did not follow moving owner");
+				if (head.cue().digHum()) {
+					helper.assertTrue(food[0], "return threat skipped chest routine");
+					helper.assertTrue(head.digging(), "return threat lost persistent TNT mode");
+					helper.succeed();
+				}
+				return;
+			}
 			if (cue == HeadCue.HOME_RETURN) {
 				helper.assertTrue(cues.contains(HeadCue.HOME_ASK) && food[0], "missing house/food dialogue: " + cues);
 				for (BlockPos pos : chests) helper.assertTrue(helper.getLevel().getBlockState(helper.absolutePos(pos)).isAir(), "raid missed chest " + pos);
@@ -482,7 +581,7 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 160)
-	public void touchingDuringReturnSpeechIsFatal(GameTestHelper helper) {
+	public void returnSpeechProtectsPlayerLikeTaunt(GameTestHelper helper) {
 		fatalHomeContact(helper, "RETURN");
 	}
 
@@ -519,7 +618,7 @@ public class HeadGameTests {
 				var charge = TheHead.class.getDeclaredMethod("charge", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
 				charge.setAccessible(true);
 				charge.invoke(head, helper.getLevel(), target);
-				helper.assertTrue(target.isDeadOrDying(), "contact during " + name + " did not kill player");
+				helper.assertTrue(target.isDeadOrDying() != name.equals("RETURN"), "incorrect contact during " + name);
 				helper.succeed();
 			} catch (ReflectiveOperationException e) {
 				throw new AssertionError(e);
@@ -917,7 +1016,7 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA)
-	public void chestDialogueTurnsBeforeSpeaking(GameTestHelper helper) throws ReflectiveOperationException {
+	public void chestDialogueFacesOwnerBeforeAskingForFood(GameTestHelper helper) throws ReflectiveOperationException {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 1, 14.5), 0);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(8.5, 1, 8.5));
 		head.chase(target);
@@ -936,12 +1035,69 @@ public class HeadGameTests {
 		var tick = TheHead.class.getDeclaredMethod("tickHome", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
 		tick.setAccessible(true);
 		tick.invoke(head, helper.getLevel(), target);
-		helper.assertTrue(head.cue() != HeadCue.HOME_HUNGRY && head.cue() != HeadCue.HOME_THIRSTY, "food speech began facing away from chest");
+		helper.assertTrue(head.cue() != HeadCue.HOME_HUNGRY && head.cue() != HeadCue.HOME_THIRSTY, "food speech began facing away from owner");
 		float change = Math.abs(net.minecraft.util.Mth.wrapDegrees(head.getYRot() - 90));
 		helper.assertTrue(change > 0 && change <= HeadTuning.TURN_DEGREES + 0.001, "chest turn snapped or did not start: " + change);
 		for (int i = 0; i < 60; i++) tick.invoke(head, helper.getLevel(), target);
-		helper.assertTrue(head.cue() == HeadCue.HOME_HUNGRY || head.cue() == HeadCue.HOME_THIRSTY, "aligned chest never got food speech");
+		helper.assertTrue(head.cue() == HeadCue.HOME_HUNGRY || head.cue() == HeadCue.HOME_THIRSTY, "aligned owner never got food speech");
+		Vec3 toward = target.position().subtract(head.centre());
+		float expected = (float) Math.toDegrees(Math.atan2(-toward.x, toward.z));
+		helper.assertTrue(Math.abs(net.minecraft.util.Mth.wrapDegrees(head.getYRot() - expected)) < 2, "hungry opening looked at chest instead of owner");
 		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 110)
+	public void hungryTracksMovingOwnerThenTurnsToChest(GameTestHelper helper) throws ReflectiveOperationException {
+		foodGazeScenario(helper, HeadCue.HOME_HUNGRY, 33);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 110)
+	public void thirstyTracksMovingOwnerThenTurnsToChest(GameTestHelper helper) throws ReflectiveOperationException {
+		foodGazeScenario(helper, HeadCue.HOME_THIRSTY, 45);
+	}
+
+	private void foodGazeScenario(GameTestHelper helper, HeadCue line, int turnTick) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(8.5, 1, 15.5), 0);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(8.5, 1, 8.5));
+		head.chase(target);
+		head.setNoAi(true);
+		BlockPos chest = helper.absolutePos(new BlockPos(12, 1, 8));
+		helper.getLevel().setBlock(chest, Blocks.CHEST.defaultBlockState(), 3);
+		var stage = TheHead.class.getDeclaredField("homeStage");
+		stage.setAccessible(true);
+		for (Object value : stage.getType().getEnumConstants()) if (value.toString().equals("RAID_START")) stage.set(head, value);
+		var chests = TheHead.class.getDeclaredField("homeChests");
+		chests.setAccessible(true);
+		@SuppressWarnings("unchecked")
+		List<BlockPos> targets = (List<BlockPos>) chests.get(head);
+		targets.add(chest);
+		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+		cue.setAccessible(true);
+		cue.invoke(head, line);
+		var elapsed = TheHead.class.getDeclaredField("cueTicks");
+		elapsed.setAccessible(true);
+		var tick = TheHead.class.getDeclaredMethod("tickHome", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		tick.setAccessible(true);
+		Vec3 before = head.position();
+		helper.onEachTick(() -> {
+			int time = (int) helper.getTick();
+			target.setPos(helper.absoluteVec(new Vec3(8.5 + Math.sin(time * 0.06) * 2, 1, 15.5)));
+			try {
+				elapsed.setInt(head, time);
+				tick.invoke(head, helper.getLevel(), target);
+			} catch (ReflectiveOperationException e) {
+				throw new AssertionError(e);
+			}
+			Vec3 aim = time < turnTick ? target.position() : Vec3.atCenterOf(chest);
+			Vec3 delta = aim.subtract(head.centre());
+			float yaw = (float) Math.toDegrees(Math.atan2(-delta.x, delta.z));
+			if (time > 5 && time < turnTick || time > turnTick + 20) {
+				helper.assertTrue(Math.abs(net.minecraft.util.Mth.wrapDegrees(head.getYRot() - yaw)) < 3,
+					"food gaze target wrong cue=" + line + " tick=" + time + " yaw=" + head.getYRot() + " expected=" + yaw);
+			}
+			helper.assertTrue(before.distanceTo(head.position()) < 0.01, "food speech drifted toward ceiling or floor");
+			if (time == turnTick + 22) helper.succeed();
+		});
 	}
 
 	@GameTest(structure = ARENA)

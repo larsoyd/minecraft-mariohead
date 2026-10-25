@@ -132,7 +132,7 @@ public class TheHead extends Monster {
 	private int stalledBlasts;
 	private @Nullable Vec3 lastBlastAt;
 	private boolean announced;
-	private enum HomeStage { NONE, NICE, ASK, IGNITE, ENTER, LOOT, RAID_START, RAID, RETURN }
+	private enum HomeStage { NONE, APPROACH, NICE, ASK, IGNITE, ENTER, LOOT, RAID_START, RAID, RETURN }
 	private HomeStage homeStage = HomeStage.NONE;
 	private boolean homeUsed;
 	private boolean raidUsed;
@@ -141,6 +141,9 @@ public class TheHead extends Monster {
 	private long entryUntil;
 	private boolean homeEntered;
 	private Vec3 homeEntry = Vec3.ZERO;
+	private List<Vec3> homeApproach = List.of();
+	private int homeApproachIndex;
+	private long homeApproachUntil;
 	private final List<BlockPos> homeChests = new ArrayList<>();
 	private @Nullable Vec3 escape;
 	private @Nullable ChunkPos ticketChunk;
@@ -328,7 +331,7 @@ public class TheHead extends Monster {
 		} else if (this.digging) {
 			this.wedged = false;
 			this.halted = false;
-		} else {
+		} else if (this.homeStage != HomeStage.APPROACH) {
 			this.fitSqueeze(phase == HeadPhase.CHARGE);
 		}
 		if (target == null && (phase == HeadPhase.TALK || phase == HeadPhase.CHARGE)) {
@@ -391,7 +394,7 @@ public class TheHead extends Monster {
 	private void charge(ServerLevel level, Player target) {
 		Vec3 before = this.centre();
 		if (this.tickPrank(level, target) || this.tickHome(level, target)) {
-			if (!this.isRemoved() && this.touching(target, before)) this.caught(level, target);
+			if (!this.isRemoved() && !this.teasing && this.touching(target, before)) this.caught(level, target);
 			return;
 		}
 		this.trackPace(target);
@@ -428,7 +431,7 @@ public class TheHead extends Monster {
 		}
 		double boost = cue.clip() != null && !cue.spoken() ? this.dashBoost : 1.0;
 		this.chargeSpeed = this.teasing ? this.pace : RevSpring.speed(this.revs, sag, this.pace) * this.tempo.multiplier() * this.tempo.humMultiplier() * boost + this.pearlBoost;
-		if (this.homeStage == HomeStage.RETURN) this.chargeSpeed *= 1.25;
+		if (this.homeStage == HomeStage.RETURN && !this.teasing) this.chargeSpeed *= 1.25;
 		this.moveChase(level, target, cue, digDash);
 	}
 
@@ -622,11 +625,18 @@ public class TheHead extends Monster {
 				boolean loot = !this.raidUsed && !room.chests().isEmpty() && level.getGameRules().get(GameRules.MOB_GRIEFING);
 				if (home || loot) {
 					this.homeUsed |= home;
+					this.roofed = true;
 					this.raidUsed |= loot;
 					if (loot) this.homeChests.addAll(room.chests());
 					this.homeStage = home ? HomeStage.NICE : HomeStage.IGNITE;
 					this.homeEntered = false;
-					this.homeEntry = target.position().add(0, target.getBbHeight() / 2.0, 0);
+					this.homeEntry = target.position().add(0, Math.max(target.getBbHeight() / 2.0, this.getBbHeight() / 2.0 + 0.1), 0);
+					if (home) {
+						this.homeApproach = HeadHouseRoute.approach(this, room.openings(), target.getEyePosition(), target.getY());
+						this.homeApproachIndex = 0;
+						this.homeApproachUntil = now + 300;
+						if (!this.homeApproach.isEmpty()) this.homeStage = HomeStage.APPROACH;
+					}
 					this.teasing = false;
 					this.dashLine = HeadCue.NONE;
 					this.chatterRoll = false;
@@ -634,6 +644,20 @@ public class TheHead extends Monster {
 			}
 		}
 		if (this.homeStage == HomeStage.NONE) return false;
+		if (this.homeStage == HomeStage.APPROACH) {
+			this.wedged = false;
+			this.halted = false;
+			Vec3 to = this.homeApproach.get(this.homeApproachIndex);
+			Vec3 way = to.subtract(this.centre());
+			this.faceTowards(yawTo(this.centre(), target.position()), target);
+			this.moveSpeed = 0.22;
+			Vec3 step = way.normalize().scale(Math.min(way.length(), this.moveSpeed));
+			this.body(step.x, step.y, step.z);
+			if (now >= this.homeApproachUntil || this.centre().distanceTo(to) < 0.001 && ++this.homeApproachIndex == this.homeApproach.size()) {
+				this.homeStage = HomeStage.NICE;
+			}
+			return true;
+		}
 		if (this.homeStage == HomeStage.ENTER || this.homeStage == HomeStage.LOOT || this.homeStage == HomeStage.RAID_START || this.homeStage == HomeStage.RAID) {
 			this.homeChests.removeIf(pos -> !(level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.ChestBlock));
 			if (this.homeStage == HomeStage.RAID && now >= this.raidUntil || this.homeChests.isEmpty()
@@ -658,16 +682,9 @@ public class TheHead extends Monster {
 			} else {
 				boolean dash = this.tickDigDash(now);
 				this.chargeSpeed = Math.max(0.8, this.chargeSpeed);
-				double height = this.homeChests.stream().mapToDouble(pos -> pos.getY() + 1 + this.getBbHeight() / 2.0 + 0.1).max().orElse(c.y);
-				Vec3 goal = this.homeEntered ? this.homeChests.stream().map(Vec3::atCenterOf)
-					.min(java.util.Comparator.comparingDouble(c::distanceToSqr)).orElseThrow().add(0, 0.6 + this.getBbHeight() / 2.0, 0) : this.homeEntry;
-				Vec3 to = goal;
-				if (c.subtract(to).horizontalDistance() > 0.5) {
-					to = new Vec3(to.x, Math.max(to.y, height), to.z);
-					if (c.y < height - 0.1 && this.homeChests.stream().anyMatch(pos ->
-						new net.minecraft.world.phys.AABB(pos).inflate(this.getBbWidth() / 2.0 + 0.1, this.getBbHeight() / 2.0 + 0.1, this.getBbWidth() / 2.0 + 0.1)
-							.clip(c, goal).isPresent())) to = new Vec3(c.x, height, c.z);
-				}
+				Vec3 goal = this.homeEntered ? HeadHouseRoute.chestView(this, this.homeChests.stream()
+					.min(java.util.Comparator.comparingDouble(pos -> c.distanceToSqr(Vec3.atCenterOf(pos)))).orElseThrow()) : this.homeEntry;
+				Vec3 to = HeadHouseRoute.clearOfChests(this, goal, this.homeChests);
 				this.digToward(level, to, this.cue(), dash);
 				return true;
 			}
@@ -676,7 +693,7 @@ public class TheHead extends Monster {
 			BlockPos chest = this.homeChests.stream().min(java.util.Comparator.comparingDouble(pos -> Vec3.atCenterOf(pos).distanceToSqr(this.centre()))).orElseThrow();
 			Vec3 to = Vec3.atCenterOf(chest);
 			if (!this.faceChest(to)) {
-				this.hover();
+				this.body(0, 0, 0);
 				return true;
 			}
 			boolean dash = this.tickDigDash(now);
@@ -685,14 +702,25 @@ public class TheHead extends Monster {
 			if (this.getBoundingBox().inflate(0.3).contains(to)) this.destroyRaidChest(level, chest);
 			return true;
 		}
-		if (this.homeStage == HomeStage.RETURN && this.centre().distanceTo(target.getEyePosition()) > DIALOGUE_REACH) return false;
-		boolean chestDialogue = this.homeStage == HomeStage.LOOT || this.homeStage == HomeStage.RAID_START;
+		if (this.homeStage == HomeStage.RETURN && !this.teasing && this.centre().distanceTo(target.getEyePosition()) > DIALOGUE_REACH) return false;
+		boolean chestDialogue = this.homeStage == HomeStage.RAID_START
+			&& (this.cue() == HeadCue.HOME_HUNGRY || this.cue() == HeadCue.HOME_THIRSTY)
+			&& this.cueTicks >= ticks(this.cue() == HeadCue.HOME_HUNGRY ? 1.65 : 2.25);
+		if (this.homeStage == HomeStage.RETURN) this.teasing = true;
+		if (this.homeStage == HomeStage.LOOT) {
+			this.faceTowards(yawTo(this.centre(), target.position()), target);
+			if (Math.abs(Mth.wrapDegrees(this.getYRot() - yawTo(this.centre(), target.position()))) > 1) {
+				this.moveSpeed = 0;
+				this.body(0, 0, 0);
+				return true;
+			}
+		}
 		if (chestDialogue) {
 			Vec3 to = this.homeChests.stream().map(Vec3::atCenterOf)
 				.min(java.util.Comparator.comparingDouble(this.centre()::distanceToSqr)).orElseThrow();
 			if (!this.faceChest(to)) {
 				this.moveSpeed = 0;
-				this.hover();
+				this.body(0, 0, 0);
 				return true;
 			}
 		}
@@ -724,7 +752,7 @@ public class TheHead extends Monster {
 						.min(java.util.Comparator.comparingDouble(this.centre()::distanceToSqr)).orElseThrow();
 					this.digToward(level, to, this.cue(), dash);
 				} else {
-					this.dig(level, target, this.cue(), dash);
+					this.digToward(level, HeadHouseRoute.clearOfChests(this, this.homeEntry, this.homeChests), this.cue(), dash);
 				}
 				if (stage == HomeStage.RAID_START) {
 					this.raidUntil = now + 100;
@@ -746,7 +774,7 @@ public class TheHead extends Monster {
 		if (line == HeadCue.HOME_RETURN) return false;
 		this.moveSpeed = 0;
 		if (!chestDialogue) this.faceTowards(yawTo(this.centre(), target.position()), target);
-		this.hover();
+		this.body(0, 0, 0);
 		return true;
 	}
 
@@ -768,6 +796,10 @@ public class TheHead extends Monster {
 	}
 
 	private boolean tickDigDash(long now) {
+		if (this.homeStage == HomeStage.RETURN && this.teasing) {
+			this.nextDigDash = -1;
+			return false;
+		}
 		boolean underground = (this.digging || this.burrowing) && this.denseTerrain();
 		if (this.homeStage != HomeStage.NONE || !underground) {
 			this.chatterRoll = false;
@@ -947,6 +979,9 @@ public class TheHead extends Monster {
 		Vec3 dir = way.length() > 1e-6 ? way.normalize() : Vec3.ZERO;
 		this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(c, to), TURN_DEGREES);
 		this.moveSpeed = this.chaseSpeed(this.moveSpeed, cue == HeadCue.UNDERGROUND ? 0.0 : this.chargeSpeed);
+		if (this.teasing && this.chased != null) {
+			this.moveSpeed = Math.min(this.moveSpeed, Math.max(0, this.centre().distanceTo(this.chased.getEyePosition()) - 3));
+		}
 		Vec3 step = dir.scale(Math.min(way.length(), this.moveSpeed));
 		if (dash || !HeadRoom.sweep(this, c, c.add(step), this.squeeze())) {
 			int broken = this.tunnel(level, c, dir);
