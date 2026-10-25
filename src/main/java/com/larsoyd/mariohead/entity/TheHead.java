@@ -438,17 +438,24 @@ public class TheHead extends Monster {
 		}
 		double multiplier = this.tempo.nextMultiplier();
 		double duration = clipSeconds(HeadCue.hum(this.revs + 1)) * multiplier;
-		double away = this.chasedVelocity.dot(goal.subtract(centre).normalize());
 		double speed = this.moveSpeed;
 		double reach = 0.0;
-		double best = 0.0;
+		boolean catches = false;
+		int turnTicks = (int) Math.ceil(Math.abs(Mth.wrapDegrees(yawTo(centre, goal) - this.moveYaw)) / TURN_DEGREES);
 		for (int tick = 0, count = Math.min(6000, ticks(duration)); tick < count; tick++) {
 			speed = approach(speed, RevSpring.speed(this.revs + 1, tick * DT / duration, this.pace) * multiplier);
-			reach += speed - away;
-			best = Math.max(best, reach);
+			if (tick >= turnTicks) {
+				reach += speed;
+			}
+			Vec3 intercept = goal.add(this.chasedVelocity.scale(tick + 1));
+			double gap = Math.max(0.0, intercept.subtract(centre).horizontalDistance() - this.squeeze());
+			if (ChaseTempo.canTaunt(this.phaseTicks, true, gap, reach, chance)
+				&& HeadRoom.sweep(this, centre, intercept, this.squeeze())) {
+				catches = true;
+				break;
+			}
 		}
-		double gap = Math.max(0.0, goal.subtract(centre).horizontalDistance() - 1.0 * this.squeeze());
-		if (!ChaseTempo.canTaunt(this.phaseTicks, true, gap, best, chance)) {
+		if (!catches) {
 			return false;
 		}
 		this.teasing = true;

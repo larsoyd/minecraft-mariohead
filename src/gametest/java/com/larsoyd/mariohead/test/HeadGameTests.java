@@ -1078,6 +1078,72 @@ public class HeadGameTests {
 		transportReset(helper, true);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 14000, dimension = "minecraft:the_end")
+	public void catchesSustainedFastIceBoat(GameTestHelper helper) {
+		fastTransportChase(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 14000, dimension = "minecraft:the_end")
+	public void catchesSustainedFastElytraFlight(GameTestHelper helper) {
+		fastTransportChase(helper, true);
+	}
+
+	private static void fastTransportChase(GameTestHelper helper, boolean flying) {
+		double speed = flying ? 1.8 : 1.6;
+		fill(helper, -24, 63, 7, 24, 63, 13, Blocks.BLUE_ICE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 64, 10.5), -90.0f);
+		target.setNoGravity(true);
+		var boat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(3.5, 64, 10.5));
+		boat.setNoGravity(true);
+		if (flying) {
+			boat.discard();
+			target.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA));
+		} else {
+			helper.assertTrue(target.startRiding(boat, true, false), "could not board fast boat");
+		}
+		TheHead head = head(helper, new Vec3(-12.5, 64.5, 10.5), target);
+		double[] travelled = { 0 };
+		double[] highestSpeed = { 0 };
+		int[] laidTo = { 24 };
+		helper.onEachTick(() -> {
+			if (target.isDeadOrDying()) {
+				return;
+			}
+			if (helper.getTick() >= 75) {
+				travelled[0] += speed;
+				Vec3 next = helper.absoluteVec(new Vec3(3.5 + travelled[0], 64, 10.5));
+				if (flying) {
+					target.setPos(next.add(0, 3, 0));
+					target.setOnGround(false);
+					target.startFallFlying();
+				} else {
+					int end = (int) Math.ceil(3.5 + travelled[0]) + 4;
+					if (end > laidTo[0]) {
+						fill(helper, laidTo[0] + 1, 63, 7, end, 63, 13, Blocks.BLUE_ICE.defaultBlockState());
+						laidTo[0] = end;
+					}
+					boat.setPos(next);
+					boat.setDeltaMovement(Vec3.ZERO);
+					boat.positionRider(target);
+				}
+				highestSpeed[0] = Math.max(highestSpeed[0], head.getDeltaMovement().horizontalDistance());
+			}
+			try {
+				Thread.sleep(2);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "fast target alive: flying=" + flying + " travelled=" + travelled[0]
+				+ " gap=" + head.distanceTo(target) + " revs=" + head.revs() + " speed=" + head.chargeSpeed());
+			helper.assertTrue(travelled[0] > 100 && highestSpeed[0] > speed,
+				"did not overtake sustained transport: distance=" + travelled[0] + " peak=" + highestSpeed[0]);
+			com.larsoyd.mariohead.MarioHead.LOG.info("[chase-test] flying={} distance={} peak={} revs={} ticks={}",
+				flying, travelled[0], highestSpeed[0], head.revs(), helper.getTick());
+		});
+	}
+
 	private static void transportReset(GameTestHelper helper, boolean fly) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
 		var boat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(3.5, 0, 10.5));
@@ -1164,6 +1230,120 @@ public class HeadGameTests {
 		});
 		helper.succeedWhen(() -> {
 			helper.assertTrue(taunted[0] && resumed[0] && target.isDeadOrDying(), "taunt did not resume into a catch");
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 120)
+	public void tauntPredictionAccountsForSidewaysEscape(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		helper.runAtTickTime(80, () -> {
+			target.setOnGround(true);
+			head.setPos(helper.absoluteVec(new Vec3(7.0, 0.5, 10.5)));
+			try {
+				var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class);
+				taunt.setAccessible(true);
+				Field velocity = TheHead.class.getDeclaredField("chasedVelocity");
+				Field pace = TheHead.class.getDeclaredField("pace");
+				Field elapsed = TheHead.class.getDeclaredField("phaseTicks");
+				velocity.setAccessible(true);
+				pace.setAccessible(true);
+				elapsed.setAccessible(true);
+				pace.setDouble(head, 0.8);
+				velocity.set(head, new Vec3(0, 0, 0.8));
+				helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "taunted a sideways player the dash cannot catch");
+				velocity.set(head, new Vec3(-0.8, 0, 0));
+				helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "taunted an escaping player the dash cannot catch");
+				java.util.Random random = new java.util.Random(9013);
+				for (int sample = 0; sample < 100; sample++) {
+					Vec3 escape = new Vec3(-random.nextDouble() * 0.2, 0,
+						(0.6 + random.nextDouble() * 0.8) * (random.nextBoolean() ? 1 : -1));
+					velocity.set(head, escape);
+					pace.setDouble(head, escape.length());
+					helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "unreachable escape predicted catch: " + escape);
+				}
+				velocity.set(head, Vec3.ZERO);
+				pace.setDouble(head, 0.0);
+				elapsed.setInt(head, 6000);
+				helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "taunted after five minutes");
+				elapsed.setInt(head, 5999);
+				helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "did not taunt reachable stationary player before cutoff");
+				head.discard();
+				helper.succeed();
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 500)
+	public void movingTauntFollowsPaceAndBoostsOnlyOneWholeDash(GameTestHelper helper) {
+		fill(helper, -12, 63, 7, 120, 63, 13, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 64, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(-4.5, 64.5, 10.5), target);
+		HeadCue[] last = { HeadCue.NONE };
+		long[] tauntAt = { -1 };
+		long[] boostAt = { -1 };
+		boolean[] durationChecked = { false };
+		int[] resumed = { 0 };
+		helper.runAtTickTime(80, () -> {
+			head.setPos(target.getX() - 4, helper.absoluteVec(new Vec3(0, 64.5, 0)).y, target.getZ());
+			try {
+				var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class);
+				taunt.setAccessible(true);
+				Field velocity = TheHead.class.getDeclaredField("chasedVelocity");
+				velocity.setAccessible(true);
+				velocity.set(head, Vec3.ZERO);
+				helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "could not start moving-taunt fixture");
+				Field pending = TheHead.class.getDeclaredField("pendingVoice");
+				pending.setAccessible(true);
+				pending.set(head, HeadCue.TAUNT_088);
+				Field elapsed = TheHead.class.getDeclaredField("phaseTicks");
+				elapsed.setAccessible(true);
+				elapsed.setInt(head, 6000);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+		helper.onEachTick(() -> {
+			long tick = helper.getTick();
+			target.setOnGround(true);
+			if (tick >= 80 && !target.isDeadOrDying()) {
+				target.setPos(target.position().add(0.2, 0, 0));
+			}
+			HeadCue cue = head.cue();
+			if (cue.taunt()) {
+				if (tauntAt[0] < 0) {
+					tauntAt[0] = tick;
+				}
+				helper.assertFalse(target.isDeadOrDying(), "moving player died during taunt");
+				if (tick - tauntAt[0] >= 45) {
+					double step = head.getDeltaMovement().horizontalDistance();
+					helper.assertTrue(Math.abs(step - 0.2) < 0.03, "taunt follow speed=" + step);
+					helper.assertTrue(head.distanceTo(target) >= 2.5 && head.distanceTo(target) < 9,
+						"taunt lost audible separation: " + head.distanceTo(target));
+				}
+			}
+			if (tauntAt[0] >= 0 && cue != last[0]) {
+				if (cue.clip() != null && !cue.spoken()) {
+					resumed[0]++;
+					double expected = RevSpring.peak(head.revs()) * (resumed[0] == 1 ? 1.1 : 1.0);
+					helper.assertTrue(Math.abs(head.chargeSpeed() - expected) < 1e-6, "dash " + resumed[0] + " speed=" + head.chargeSpeed());
+					if (resumed[0] == 1) {
+						boostAt[0] = tick;
+					} else {
+						helper.assertTrue(durationChecked[0], "boosted duration not checked");
+						head.discard();
+						helper.succeed();
+					}
+				} else if (cue == HeadCue.INHALE && resumed[0] == 1) {
+					long duration = tick - boostAt[0];
+					int expected = (int) Math.ceil(last[0].clip().frames() / 30.0 * 20 * 1.1);
+					helper.assertTrue(duration >= expected && duration <= expected + 1, "boost duration=" + duration + " expected=" + expected);
+					durationChecked[0] = true;
+				}
+			}
+			last[0] = cue;
 		});
 	}
 

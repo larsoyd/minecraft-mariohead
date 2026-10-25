@@ -41,6 +41,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			this.heardBeyondRenderDistance(context, world);
 			this.lateObserver(context, world);
 			this.announcementIsHeard(context, world);
+			this.tauntIsSeenAndHeard(context, world);
 			this.tiltedPortraits(context, world);
 		}
 	}
@@ -48,6 +49,41 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 	private static List<TheHead> clientHeads() {
 		var level = Minecraft.getInstance().level;
 		return level.getEntities(HeadEntities.THE_HEAD, new AABB(-400, -100, -400, 400, 100, 400), h -> true);
+	}
+
+	private void tauntIsSeenAndHeard(ClientGameTestContext context, TestSingleplayerContext world) {
+		var server = world.getServer();
+		server.runCommand("tp @p 20.5 -60 0.5 -90 0");
+		context.waitFor(mc -> clientHeads().isEmpty(), 40);
+		server.runOnServer(s -> {
+			TheHead head = HeadEntities.THE_HEAD.create(s.overworld(), EntitySpawnReason.COMMAND);
+			head.setNoAi(true);
+			head.snapTo(26.5, -59, 0.5, 90, 0);
+			head.chase(s.getPlayerList().getPlayers().getFirst());
+			s.overworld().addFreshEntity(head);
+		});
+		context.waitFor(mc -> !clientHeads().isEmpty(), 80);
+		int before = HeadVoiceSound.started();
+		server.runOnServer(s -> {
+			try {
+				var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+				var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+				phase.setAccessible(true);
+				cue.setAccessible(true);
+				phase.invoke(serverHead(s), HeadPhase.CHARGE);
+				cue.invoke(serverHead(s), HeadCue.TAUNT_098);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+		context.waitFor(mc -> clientHeads().getFirst().cue() == HeadCue.TAUNT_098
+			&& com.larsoyd.mariohead.entity.HeadPose.mouthOpen(HeadPhase.CHARGE, HeadCue.TAUNT_098,
+				clientHeads().getFirst().cueSeconds(0), 0), 80);
+		check(HeadVoiceSound.started() == before + 1, "taunt voice did not start exactly once");
+		this.screenshot(context, "the-head-taunt");
+		LOG.info("[client-test] taunt={} voices={}", HeadCue.TAUNT_098, HeadVoiceSound.started() - before);
+		server.runCommand("kill @e[type=mariohead:the_head]");
+		context.waitFor(mc -> clientHeads().isEmpty(), 40);
 	}
 
 	private void screenshot(ClientGameTestContext context, String name) {
