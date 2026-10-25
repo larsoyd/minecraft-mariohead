@@ -645,6 +645,7 @@ public class TheHead extends Monster {
 					this.homeStage = home ? HomeStage.NICE : HomeStage.IGNITE;
 					this.homeEntered = false;
 					this.homeEntry = target.position().add(0, Math.max(target.getBbHeight() / 2.0, this.getBbHeight() / 2.0 + 0.1), 0);
+					this.homeEntry = HeadHouseRoute.entry(this, this.homeEntry, room, target.blockPosition().getY());
 					if (home) {
 						this.homeApproach = HeadHouseRoute.approach(this, room.openings(), target.getEyePosition(), target.getY());
 						this.homeApproachIndex = 0;

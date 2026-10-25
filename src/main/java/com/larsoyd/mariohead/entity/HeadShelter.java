@@ -11,8 +11,8 @@ import net.minecraft.world.level.block.AbstractBedBlock;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.DoorBlock;
 
-public record HeadShelter(boolean sheltered, List<BlockPos> chests, List<Opening> openings) {
-	private static final HeadShelter NONE = new HeadShelter(false, List.of(), List.of());
+public record HeadShelter(boolean sheltered, List<BlockPos> chests, List<Opening> openings, List<BlockPos> interior) {
+	private static final HeadShelter NONE = new HeadShelter(false, List.of(), List.of(), List.of());
 	private static final int RADIUS = 12;
 	private static final int MAX_CELLS = 2048;
 
@@ -64,6 +64,6 @@ public record HeadShelter(boolean sheltered, List<BlockPos> chests, List<Opening
 				}
 			}
 		}
-		return new HeadShelter(bed || door, List.copyOf(chests), List.copyOf(openings));
+		return new HeadShelter(bed || door, List.copyOf(chests), List.copyOf(openings), List.copyOf(visited));
 	}
 }

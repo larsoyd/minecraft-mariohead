@@ -413,6 +413,16 @@ public class HeadGameTests {
 		homeRaidScenario(helper, 17);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void chestAboveEntryDoesNotLeaveHeadHoveringOverRoof(GameTestHelper helper) {
+		homeRaidScenario(helper, 18);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void roofApproachToOverheadChestFinishesEntry(GameTestHelper helper) {
+		homeRaidScenario(helper, 19);
+	}
+
 	private void homeRaidScenario(GameTestHelper helper, int scenario) {
 		fill(helper, 8, 0, 4, 18, 5, 14, Blocks.STONE.defaultBlockState());
 		fill(helper, 9, 1, 5, 17, scenario == 9 ? 2 : 4, 13, Blocks.AIR.defaultBlockState());
@@ -428,9 +438,10 @@ public class HeadGameTests {
 			fill(helper, 9, 6, 5, 17, 8, 13, Blocks.AIR.defaultBlockState());
 			fill(helper, 14, 5, 10, 15, 5, 11, Blocks.AIR.defaultBlockState());
 		}
+		if (scenario == 18 || scenario == 19) helper.setBlock(new BlockPos(8, 2, 9), Blocks.GLASS_PANE.defaultBlockState());
 		if (scenario == 16) helper.setBlock(new BlockPos(14, 1, 7), Blocks.BED.red().defaultBlockState());
 		if (scenario == 11 || scenario == 16) helper.setBlock(new BlockPos(13, 2, 4), Blocks.GLASS_PANE.defaultBlockState());
-		List<BlockPos> chests = scenario == 2 ? List.of(new BlockPos(9, 1, 9), new BlockPos(9, 1, 10))
+		List<BlockPos> chests = scenario == 18 || scenario == 19 ? List.of(new BlockPos(16, 3, 9)) : scenario == 2 ? List.of(new BlockPos(9, 1, 9), new BlockPos(9, 1, 10))
 			: List.of(new BlockPos(9, scenario == 14 ? 6 : scenario == 8 ? 3 : 1, 9));
 		Runnable place = () -> {
 			for (int index = 0; index < chests.size(); index++) {
@@ -447,8 +458,9 @@ public class HeadGameTests {
 			}
 		};
 		if (scenario != 3) place.run();
+		if (scenario == 19) fill(helper, 0, 6, 0, 23, 20, 23, Blocks.AIR.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, scenario == 16 ? new Vec3(12.3, 1, 5.462) : new Vec3(16.5, 1, 9.5), 90);
-		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(6.0, 1, 9.5));
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(6.0, scenario == 19 ? 7 : 1, 9.5));
 		head.chase(target);
 		if (scenario == 5) {
 			try {
@@ -496,10 +508,13 @@ public class HeadGameTests {
 			}
 			if (cue == HeadCue.HOME_NICE && !changed[0]) {
 				changed[0] = true;
+				if (scenario == 18 || scenario == 19) helper.assertTrue(head.squeeze() == 1, "roof-entry fixture shrank before greeting");
+				if (scenario == 19) head.setPos(helper.absoluteVec(new Vec3(6, 7, 9.5)));
 				if (scenario == 3) place.run();
 				if (scenario == 4) fill(helper, 8, 1, 7, 8, 3, 9, Blocks.AIR.defaultBlockState());
 			}
 			if (cue == HeadCue.HOME_HUNGRY || cue == HeadCue.HOME_THIRSTY) {
+				if (scenario == 18 || scenario == 19) helper.assertTrue(helper.relativeVec(head.centre()).y < 4, "food speech began above the room: " + helper.relativeVec(head.centre()));
 				if (!food[0]) helper.assertTrue(helper.relativeVec(head.centre()).x > 10.5
 					&& helper.getLevel().noCollision(head, head.getBoundingBox()), "food line began before full house entry: " + helper.relativeVec(head.centre()));
 				if (!food[0]) helper.assertTrue(chests.stream().map(helper::absolutePos).anyMatch(pos ->
@@ -3126,6 +3141,25 @@ public class HeadGameTests {
 
 	@GameTest(structure = ARENA, maxTicks = 240)
 	public void hurtByFallQueuesTauntAfterWholeHum(GameTestHelper helper) {
+		fallQueueScenario(helper, 0);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 240)
+	public void queuedFallTauntCancelsOutsideHearing(GameTestHelper helper) {
+		fallQueueScenario(helper, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 240)
+	public void queuedFallTauntCancelsWhenOwnerTurnsCreative(GameTestHelper helper) {
+		fallQueueScenario(helper, 2);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 240)
+	public void queuedFallTauntCancelsWhenOwnerDies(GameTestHelper helper) {
+		fallQueueScenario(helper, 3);
+	}
+
+	private void fallQueueScenario(GameTestHelper helper, int scenario) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
 		head.setNoAi(true);
@@ -3161,7 +3195,7 @@ public class HeadGameTests {
 				helper.assertFalse(target.isDeadOrDying(), "fall taunt killed owner");
 				helper.assertTrue(head.chargeSpeed() < 0.02, "fall taunt did not match stationary owner");
 			}
-			if (spoken[0] && head.cue().clip() != null && !head.cue().spoken()) {
+			if (scenario == 0 && spoken[0] && head.cue().clip() != null && !head.cue().spoken()) {
 				try {
 					Field boost = TheHead.class.getDeclaredField("dashBoost");
 					Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
@@ -3175,7 +3209,26 @@ public class HeadGameTests {
 				}
 			}
 		});
-		helper.runAtTickTime(140, () -> helper.assertTrue(spoken[0], "damaging fall did not queue fallen taunt"));
+		if (scenario != 0) {
+			helper.runAtTickTime(82, () -> {
+				try {
+					Field pending = TheHead.class.getDeclaredField("pendingVoice");
+					pending.setAccessible(true);
+					helper.assertTrue(pending.get(head) == HeadCue.FALL_019, "cancellation fixture never queued fall voice");
+				} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+				if (scenario == 1) target.setPos(head.position().add(60, 0, 0));
+				if (scenario == 2) target.setGameMode(GameType.CREATIVE);
+				if (scenario == 3) target.setHealth(0);
+			});
+			helper.runAtTickTime(90, () -> {
+				if (scenario == 1) target.setPos(helper.absoluteVec(new Vec3(3.5, 0, 10.5)));
+				else helper.assertTrue(head.isRemoved(), "invalid owner retained the chasing head");
+			});
+		}
+		helper.runAtTickTime(140, () -> {
+			helper.assertTrue(spoken[0] == (scenario == 0), "wrong queued fall outcome: " + scenario);
+			if (scenario != 0) helper.succeed();
+		});
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 500)

@@ -67,10 +67,24 @@ final class HeadHouseRoute {
 			.min(Comparator.comparingDouble(head.centre()::distanceToSqr)).orElseThrow();
 	}
 
-	static Vec3 clearOfChests(TheHead head, Vec3 goal, List<BlockPos> chests) {
+	static Vec3 entry(TheHead head, Vec3 goal, HeadShelter room, int floor) {
+		List<AABB> boxes = chestBounds(head, room.chests());
+		if (boxes.stream().noneMatch(box -> box.contains(goal))) return goal;
+		return room.interior().stream().filter(pos -> pos.getY() == floor)
+			.map(pos -> new Vec3(pos.getX() + 0.5, goal.y, pos.getZ() + 0.5))
+			.filter(point -> boxes.stream().noneMatch(box -> box.contains(point)))
+			.min(Comparator.<Vec3>comparingDouble(goal::distanceToSqr).thenComparingDouble(head.centre()::distanceToSqr))
+			.orElse(goal);
+	}
+
+	private static List<AABB> chestBounds(TheHead head, List<BlockPos> chests) {
 		double half = head.getBbWidth() / 2 + 0.08;
 		double height = head.getBbHeight() / 2 + 0.08;
-		List<AABB> boxes = chests.stream().map(pos -> new AABB(pos).inflate(half, height, half)).toList();
+		return chests.stream().map(pos -> new AABB(pos).inflate(half, height, half)).toList();
+	}
+
+	static Vec3 clearOfChests(TheHead head, Vec3 goal, List<BlockPos> chests) {
+		List<AABB> boxes = chestBounds(head, chests);
 		Vec3 start = head.centre();
 		for (AABB box : boxes) {
 			if (!box.contains(goal)) continue;
