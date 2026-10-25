@@ -12,9 +12,9 @@ ASSETS = ROOT / 'src/main/resources/assets/mariohead'
 
 
 class DashVoiceTests(unittest.TestCase):
-    def test_three_requested_recordings_and_subtitles(self):
+    def test_requested_recordings_and_subtitles(self):
         entries = json.loads(Path(__file__).with_name('dash-lines.json').read_text())
-        self.assertEqual({int(e['id'][:3]) for e in entries}, {67, 73, 86})
+        self.assertEqual({int(e['id'][:3]) for e in entries}, {67, 73, 75, 86})
         sounds = json.loads((ASSETS / 'sounds.json').read_text())
         language = json.loads((ASSETS / 'lang/en_us.json').read_text())
         for entry in entries:

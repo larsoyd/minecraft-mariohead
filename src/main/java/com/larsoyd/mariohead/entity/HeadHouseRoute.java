@@ -26,14 +26,19 @@ final class HeadHouseRoute {
 			Vec3 sight = wall.subtract(eyes).multiply(1, 0, 1);
 			double depth = sight.dot(outward);
 			if (depth < 0.1) continue;
-			for (Vec3 direction : List.of(sight.scale(1 / depth), outward)) {
-				for (double extra = 0.65; extra <= 3.65; extra += 1) {
-					Vec3 goal = wall.add(direction.scale(head.getBbWidth() / 2 + extra));
-					goal = new Vec3(goal.x, Math.max(floor + head.getBbHeight() / 2 + 0.1, wall.y), goal.z);
-					if (goal.distanceTo(wall) <= 12 && Math.abs(goal.y - floor) < 3.5
-						&& head.level().noCollision(head, HeadRoom.box(goal.x, goal.y, goal.z, head.squeeze()).deflate(1e-6))) {
-						goals.add(goal);
-						break;
+			Vec3 across = new Vec3(outward.z, 0, -outward.x);
+			for (double offset : new double[] { 0, -0.25, 0.25 }) {
+				Vec3 aperture = wall.add(across.scale(offset));
+				Vec3 aligned = aperture.subtract(eyes).multiply(1, 0, 1).scale(1 / depth);
+				for (Vec3 direction : offset == 0 ? List.of(aligned, outward) : List.of(aligned)) {
+					for (double extra = 0.65; extra <= 3.65; extra += 1) {
+						Vec3 goal = aperture.add(direction.scale(head.getBbWidth() / 2 + extra));
+						goal = new Vec3(goal.x, Math.max(floor + head.getBbHeight() / 2 + 0.1, wall.y), goal.z);
+						if (goal.distanceTo(wall) <= 12 && Math.abs(goal.y - floor) < 3.5
+							&& head.level().noCollision(head, HeadRoom.box(goal.x, goal.y, goal.z, head.squeeze()).deflate(1e-6))) {
+							goals.add(goal);
+							break;
+						}
 					}
 				}
 			}

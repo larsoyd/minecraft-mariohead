@@ -27,7 +27,7 @@ class HeadSpeechTest {
 		assertTrue(speech.canStart(HeadCue.DIG_MMM2, 136));
 		assertFalse(speech.canStart(HeadCue.DASH_067, 145));
 		assertTrue(speech.canStart(HeadCue.DASH_067, 146));
-		for (int index = 0; index < 3; index++) {
+		for (int index = 0; index < DashVoice.CLIPS.length; index++) {
 			HeadCue line = HeadCue.chatter(index);
 			speech.started(line, 200);
 			long ready = 200 + (line.clip().millis() + 49) / 50 + 15;

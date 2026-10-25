@@ -5,6 +5,7 @@
 	"mixins": [
 		"BlockStateCollisionMixin",
 		"EnderPearlMixin",
+		"PlayerFallMixin",
 		"ChunkMapAccess",
 		"TrackedEntityAccess"
 	],

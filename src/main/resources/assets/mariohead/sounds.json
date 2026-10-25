@@ -166,5 +166,13 @@
     "sounds": [
       "mariohead:the_head/prank_057"
     ]
-  }
+  },
+	"entity.the_head.dash_075": {
+		"subtitle": "subtitles.mariohead.the_head.dash_075",
+		"sounds": ["mariohead:the_head/dash_075"]
+	},
+	"entity.the_head.fall_019": {
+		"subtitle": "subtitles.mariohead.the_head.fall_019",
+		"sounds": ["mariohead:the_head/fall_019"]
+	}
 }

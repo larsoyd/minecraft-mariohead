@@ -68,6 +68,8 @@ public final class HeadTuning {
 	public static final double LOD_DISTANCE = 24.0;
 	// how far his voice carries, the same edge as the client's loudness curve
 	public static final double VOICE_REACH = 50.0;
+	public static final double HOUSE_REACH = 24.0;
+	public static final double WINDOW_SHORTCUT_REACH = 16.0;
 	// radius 4 keeps two rings of chunks around his own loaded and ticking before he flies into them
 	public static final int TICKET_RADIUS = 4;
 	public static final int TICKET_REFRESH = 20;

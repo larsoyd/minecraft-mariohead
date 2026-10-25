@@ -99,6 +99,7 @@ public class TheHead extends Monster {
 	private boolean teasing;
 	private boolean tauntRolled;
 	private long tauntReadyAt;
+	private long fallTauntUntil = -1;
 	private double dashBoost = 1.0;
 	private final BehindPrank prank = new BehindPrank();
 	private long prankDashUntil;
@@ -271,6 +272,7 @@ public class TheHead extends Monster {
 			this.tempo.hum();
 		}
 		if (cue.taunt()) {
+			this.fallTauntUntil = -1;
 			this.tempo.taunt();
 			this.tauntReadyAt = now + (cue.clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS + 600;
 		}
@@ -393,6 +395,7 @@ public class TheHead extends Monster {
 
 	private void charge(ServerLevel level, Player target) {
 		Vec3 before = this.centre();
+		this.updateFallTaunt(target);
 		if (this.tickPrank(level, target) || this.tickHome(level, target)) {
 			if (!this.isRemoved() && !this.teasing && this.touching(target, before)) this.caught(level, target);
 			return;
@@ -617,9 +620,20 @@ public class TheHead extends Monster {
 
 	private boolean tickHome(ServerLevel level, Player target) {
 		long now = level.getGameTime();
+		double ownerGap = this.centre().distanceTo(target.getEyePosition());
+		if ((this.homeStage == HomeStage.APPROACH || this.homeStage == HomeStage.NICE) && ownerGap > HOUSE_REACH) {
+			this.homeStage = HomeStage.NONE;
+			this.homeUsed = false;
+			if (!this.homeChests.isEmpty()) this.raidUsed = false;
+			this.homeChests.clear();
+			this.homeApproach = List.of();
+			this.homeScanAt = now + 20;
+			this.replanIn = 0;
+			return false;
+		}
 		if (this.homeStage == HomeStage.NONE && (!this.homeUsed || !this.raidUsed) && now >= this.homeScanAt) {
 			this.homeScanAt = now + 20;
-			if (this.distanceToSqr(target) <= 24 * 24 && this.underRoof(target) && this.pendingVoice == HeadCue.NONE) {
+			if (ownerGap <= HOUSE_REACH && this.underRoof(target) && this.pendingVoice == HeadCue.NONE) {
 				HeadShelter room = HeadShelter.inspect(level, target.blockPosition(), BlockPos.containing(this.centre()));
 				boolean home = !this.homeUsed && room.sheltered();
 				boolean loot = !this.raidUsed && !room.chests().isEmpty() && level.getGameRules().get(GameRules.MOB_GRIEFING);
@@ -647,6 +661,18 @@ public class TheHead extends Monster {
 		if (this.homeStage == HomeStage.APPROACH) {
 			this.wedged = false;
 			this.halted = false;
+			Vec3 arrival = this.homeApproach.getLast();
+			var arrivalBox = this.getBoundingBox().move(arrival.subtract(this.centre()));
+			if (ownerGap <= WINDOW_SHORTCUT_REACH && this.centre().distanceTo(arrival) <= WINDOW_SHORTCUT_REACH
+				&& !HeadSight.seen(level, this.getBoundingBox()) && !HeadSight.seen(level, arrivalBox)
+				&& level.hasChunkAt(BlockPos.containing(arrival)) && level.noCollision(this, arrivalBox)) {
+				this.setPos(arrival.x, arrival.y - this.getBbHeight() / 2, arrival.z);
+				this.setDeltaMovement(Vec3.ZERO);
+				this.moveSpeed = 0;
+				this.homeStage = HomeStage.NICE;
+				this.faceTowards(yawTo(this.centre(), target.position()), target);
+				return true;
+			}
 			Vec3 to = this.homeApproach.get(this.homeApproachIndex);
 			Vec3 way = to.subtract(this.centre());
 			this.faceTowards(yawTo(this.centre(), target.position()), target);
@@ -829,7 +855,7 @@ public class TheHead extends Monster {
 		}
 		if (this.chatterRoll) {
 			this.chatterRoll = false;
-			int line = this.dashChatter.choose(now, this.random.nextDouble(), this.random.nextInt(3));
+			int line = this.dashChatter.choose(now, this.random.nextDouble(), this.random.nextInt(DashVoice.CLIPS.length));
 			if (line >= 0) {
 				this.dashLine = HeadCue.chatter(line);
 			}
@@ -868,6 +894,35 @@ public class TheHead extends Monster {
 
 	private double dashSeconds(HeadCue cue) {
 		return clipSeconds(cue) * (cue.clip() != null && !cue.spoken() ? this.tempo.multiplier() * this.dashBoost : 1.0);
+	}
+
+	public void playerFell(ServerPlayer player) {
+		long now = this.level().getGameTime();
+		if (this.chased == player && this.phase() == HeadPhase.CHARGE && player.isAlive()
+			&& now >= this.tauntReadyAt && this.fallTauntUntil < now && !this.teasing
+			&& VoiceCurve.volume(this.centre().distanceTo(player.getEyePosition())) > 0 && this.random.nextDouble() < 0.15) {
+			this.fallTauntUntil = now + 200;
+		}
+	}
+
+	private void updateFallTaunt(Player target) {
+		if (this.fallTauntUntil < 0) return;
+		long now = this.level().getGameTime();
+		if (now >= this.fallTauntUntil || now < this.tauntReadyAt || VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) == 0) {
+			this.fallTauntUntil = -1;
+			if (this.pendingVoice == HeadCue.FALL_019) {
+				this.pendingVoice = HeadCue.NONE;
+				this.teasing = false;
+			}
+			return;
+		}
+		if (this.homeStage == HomeStage.NONE && (this.prank.stage() == BehindPrank.Stage.WAITING || this.prank.stage() == BehindPrank.Stage.DONE)
+			&& !this.teasing && !this.cue().spoken() && this.pendingVoice == HeadCue.NONE) {
+			this.teasing = true;
+			this.pendingVoice = HeadCue.FALL_019;
+			this.dashLine = HeadCue.NONE;
+			this.chatterRoll = false;
+		}
 	}
 
 	private boolean tryTaunt(Player target, double chance) {

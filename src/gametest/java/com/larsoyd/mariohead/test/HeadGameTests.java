@@ -1,6 +1,8 @@
 package com.larsoyd.mariohead.test;
 
 import com.larsoyd.mariohead.HeadEntities;
+import com.larsoyd.mariohead.entity.ChaseTempo;
+import com.larsoyd.mariohead.entity.HeadClock;
 import com.larsoyd.mariohead.entity.HeadCue;
 import com.larsoyd.mariohead.entity.HeadPhase;
 import com.larsoyd.mariohead.entity.HeadSight;
@@ -281,6 +283,101 @@ public class HeadGameTests {
 		homeRaidScenario(helper, 10);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void hiddenHouseApproachSkipsLongExteriorRoute(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 0);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void watchedHouseApproachNeverTeleports(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void visibleHouseDestinationNeverTeleports(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 2);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void blockedHouseDestinationNeverTeleports(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 3);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void thirdPersonHouseApproachNeverTeleports(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 4);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void otherObserverPreventsHouseTeleport(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 5);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void distantHouseApproachCancelsBeforeGreeting(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 6);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void longHouseShortcutDoesNotTeleport(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 7);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void nearbyHouseApproachDoesNotTeleportFromTwentyBlocks(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 8);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void distantHouseGreetingIsCancelledBeforeVoice(GameTestHelper helper) throws ReflectiveOperationException {
+		windowVisibility(helper, 9);
+	}
+
+	private void windowVisibility(GameTestHelper helper, int scenario) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 0, 17.5), 0);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(5.5, 0.5, 5.5));
+		head.chase(target);
+		head.setNoAi(true);
+		Vec3 destination = helper.absoluteVec(new Vec3(scenario == 7 ? 30.5 : 15.5, 2.0, 5.5));
+		if (scenario == 6 || scenario == 9) target.setPos(helper.absoluteVec(new Vec3(10.5, 0, 40.5)));
+		if (scenario == 7) target.setPos(helper.absoluteVec(new Vec3(17.5, 0, 10.5)));
+		if (scenario == 8) target.setPos(helper.absoluteVec(new Vec3(10.5, 0, 25.5)));
+		Field stage = TheHead.class.getDeclaredField("homeStage");
+		Field route = TheHead.class.getDeclaredField("homeApproach");
+		Field until = TheHead.class.getDeclaredField("homeApproachUntil");
+		stage.setAccessible(true);
+		route.setAccessible(true);
+		until.setAccessible(true);
+		stage.set(head, java.util.Arrays.stream(stage.getType().getEnumConstants()).filter(value -> value.toString().equals(scenario == 9 ? "NICE" : "APPROACH")).findFirst().orElseThrow());
+		route.set(head, List.of(head.centre().add(0, 2, 0), destination));
+		until.setLong(head, helper.getLevel().getGameTime() + 300);
+		if (scenario == 1 || scenario == 2) target.setYRot(180);
+		if (scenario == 2) fill(helper, 0, 0, 10, 10, 5, 10, Blocks.STONE.defaultBlockState());
+		if (scenario == 3) helper.setBlock(new BlockPos(15, 2, 5), Blocks.STONE.defaultBlockState());
+		if (scenario == 4) HeadSight.setView(target.getUUID(), HeadSight.View.FRONT);
+		if (scenario == 5) player(helper, GameType.SURVIVAL, new Vec3(10.5, 0, 17.5), 180);
+		Vec3 before = head.centre();
+		var arrival = head.getBoundingBox().move(destination.subtract(before));
+		helper.assertTrue(HeadSight.seen(helper.getLevel(), head.getBoundingBox()) == (scenario == 1 || scenario == 4 || scenario == 5), "unexpected source visibility: " + scenario);
+		helper.assertTrue(HeadSight.seen(helper.getLevel(), arrival) == (scenario == 1 || scenario == 2 || scenario == 4 || scenario == 5), "unexpected destination visibility: " + scenario);
+		var tick = TheHead.class.getDeclaredMethod("tickHome", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		tick.setAccessible(true);
+		tick.invoke(head, helper.getLevel(), target);
+		HeadSight.setView(target.getUUID(), HeadSight.View.FIRST);
+		if (scenario == 0) {
+			helper.assertTrue(head.centre().distanceTo(destination) < 0.01, "unseen approach still walks whole route: " + helper.relativeVec(head.centre()));
+			helper.assertTrue(stage.get(head).toString().equals("NICE"), "hidden arrival did not advance greeting");
+			for (Object packet; (packet = CHANNELS.get(target).readOutbound()) != null;) {
+				helper.assertFalse(packet instanceof net.minecraft.network.protocol.game.ClientboundSoundPacket, "hidden arrival emitted a sound");
+			}
+		} else {
+			helper.assertTrue(head.centre().distanceTo(before) < 0.3, "visible, distant or blocked approach teleported: " + scenario);
+			helper.assertTrue(stage.get(head).toString().equals(scenario == 6 || scenario == 9 ? "NONE" : "APPROACH"), "unsafe arrival advanced greeting");
+			helper.assertTrue(head.cue() == HeadCue.NONE, "distant approach emitted greeting");
+		}
+		helper.succeed();
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 850)
 	public void houseApproachesWindowBeforeBreakingWall(GameTestHelper helper) {
 		homeRaidScenario(helper, 11);
@@ -309,6 +406,11 @@ public class HeadGameTests {
 	@GameTest(structure = ARENA, maxTicks = 850)
 	public void houseGreetsAtWindowWhenOwnerBehindJamb(GameTestHelper helper) {
 		homeRaidScenario(helper, 16);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void houseReturnThenLongFallResumesTnt(GameTestHelper helper) {
+		homeRaidScenario(helper, 17);
 	}
 
 	private void homeRaidScenario(GameTestHelper helper, int scenario) {
@@ -366,6 +468,8 @@ public class HeadGameTests {
 		long[] returnAt = { -1 };
 		Vec3[] returnPos = { Vec3.ZERO };
 		int[] waitingRevs = { -1 };
+		boolean[] fallen = { false };
+		boolean[] fallSpoken = { false };
 		helper.onEachTick(() -> {
 			HeadCue cue = head.cue();
 			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
@@ -432,8 +536,19 @@ public class HeadGameTests {
 				}
 				if (waitingRevs[0] >= 0) helper.assertTrue(head.revs() == waitingRevs[0], "new dash before pending return threat");
 			}
-			if ((scenario == 12 || scenario == 13 || scenario == 15) && (cue == HeadCue.HOME_RETURN || returnAt[0] >= 0)) {
+			if ((scenario == 12 || scenario == 13 || scenario == 15 || scenario == 17) && (cue == HeadCue.HOME_RETURN || returnAt[0] >= 0)) {
 				if (returnAt[0] < 0) {
+					try {
+						Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
+						Field tempo = TheHead.class.getDeclaredField("tempo");
+						ready.setAccessible(true);
+						tempo.setAccessible(true);
+						long expected = helper.getLevel().getGameTime() + (HeadCue.HOME_RETURN.clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS + 600;
+						helper.assertTrue(ready.getLong(head) >= expected - 1, "return threat did not start taunt cooldown");
+						helper.assertTrue(((ChaseTempo) tempo.get(head)).humMultiplier() == 1.0, "return threat did not reset hum buildup");
+					} catch (ReflectiveOperationException e) {
+						throw new AssertionError(e);
+					}
 					returnAt[0] = helper.getTick();
 					returnPos[0] = head.position();
 					target.setPos(head.position().add(4, 0, 0));
@@ -446,9 +561,43 @@ public class HeadGameTests {
 					return;
 				}
 				if (scenario == 13) helper.assertTrue(head.position().distanceTo(returnPos[0]) > 1, "return threat did not follow moving owner");
+				if (scenario == 17) {
+					fallSpoken[0] |= cue == HeadCue.FALL_019;
+					if (cue.digHum() && !fallen[0]) {
+						try {
+							Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
+							ready.setAccessible(true);
+							ready.setLong(head, helper.getLevel().getGameTime());
+							for (int seed = 0; seed < 10000; seed++) {
+								if (net.minecraft.util.RandomSource.create(seed).nextDouble() < 0.15) {
+									head.getRandom().setSeed(seed);
+									break;
+								}
+							}
+							target.setPos(head.position().add(12, 0, 0));
+							target.causeFallDamage(8, 1, target.damageSources().fall());
+							helper.assertTrue(target.getHealth() == 15, "post-house fall did not damage owner");
+							fallen[0] = true;
+						} catch (ReflectiveOperationException e) {
+							throw new AssertionError(e);
+						}
+					}
+					helper.assertFalse(target.isDeadOrDying(), "post-house fall reaction lost owner");
+					if (!fallSpoken[0]) return;
+				}
 				if (head.cue().digHum()) {
 					helper.assertTrue(food[0], "return threat skipped chest routine");
 					helper.assertTrue(head.digging(), "return threat lost persistent TNT mode");
+					try {
+						Field boost = TheHead.class.getDeclaredField("dashBoost");
+						Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
+						boost.setAccessible(true);
+						ready.setAccessible(true);
+						helper.assertTrue(boost.getDouble(head) == 1.1, "return threat did not boost next dash");
+						helper.assertTrue(ready.getLong(head) > helper.getLevel().getGameTime(), "return threat cooldown ended before resumed dash");
+					} catch (ReflectiveOperationException e) {
+						throw new AssertionError(e);
+					}
 					helper.succeed();
 				}
 				return;
@@ -2874,6 +3023,159 @@ public class HeadGameTests {
 	@GameTest(structure = ARENA, maxTicks = 250)
 	public void tiltsDownDuringInhale(GameTestHelper helper) {
 		firstDashPitch(helper, 0.0, true, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void shortDamagingFallDoesNotTaunt(GameTestHelper helper) {
+		fallRejection(helper, 0);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void longHarmlessFallDoesNotTaunt(GameTestHelper helper) {
+		fallRejection(helper, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void absorbedLongFallDoesNotTaunt(GameTestHelper helper) {
+		fallRejection(helper, 2);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void fatalLongFallDoesNotTaunt(GameTestHelper helper) {
+		fallRejection(helper, 3);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void longFallRespectsTauntCooldown(GameTestHelper helper) {
+		fallRejection(helper, 4);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void distantLongFallDoesNotTaunt(GameTestHelper helper) {
+		fallRejection(helper, 5);
+	}
+
+	private void fallRejection(GameTestHelper helper, int scenario) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(16.5, 0.5, 10.5));
+		head.chase(target);
+		head.setNoAi(true);
+		helper.runAtTickTime(80, () -> {
+			try {
+				var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+				phase.setAccessible(true);
+				phase.invoke(head, HeadPhase.CHARGE);
+				Field pending = TheHead.class.getDeclaredField("fallTauntUntil");
+				Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
+				pending.setAccessible(true);
+				ready.setAccessible(true);
+				for (int seed = 0; seed < 10000; seed++) {
+					if (net.minecraft.util.RandomSource.create(seed).nextDouble() < 0.15) {
+						head.getRandom().setSeed(seed);
+						break;
+					}
+				}
+				if (scenario == 2) {
+					target.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_ABSORPTION).setBaseValue(20);
+					target.setAbsorptionAmount(20);
+				}
+				if (scenario == 4) ready.setLong(head, helper.getLevel().getGameTime() + 600);
+				if (scenario == 5) head.setPos(target.position().add(51, 0, 0));
+				target.causeFallDamage(scenario == 0 ? 7.99 : scenario == 3 ? 80 : 8, scenario == 1 ? 0 : 1, target.damageSources().fall());
+				helper.assertTrue(pending.getLong(head) < 0, "ineligible fall queued a taunt: " + scenario);
+				if (scenario == 1 || scenario == 2) helper.assertTrue(target.getHealth() == 20, "harmless fixture lost health");
+				else if (scenario == 3) helper.assertTrue(target.isDeadOrDying(), "fatal fixture survived");
+				else helper.assertTrue(target.getHealth() < 20, "damaging fixture lost no health");
+				helper.succeed();
+			} catch (ReflectiveOperationException e) {
+				throw new AssertionError(e);
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 5)
+	public void longFallRollUsesFifteenPercentOnce(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(16.5, 0.5, 10.5));
+		head.chase(target);
+		head.setNoAi(true);
+		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+		phase.setAccessible(true);
+		phase.invoke(head, HeadPhase.CHARGE);
+		Field pending = TheHead.class.getDeclaredField("fallTauntUntil");
+		pending.setAccessible(true);
+		int accepted = 0;
+		for (int sample = 0; sample < 200; sample++) {
+			long seed = sample * 17431L;
+			double roll = net.minecraft.util.RandomSource.create(seed).nextDouble();
+			head.getRandom().setSeed(seed);
+			pending.setLong(head, -1);
+			head.playerFell(target);
+			boolean queued = pending.getLong(head) >= helper.getLevel().getGameTime();
+			helper.assertTrue(queued == (roll < 0.15), "wrong fall chance at roll " + roll);
+			if (queued) {
+				accepted++;
+				long deadline = pending.getLong(head);
+				head.playerFell(target);
+				helper.assertTrue(pending.getLong(head) == deadline, "repeated fall replaced queued reaction");
+			}
+		}
+		helper.assertTrue(accepted > 0 && accepted < 200, "fall chance fixture did not exercise both outcomes");
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 240)
+	public void hurtByFallQueuesTauntAfterWholeHum(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		head.setNoAi(true);
+		long[] humAt = { -1 };
+		boolean[] spoken = { false };
+		helper.runAtTickTime(80, () -> {
+			try {
+				var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+				var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+				phase.setAccessible(true);
+				cue.setAccessible(true);
+				phase.invoke(head, HeadPhase.CHARGE);
+				cue.invoke(head, HeadCue.MMM1);
+				for (int seed = 0; seed < 10000; seed++) {
+					if (net.minecraft.util.RandomSource.create(seed).nextDouble() < 0.15) {
+						head.getRandom().setSeed(seed);
+						break;
+					}
+				}
+				humAt[0] = helper.getTick();
+				helper.assertTrue(target.causeFallDamage(8.0, 1.0f, target.damageSources().fall()), "fall damage was refused");
+				helper.assertTrue(target.getHealth() == 15, "fall did not remove health");
+				helper.assertTrue(head.cue() == HeadCue.MMM1, "fall interrupted hum");
+				head.setNoAi(false);
+			} catch (ReflectiveOperationException e) {
+				throw new AssertionError(e);
+			}
+		});
+		helper.onEachTick(() -> {
+			if (head.cue().name().equals("FALL_019")) {
+				spoken[0] = true;
+				helper.assertTrue(helper.getTick() - humAt[0] >= 46, "fall line cut off active hum");
+				helper.assertFalse(target.isDeadOrDying(), "fall taunt killed owner");
+				helper.assertTrue(head.chargeSpeed() < 0.02, "fall taunt did not match stationary owner");
+			}
+			if (spoken[0] && head.cue().clip() != null && !head.cue().spoken()) {
+				try {
+					Field boost = TheHead.class.getDeclaredField("dashBoost");
+					Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
+					boost.setAccessible(true);
+					ready.setAccessible(true);
+					helper.assertTrue(boost.getDouble(head) == 1.1, "fall taunt did not boost follow-up dash");
+					helper.assertTrue(ready.getLong(head) > helper.getLevel().getGameTime(), "fall taunt did not start cooldown");
+					helper.succeed();
+				} catch (ReflectiveOperationException e) {
+					throw new AssertionError(e);
+				}
+			}
+		});
+		helper.runAtTickTime(140, () -> helper.assertTrue(spoken[0], "damaging fall did not queue fallen taunt"));
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 500)

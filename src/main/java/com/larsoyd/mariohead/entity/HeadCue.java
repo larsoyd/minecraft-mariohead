@@ -33,6 +33,7 @@ public enum HeadCue {
 	DASH_067,
 	DASH_073,
 	DASH_086,
+	DASH_075,
 	DIG_MMM1,
 	DIG_MMM2,
 	DIG_MMM3,
@@ -42,7 +43,8 @@ public enum HeadCue {
 	HOME_THIRSTY,
 	HOME_RETURN,
 	PRANK_WARNING,
-	PRANK_RESPONSE;
+	PRANK_RESPONSE,
+	FALL_019;
 
 	private static final HeadCue[] BY_ID = values();
 	private static final HeadCue[] HUMS = { MMM1, MMM2, MMM3 };
@@ -55,6 +57,7 @@ public enum HeadCue {
 
 	public HeadVoice.@Nullable Clip clip() {
 		return switch (this) {
+			case FALL_019 -> FallVoice.CLIPS[0];
 			case PRANK_WARNING, PRANK_RESPONSE -> PrankVoice.CLIPS[this.ordinal() - PRANK_WARNING.ordinal()];
 			case HOME_NICE, HOME_ASK, HOME_HUNGRY, HOME_THIRSTY, HOME_RETURN -> HomeVoice.CLIPS[this.ordinal() - HOME_NICE.ordinal()];
 			case HELLO -> HeadVoice.HELLO;
@@ -62,7 +65,7 @@ public enum HeadCue {
 			case MMM2 -> HeadVoice.MMM2;
 			case MMM3 -> HeadVoice.MMM3;
 			case UNDERGROUND -> HeadVoice.UNDERGROUND;
-			case DASH_067, DASH_073, DASH_086 -> DashVoice.CLIPS[this.ordinal() - DASH_067.ordinal()];
+			case DASH_067, DASH_073, DASH_086, DASH_075 -> DashVoice.CLIPS[this.ordinal() - DASH_067.ordinal()];
 			case DIG_MMM1, DIG_MMM2, DIG_MMM3 -> DIG_CLIPS[this.ordinal() - DIG_MMM1.ordinal()];
 			default -> this.taunt() ? TauntVoice.CLIPS[this.ordinal() - TAUNT_006.ordinal()] : null;
 		};
@@ -74,11 +77,11 @@ public enum HeadCue {
 	}
 
 	public boolean taunt() {
-		return this.ordinal() >= TAUNT_006.ordinal() && this.ordinal() <= TAUNT_107.ordinal();
+		return this == HOME_RETURN || this == FALL_019 || this.ordinal() >= TAUNT_006.ordinal() && this.ordinal() <= TAUNT_107.ordinal();
 	}
 
 	public boolean chatter() {
-		return this.ordinal() >= DASH_067.ordinal() && this.ordinal() <= DASH_086.ordinal();
+		return this.ordinal() >= DASH_067.ordinal() && this.ordinal() <= DASH_075.ordinal();
 	}
 
 	public boolean home() {

@@ -42,11 +42,11 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			this.lateObserver(context, world);
 			this.announcementIsHeard(context, world);
 			this.spokenIsSeenAndHeard(context, world, HeadCue.TAUNT_098, "the-head-taunt");
-			for (int index = 0; index < 3; index++) {
+			for (int index = 0; index < com.larsoyd.mariohead.entity.DashVoice.CLIPS.length; index++) {
 				this.spokenIsSeenAndHeard(context, world, HeadCue.chatter(index), "the-head-dash-" + index);
 			}
 			for (HeadCue cue : new HeadCue[] { HeadCue.HOME_NICE, HeadCue.HOME_ASK, HeadCue.HOME_HUNGRY,
-				HeadCue.HOME_THIRSTY, HeadCue.HOME_RETURN, HeadCue.PRANK_WARNING, HeadCue.PRANK_RESPONSE }) {
+				HeadCue.HOME_THIRSTY, HeadCue.HOME_RETURN, HeadCue.PRANK_WARNING, HeadCue.PRANK_RESPONSE, HeadCue.FALL_019 }) {
 				this.spokenIsSeenAndHeard(context, world, cue, "the-head-" + cue.name().toLowerCase(java.util.Locale.ROOT));
 			}
 			this.tiltedPortraits(context, world);

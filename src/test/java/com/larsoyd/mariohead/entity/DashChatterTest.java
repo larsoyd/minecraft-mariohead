@@ -22,7 +22,7 @@ class DashChatterTest {
 			int last = -1;
 			for (int cycle = 0; cycle < 30; cycle++) {
 				var seen = new java.util.HashSet<Integer>();
-				for (int line = 0; line < 3; line++) {
+				for (int line = 0; line < 4; line++) {
 					int next = chatter.choose(cycle * 1000L + line * 300L, 0, random.nextInt(100));
 					assertNotEquals(last, next);
 					assertTrue(seen.add(next));

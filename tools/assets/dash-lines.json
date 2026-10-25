@@ -16,5 +16,11 @@
     "sha256": "6b05b592cf0acbfd13594455cc76b0ae229cada33685ea618bbaa87bab11bb60",
     "millis": 3306,
     "text": "Hey, I wonder if there's a hidden treasure down there."
+  },
+  {
+    "id": "075_04m35s_watch_out_for_falling_rocks",
+    "sha256": "acd5507b735ee2531dfb82f557ffd46b6162e379f7f273db877e99e8227beacc",
+    "millis": 2862,
+    "text": "Watch out for falling rocks!"
   }
 ]
