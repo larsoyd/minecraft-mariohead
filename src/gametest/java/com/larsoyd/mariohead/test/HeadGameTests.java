@@ -3,6 +3,7 @@ package com.larsoyd.mariohead.test;
 import com.larsoyd.mariohead.HeadEntities;
 import com.larsoyd.mariohead.entity.HeadCue;
 import com.larsoyd.mariohead.entity.HeadPhase;
+import com.larsoyd.mariohead.entity.HeadSight;
 import com.larsoyd.mariohead.entity.HeadTuning;
 import com.larsoyd.mariohead.entity.RevSpring;
 import com.larsoyd.mariohead.entity.TheHead;
@@ -923,6 +924,35 @@ public class HeadGameTests {
 		target.setXRot(80.0f);
 		TheHead head = head(helper, new Vec3(14.5, 4.5, 10.5), target);
 		caughtWithin(helper, target, head);
+	}
+
+	// a gully narrower than him in open ground, nobody watching, so he shrinks once he is over the player
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void shrinksIntoANarrowGully(GameTestHelper helper) {
+		fill(helper, 0, 0, 0, 19, 3, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 3, 0, 0, 4, 3, 19, Blocks.AIR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 10.5), 0.0f);
+		target.setXRot(80.0f);
+		TheHead head = head(helper, new Vec3(14.5, 4.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	// right behind a player he is out of sight in first person and in plain view of a third person camera
+	@GameTest(structure = ARENA, maxTicks = 20)
+	public void onlyAThirdPersonCameraSeesBehindThePlayer(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 0.0, 6.5), 180.0f);
+		Vec3 behind = helper.absoluteVec(new Vec3(10.5, 4.0, 8.5));
+		AABB box = new AABB(behind.x - 1.5, behind.y - 1.2, behind.z - 1.5, behind.x + 1.5, behind.y + 1.2, behind.z + 1.5);
+		helper.runAtTickTime(2, () -> {
+			helper.assertFalse(HeadSight.seen(helper.getLevel(), box), "seen behind a first person player");
+			HeadSight.setView(target.getUUID(), HeadSight.View.BACK);
+			helper.assertTrue(HeadSight.seen(helper.getLevel(), box), "unseen by a third person camera right behind the player");
+			HeadSight.setView(target.getUUID(), HeadSight.View.FRONT);
+			helper.assertTrue(HeadSight.seen(helper.getLevel(), box), "unseen by the front camera that looks back past the player");
+			HeadSight.setView(target.getUUID(), HeadSight.View.FIRST);
+			leave(helper, target);
+			helper.succeed();
+		});
 	}
 
 	// a fence ring keeps walkers out, he floats over it

@@ -19,6 +19,7 @@ public final class MarioHead implements ModInitializer {
 		HeadSounds.init();
 		HeadEntities.init();
 		HeadItems.init();
+		HeadCamera.init();
 		CommandRegistrationCallback.EVENT.register(HeadCommand::register);
 	}
 }

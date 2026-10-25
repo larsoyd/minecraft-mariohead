@@ -554,6 +554,11 @@ public class TheHead extends Monster {
 		for (double d : LOOKAHEAD) {
 			points.add(new Vec3(c.x - Math.sin(yaw) * d, Double.NaN, c.z + Math.cos(yaw) * d));
 		}
+		// close to the player the spot he has to get down to counts too, at the player's own height
+		Player target = this.chased;
+		if (target != null && target.position().subtract(c).horizontalDistance() < GRAB_DISTANCE) {
+			points.add(target.position());
+		}
 		return points;
 	}
 

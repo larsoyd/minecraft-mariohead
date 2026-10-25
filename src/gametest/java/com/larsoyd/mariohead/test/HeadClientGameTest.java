@@ -34,6 +34,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			server.runCommand("gamerule advance_weather false");
 			server.runCommand("tp @p 0.5 -60 0.5 -90 0");
 			world.getConnection().waitForChunksRender();
+			this.cameraReachesTheServer(context, world);
 			this.seenAndHeard(context, world);
 			this.turnsWithoutWobble(context, world);
 			this.lateObserver(context, world);
@@ -206,6 +207,20 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		check(digging && HeadVoiceSound.loudStarted() == loudBefore + 1, "digging " + digging + " gave " + (HeadVoiceSound.loudStarted() - loudBefore) + " loud hums");
 		server.runCommand("kill @e[type=mariohead:the_head]");
 		server.runCommand("fill -2 -61 -2 2 -57 2 minecraft:air");
+	}
+
+	// the server learns the camera from the client, so his sight follows a switch to third person
+	private void cameraReachesTheServer(ClientGameTestContext context, TestSingleplayerContext world) {
+		var server = world.getServer();
+		java.util.UUID id = context.computeOnClient(mc -> mc.player.getUUID());
+		for (net.minecraft.client.CameraType camera : new net.minecraft.client.CameraType[] {
+			net.minecraft.client.CameraType.THIRD_PERSON_BACK, net.minecraft.client.CameraType.THIRD_PERSON_FRONT, net.minecraft.client.CameraType.FIRST_PERSON }) {
+			context.runOnClient(mc -> mc.options.setCameraType(camera));
+			context.waitTicks(5);
+			com.larsoyd.mariohead.entity.HeadSight.View view = server.computeOnServer(s -> com.larsoyd.mariohead.entity.HeadSight.view(id));
+			LOG.info("[client-test] camera={} server_view={}", camera, view);
+			check(view.ordinal() == (camera.isFirstPerson() ? 0 : camera.isMirrored() ? 2 : 1), "camera " + camera + " reached the server as " + view);
+		}
 	}
 
 	private static TheHead serverHead(net.minecraft.server.MinecraftServer s) {

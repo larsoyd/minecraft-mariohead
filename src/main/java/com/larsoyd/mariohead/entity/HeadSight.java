@@ -1,5 +1,8 @@
 package com.larsoyd.mariohead.entity;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -8,8 +11,11 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-// could anyone be looking at him, from their eyes or from a third person camera behind them
-final class HeadSight {
+// could anyone be looking at him, from their eyes or from the third person camera they say they use
+public final class HeadSight {
+	public enum View { FIRST, BACK, FRONT }
+
+	private static final Map<UUID, View> VIEWS = new ConcurrentHashMap<>();
 	private static final double RANGE = 128.0;
 	private static final double HALF_WIDE = 80.0;
 	private static final double HALF_TALL = 55.0;
@@ -19,7 +25,19 @@ final class HeadSight {
 	private HeadSight() {
 	}
 
-	static boolean seen(ServerLevel level, AABB box) {
+	public static void setView(UUID player, View view) {
+		if (view == View.FIRST) {
+			VIEWS.remove(player);
+		} else {
+			VIEWS.put(player, view);
+		}
+	}
+
+	public static View view(UUID player) {
+		return VIEWS.getOrDefault(player, View.FIRST);
+	}
+
+	public static boolean seen(ServerLevel level, AABB box) {
 		Vec3 c = box.getCenter();
 		double radius = Math.sqrt(box.getXsize() * box.getXsize() + box.getYsize() * box.getYsize() + box.getZsize() * box.getZsize()) / 2.0;
 		for (ServerPlayer player : level.players()) {
@@ -28,19 +46,22 @@ final class HeadSight {
 			}
 			Vec3 eye = player.getEyePosition();
 			Vec3 look = player.getLookAngle();
-			if ((eye.distanceTo(c) <= radius || inView(eye, look, c, radius) || inView(camera(level, player, eye, look), look, c, radius))
-				&& sightLine(level, player, eye, box)) {
+			View view = view(player.getUUID());
+			boolean framed = eye.distanceTo(c) <= radius || inView(eye, look, c, radius)
+				|| view == View.BACK && inView(camera(level, player, eye, look.scale(-1.0)), look, c, radius)
+				|| view == View.FRONT && inView(camera(level, player, eye, look), look.scale(-1.0), c, radius);
+			if (framed && sightLine(level, player, eye, box)) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	// a third person camera behind the player, pulled in by whatever is in the way like the real one
-	private static Vec3 camera(ServerLevel level, ServerPlayer player, Vec3 eye, Vec3 look) {
-		Vec3 back = eye.subtract(look.scale(CAMERA_BACK));
-		HitResult hit = level.clip(new ClipContext(eye, back, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, player));
-		return hit.getType() == HitResult.Type.MISS ? back : hit.getLocation();
+	// a third person camera out along a direction, pulled in by whatever is in the way like the real one
+	private static Vec3 camera(ServerLevel level, ServerPlayer player, Vec3 eye, Vec3 out) {
+		Vec3 at = eye.add(out.scale(CAMERA_BACK));
+		HitResult hit = level.clip(new ClipContext(eye, at, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, player));
+		return hit.getType() == HitResult.Type.MISS ? at : hit.getLocation();
 	}
 
 	// a screen is wider than it is tall, so the frustum gets its own half angle on each axis
