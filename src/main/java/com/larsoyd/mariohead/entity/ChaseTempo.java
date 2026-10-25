@@ -33,11 +33,7 @@ public final class ChaseTempo {
 		return this.multiplier;
 	}
 
-	public double nextMultiplier() {
-		return this.multiplier * (this.accelerating ? 1.03 : 1.0);
-	}
-
-	public static boolean canTaunt(int chaseTicks, boolean onLand, double gap, double reach, double chance) {
-		return chaseTicks < 6000 && onLand && gap <= reach && chance < 0.55;
+	public static boolean canTaunt(int chaseTicks, boolean onLand, double gap, double chance) {
+		return chaseTicks < 6000 && onLand && gap <= 8.0 && chance < 0.55;
 	}
 }

@@ -86,11 +86,11 @@ class ChaseTempoTest {
 	}
 
 	@Test
-	void tauntHasStrictTimeChanceAndReachBoundaries() {
-		assertTrue(ChaseTempo.canTaunt(5999, true, 4, 4, 0.549999));
-		assertFalse(ChaseTempo.canTaunt(6000, true, 4, 4, 0));
-		assertFalse(ChaseTempo.canTaunt(100, true, 4, 4, 0.55));
-		assertFalse(ChaseTempo.canTaunt(100, false, 4, 4, 0));
-		assertFalse(ChaseTempo.canTaunt(100, true, 4.01, 4, 0));
+	void tauntHasStrictTimeChanceAndProximityBoundaries() {
+		assertTrue(ChaseTempo.canTaunt(5999, true, 8, 0.549999));
+		assertFalse(ChaseTempo.canTaunt(6000, true, 8, 0));
+		assertFalse(ChaseTempo.canTaunt(100, true, 8, 0.55));
+		assertFalse(ChaseTempo.canTaunt(100, false, 8, 0));
+		assertFalse(ChaseTempo.canTaunt(100, true, 8.01, 0));
 	}
 }

@@ -119,6 +119,16 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		}
 	}
 
+	private static void holdTauntCooldown(TheHead head) {
+		try {
+			var ready = TheHead.class.getDeclaredField("tauntReadyAt");
+			ready.setAccessible(true);
+			ready.setLong(head, head.level().getGameTime() + 1200);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
 	private void seenAndHeard(ClientGameTestContext context, TestSingleplayerContext world) {
 		int before = HeadVoiceSound.started();
 		// every hello this client plays, so a sound sent by the server as well would count twice
@@ -131,6 +141,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 		world.getServer().runCommand("give @p mariohead:the_head_spawn_egg");
 		world.getServer().runCommand("mariohead summon @p");
 		context.waitFor(mc -> !clientHeads().isEmpty(), 100);
+		world.getServer().runOnServer(s -> holdTauntCooldown(serverHead(s)));
 		boolean rendered = context.computeOnClient(mc -> mc.getEntityRenderDispatcher().getRenderer(clientHeads().getFirst()) instanceof TheHeadRenderer);
 		check(rendered, "no head renderer");
 		context.waitFor(mc -> clientHeads().getFirst().cue() == HeadCue.HELLO, 120);
@@ -214,6 +225,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			TheHead head = HeadEntities.THE_HEAD.create(level, EntitySpawnReason.COMMAND);
 			head.snapTo(9.5, -59.0, 0.5, 90.0f, 0.0f);
 			head.chase(s.getPlayerList().getPlayers().getFirst());
+			holdTauntCooldown(head);
 			level.addFreshEntity(head);
 		});
 		server.waitFor(s -> serverHead(s) != null && serverHead(s).cue() == HeadCue.HELLO && serverHead(s).cueSeconds(0.0f) >= 0.6, 200);

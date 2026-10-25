@@ -90,6 +90,8 @@ public class TheHead extends Monster {
 	private final HeadSpeech speech = new HeadSpeech();
 	private HeadCue pendingVoice = HeadCue.NONE;
 	private boolean teasing;
+	private boolean tauntRolled;
+	private long tauntReadyAt;
 	private double dashBoost = 1.0;
 	private double chargeSpeed;
 	private double moveSpeed;
@@ -241,6 +243,9 @@ public class TheHead extends Monster {
 			return;
 		}
 		this.speech.started(cue, now);
+		if (cue.taunt()) {
+			this.tauntReadyAt = now + (cue.clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS + 600;
+		}
 		if (this.pendingVoice == cue) {
 			this.pendingVoice = HeadCue.NONE;
 		}
@@ -349,6 +354,7 @@ public class TheHead extends Monster {
 
 	private void charge(ServerLevel level, Player target) {
 		this.trackPace(target);
+		this.tryTaunt(target, this.random.nextDouble());
 		HeadCue cue = this.cue();
 		HeadCue before = cue;
 		if (this.pendingVoice != HeadCue.NONE) {
@@ -356,14 +362,15 @@ public class TheHead extends Monster {
 		} else if (cue == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
 			&& Math.abs(this.getXRot() - this.pitchTo(target)) <= PITCH_RATE
 			&& this.speech.canStart(HeadCue.hum(this.revs + 1), level.getGameTime())) {
-			if (this.teasing || !this.tryTaunt(target, this.random.nextDouble())) {
-				this.revs++;
-				this.tempo.dash();
-				this.dashBoost = this.teasing ? 1.1 : 1.0;
-				this.teasing = false;
-				this.setCue(HeadCue.hum(this.revs));
-			}
+			this.revs++;
+			this.tempo.dash();
+			this.dashBoost = this.teasing ? 1.1 : 1.0;
+			this.teasing = false;
+			this.setCue(HeadCue.hum(this.revs));
 		} else if (cue != HeadCue.INHALE && this.cueTicks >= ticks(this.dashSeconds(cue))) {
+			if (!this.teasing && !cue.spoken()) {
+				this.tauntRolled = false;
+			}
 			this.setCue(HeadCue.INHALE);
 		}
 		cue = this.cue();
@@ -427,35 +434,23 @@ public class TheHead extends Monster {
 	}
 
 	private boolean tryTaunt(Player target, double chance) {
-		if (this.teasing || this.pendingVoice != HeadCue.NONE || this.burrowing || this.digging
-			|| this.phaseTicks >= 6000 || chance >= 0.55 || !target.onGround() || target.isPassenger() || target.isInWater()) {
+		if (this.teasing || this.tauntRolled || this.pendingVoice != HeadCue.NONE || this.burrowing || this.digging
+			|| this.level().getGameTime() < this.tauntReadyAt || target.isPassenger() || target.isInWater() || target.isFallFlying()) {
 			return false;
 		}
 		Vec3 centre = this.centre();
-		Vec3 goal = target.position().add(0.0, HOVER * this.squeeze(), 0.0);
-		if (Math.abs(goal.y - centre.y) > 0.5 || !HeadRoom.sweep(this, centre, goal, this.squeeze())) {
+		double floor = HeadRoom.surface(this, target.position().add(0.0, 0.05, 0.0), -1.55);
+		boolean onLand = target.onGround() || !Double.isNaN(floor);
+		double gap = target.position().subtract(centre).horizontalDistance();
+		if (!ChaseTempo.canTaunt(this.phaseTicks, onLand, gap, 0.0)) {
 			return false;
 		}
-		double multiplier = this.tempo.nextMultiplier();
-		double duration = clipSeconds(HeadCue.hum(this.revs + 1)) * multiplier;
-		double speed = this.moveSpeed;
-		double reach = 0.0;
-		boolean catches = false;
-		int turnTicks = (int) Math.ceil(Math.abs(Mth.wrapDegrees(yawTo(centre, goal) - this.moveYaw)) / TURN_DEGREES);
-		for (int tick = 0, count = Math.min(6000, ticks(duration)); tick < count; tick++) {
-			speed = approach(speed, RevSpring.speed(this.revs + 1, tick * DT / duration, this.pace) * multiplier);
-			if (tick >= turnTicks) {
-				reach += speed;
-			}
-			Vec3 intercept = goal.add(this.chasedVelocity.scale(tick + 1));
-			double gap = Math.max(0.0, intercept.subtract(centre).horizontalDistance() - this.squeeze());
-			if (ChaseTempo.canTaunt(this.phaseTicks, true, gap, reach, chance)
-				&& HeadRoom.sweep(this, centre, intercept, this.squeeze())) {
-				catches = true;
-				break;
-			}
+		Vec3 goal = new Vec3(target.getX(), (Double.isNaN(floor) ? target.getY() : floor) + HOVER * this.squeeze(), target.getZ());
+		if (Math.abs(goal.y - centre.y) > 2.0 || !HeadRoom.sweep(this, centre, goal, this.squeeze())) {
+			return false;
 		}
-		if (!catches) {
+		this.tauntRolled = true;
+		if (!ChaseTempo.canTaunt(this.phaseTicks, onLand, gap, chance)) {
 			return false;
 		}
 		this.teasing = true;

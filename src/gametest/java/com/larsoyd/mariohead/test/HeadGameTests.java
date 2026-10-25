@@ -22,6 +22,7 @@ import net.minecraft.gametest.framework.GameTestRunner;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -883,6 +884,13 @@ public class HeadGameTests {
 	public void pearlHopsDoNotSpeedHimUp(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 2.5), -90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 16.5), target);
+		try {
+			Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
+			ready.setAccessible(true);
+			ready.setLong(head, helper.getLevel().getGameTime() + 400);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
 		helper.onEachTick(() -> {
 			long t = helper.getTick();
 			if (t > 60 && t % 20 == 0 && !target.isDeadOrDying()) {
@@ -1209,7 +1217,6 @@ public class HeadGameTests {
 			try {
 				var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class);
 				taunt.setAccessible(true);
-				helper.assertFalse((boolean) taunt.invoke(head, target, 0.55), "55 percent boundary accepted");
 				helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "reachable player did not trigger taunt");
 			} catch (ReflectiveOperationException e) {
 				throw new IllegalStateException(e);
@@ -1234,44 +1241,136 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 120)
-	public void tauntPredictionAccountsForSidewaysEscape(GameTestHelper helper) {
+	public void nearbyRunnersGetOneTauntRollEvenDuringJumps(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		head.setNoAi(true);
 		helper.runAtTickTime(80, () -> {
-			target.setOnGround(true);
-			head.setPos(helper.absoluteVec(new Vec3(7.0, 0.5, 10.5)));
 			try {
 				var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class);
 				taunt.setAccessible(true);
 				Field velocity = TheHead.class.getDeclaredField("chasedVelocity");
-				Field pace = TheHead.class.getDeclaredField("pace");
-				Field elapsed = TheHead.class.getDeclaredField("phaseTicks");
 				velocity.setAccessible(true);
-				pace.setAccessible(true);
-				elapsed.setAccessible(true);
-				pace.setDouble(head, 0.8);
 				velocity.set(head, new Vec3(0, 0, 0.8));
-				helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "taunted a sideways player the dash cannot catch");
-				velocity.set(head, new Vec3(-0.8, 0, 0));
-				helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "taunted an escaping player the dash cannot catch");
-				java.util.Random random = new java.util.Random(9013);
-				for (int sample = 0; sample < 100; sample++) {
-					Vec3 escape = new Vec3(-random.nextDouble() * 0.2, 0,
-						(0.6 + random.nextDouble() * 0.8) * (random.nextBoolean() ? 1 : -1));
-					velocity.set(head, escape);
-					pace.setDouble(head, escape.length());
-					helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "unreachable escape predicted catch: " + escape);
-				}
-				velocity.set(head, Vec3.ZERO);
-				pace.setDouble(head, 0.0);
-				elapsed.setInt(head, 6000);
-				helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "taunted after five minutes");
-				elapsed.setInt(head, 5999);
-				helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "did not taunt reachable stationary player before cutoff");
+				target.setOnGround(true);
+				helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "distant runner triggered taunt");
+				head.setPos(helper.absoluteVec(new Vec3(11.5, 0.5, 10.5)));
+				target.setPos(target.position().add(0, 1.0, 0));
+				target.setOnGround(false);
+				helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "nearby jumping sideways runner did not get a taunt");
 				head.discard();
 				helper.succeed();
 			} catch (ReflectiveOperationException e) {
 				throw new IllegalStateException(e);
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 120)
+	public void failedTauntRollCannotRepeatUntilNextDash(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(7.0, 0.5, 10.5), target);
+		head.setNoAi(true);
+		helper.runAtTickTime(80, () -> {
+			try {
+				var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class);
+				taunt.setAccessible(true);
+				target.setOnGround(true);
+				helper.assertFalse((boolean) taunt.invoke(head, target, 0.55), "55 percent boundary accepted");
+				helper.assertFalse((boolean) taunt.invoke(head, target, 0.0), "failed roll retried within the same dash");
+				var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+				var charge = TheHead.class.getDeclaredMethod("charge", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+				Field cueTicks = TheHead.class.getDeclaredField("cueTicks");
+				cue.setAccessible(true);
+				charge.setAccessible(true);
+				cueTicks.setAccessible(true);
+				cue.invoke(head, HeadCue.MMM1);
+				cueTicks.setInt(head, 1000);
+				charge.invoke(head, helper.getLevel(), target);
+				helper.assertTrue(head.cue() == HeadCue.INHALE, "dash did not finish");
+				helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "next dash did not get a fresh roll");
+				head.discard();
+				helper.succeed();
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 120)
+	public void tauntCooldownBlocksNearbyRollsUntilReady(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(7.0, 0.5, 10.5), target);
+		head.setNoAi(true);
+		helper.runAtTickTime(80, () -> {
+			try {
+				var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class);
+				Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
+				taunt.setAccessible(true);
+				ready.setAccessible(true);
+				target.setOnGround(true);
+				java.util.Random random = new java.util.Random(7431);
+				for (int sample = 0; sample < 100; sample++) {
+					ready.setLong(head, helper.getLevel().getGameTime() + 1 + random.nextInt(600));
+					helper.assertFalse((boolean) taunt.invoke(head, target, random.nextDouble() * 0.55), "taunt ignored cooldown at sample " + sample);
+				}
+				ready.setLong(head, helper.getLevel().getGameTime());
+				helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "taunt unavailable when cooldown expires");
+				head.discard();
+				helper.succeed();
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 500)
+	public void approachingDashPausesForTauntAndStartsCooldown(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		head.setNoAi(true);
+		long[] started = { -1 };
+		long[] humAt = { -1 };
+		helper.runAtTickTime(80, () -> {
+			try {
+				var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+				var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+				var charge = TheHead.class.getDeclaredMethod("charge", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+				phase.setAccessible(true);
+				cue.setAccessible(true);
+				charge.setAccessible(true);
+				phase.invoke(head, HeadPhase.CHARGE);
+				cue.invoke(head, HeadCue.MMM1);
+				humAt[0] = helper.getLevel().getGameTime();
+				target.setOnGround(true);
+				charge.invoke(head, helper.getLevel(), target);
+				head.setPos(helper.absoluteVec(new Vec3(10.5, 0.5, 10.5)));
+				head.getRandom().setSeed(4096);
+				charge.invoke(head, helper.getLevel(), target);
+				Field teasing = TheHead.class.getDeclaredField("teasing");
+				teasing.setAccessible(true);
+				helper.assertTrue(teasing.getBoolean(head), "approaching active dash did not roll for a nearby runner");
+				helper.assertTrue(head.cue() == HeadCue.MMM1, "taunt interrupted the current hum");
+				head.setNoAi(false);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+		helper.onEachTick(() -> {
+			if (head.cue().taunt() && started[0] < 0) {
+				started[0] = helper.getLevel().getGameTime();
+				helper.assertFalse(target.isDeadOrDying(), "player died waiting for taunt");
+				helper.assertTrue(started[0] >= humAt[0] + (HeadCue.MMM1.clip().millis() + 49) / 50 + 15, "mid-dash taunt skipped voice spacing");
+				try {
+					Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
+					ready.setAccessible(true);
+					long duration = (head.cue().clip().millis() + 49) / 50;
+					helper.assertTrue(ready.getLong(head) >= started[0] + duration + 600, "taunt cooldown does not cover speech plus thirty seconds");
+					head.discard();
+					helper.succeed();
+				} catch (ReflectiveOperationException e) {
+					throw new IllegalStateException(e);
+				}
 			}
 		});
 	}

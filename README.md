@@ -53,8 +53,9 @@ The command needs operator rights (permission level 2).
 - Against boats, including boats on ice, each dash grows 3% faster and longer. Quick exits and
   switching boats keep the buildup. It resets after at least five seconds on foot and eight blocks
   of movement. Once you have used elytra during the chase, the buildup never resets.
-- During the first five minutes, a dash that could catch you on land has a 55% chance of becoming
-  a taunt instead. He follows at your pace while speaking, giving you a chance to escape, then
+- During the first five minutes, coming within eight blocks on land gives each dash one 55% chance
+  of a taunt, including during ordinary jumps. After each taunt finishes, there is a 30-second
+  cooldown. He follows at your pace while speaking, giving you a chance to escape, then
   resumes with one dash that is 10% faster and longer. His lines do not overlap, and taunts and the
   underground announcement get half a second of breathing room before and after.
 - He is about three blocks wide and prefers a way round he fits through. He can shrink to squeeze
