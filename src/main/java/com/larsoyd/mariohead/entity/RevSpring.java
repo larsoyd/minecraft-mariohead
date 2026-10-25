@@ -16,12 +16,13 @@ public final class RevSpring {
 		return Math.min(SPEED_START + SPEED_STEP * revs, SPEED_MAX);
 	}
 
+	// from the fifth rev even his sag stays over a runner's pace, so a straight run only delays him
 	public static double speed(int revs, double sag, double pace) {
 		double peak = peak(revs);
-		if (revs >= PACE_FROM_REV) {
-			double floor = Math.clamp(pace * PACE_EDGE, SPEED_START, SPEED_MAX);
-			peak = Math.max(peak, floor);
+		if (revs < PACE_FROM_REV) {
+			return peak * (1.0 - SAG * sag);
 		}
-		return peak * (1.0 - SAG * sag);
+		peak = Math.max(peak, Math.clamp(pace * PACE_EDGE, SPEED_START, SPEED_MAX));
+		return Math.max(peak * (1.0 - SAG * sag), Math.min(pace * PACE_EDGE, SPEED_MAX));
 	}
 }

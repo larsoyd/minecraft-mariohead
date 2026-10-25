@@ -48,7 +48,19 @@ class RevSpringTest {
 		assertEquals(RevSpring.peak(3), RevSpring.speed(3, 0.0, SPEED_MAX), EPS);
 		double pace = SPEED_STEP * 20;
 		assertEquals(pace * 1.02, RevSpring.speed(4, 0.0, pace), EPS);
-		assertEquals(pace * 1.02 * 0.55, RevSpring.speed(4, 1.0, pace), EPS);
+		assertEquals(pace * 1.02, RevSpring.speed(4, 1.0, pace), EPS);
+	}
+
+	// from the fifth rev his sag stays over a runner's pace
+	@Test
+	void aRunnerIsNeverOutpacedFromTheFifthRev() {
+		double sprintJump = 0.355;
+		for (double sag = 0.0; sag <= 1.0; sag += 0.1) {
+			assertTrue(RevSpring.speed(4, sag, sprintJump) >= sprintJump * 1.02 - EPS, "sag " + sag);
+			assertTrue(RevSpring.speed(3, sag, sprintJump) < sprintJump, "rev 3 at sag " + sag);
+		}
+		assertEquals(SPEED_MAX, RevSpring.speed(4, 1.0, 10.0), EPS);
+		assertEquals(RevSpring.peak(4) * 0.55, RevSpring.speed(4, 1.0, 0.0), EPS);
 	}
 
 	@Test
