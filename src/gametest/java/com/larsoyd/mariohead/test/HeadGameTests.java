@@ -792,6 +792,128 @@ public class HeadGameTests {
 		caughtWithin(helper, target, head);
 	}
 
+	// a pane wall with one opening at the far end, he goes round and never through the panes
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void goesRoundAWallOfPanes(GameTestHelper helper) {
+		fill(helper, 9, 0, 0, 9, 7, 15, Blocks.GLASS_PANE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0.0, 6.5), 90.0f);
+		TheHead head = head(helper, new Vec3(15.5, 0.5, 6.5), target);
+		double[] lastX = { 15.5 };
+		helper.onEachTick(() -> {
+			if (head.isRemoved()) {
+				return;
+			}
+			Vec3 at = helper.relativeVec(head.centre());
+			helper.assertFalse(lastX[0] >= 9.5 && at.x < 9.5 && at.z < 16.0, "crossed the panes at " + at);
+			lastX[0] = at.x;
+		});
+		caughtWithin(helper, target, head);
+	}
+
+	// a pit shut with a trapdoor lid in a stone roof, the player is under a roof he does not fit through
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void digsPastATrapdoorLid(GameTestHelper helper) {
+		fill(helper, 0, 0, 0, 19, 3, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 0, -4, 0, 19, -2, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 10, 0, 10, 10, 2, 10, Blocks.AIR.defaultBlockState());
+		helper.setBlock(new BlockPos(10, 3, 10), Blocks.OAK_TRAPDOOR.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 0.0, 10.5), 90.0f);
+		TheHead head = head(helper, new Vec3(15.5, 4.5, 10.5), target);
+		neverShrinks(helper, head);
+		caughtWithin(helper, target, head);
+	}
+
+	// a piston shoves a block into him while he says hello, he works free and still gets his player
+	@GameTest(structure = ARENA, maxTicks = 600)
+	public void aPistonShovesABlockIntoHim(GameTestHelper helper) {
+		helper.setBlock(new BlockPos(12, 1, 6), Blocks.PISTON.defaultBlockState().setValue(net.minecraft.world.level.block.piston.PistonBaseBlock.FACING, net.minecraft.core.Direction.SOUTH));
+		helper.setBlock(new BlockPos(12, 1, 7), Blocks.STONE);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), 90.0f);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(12.5, 0.5, 9.5));
+		head.chase(target);
+		helper.runAtTickTime(20, () -> helper.setBlock(new BlockPos(12, 1, 5), Blocks.REDSTONE_BLOCK));
+		helper.runAtTickTime(30, () -> helper.assertBlockPresent(Blocks.STONE, new BlockPos(12, 1, 8)));
+		caughtWithin(helper, target, head);
+	}
+
+	// at the foot of a ladder shaft open to the sky, he finds the shaft and comes down it
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void comesDownALadderShaft(GameTestHelper helper) {
+		fill(helper, 0, 8, 0, 19, 8, 19, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, 0, 0, 19, 5, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 8, 1, 10, 8, 5, 10, Blocks.AIR.defaultBlockState());
+		fill(helper, 8, 1, 10, 8, 5, 10, Blocks.LADDER.defaultBlockState().setValue(net.minecraft.world.level.block.LadderBlock.FACING, net.minecraft.core.Direction.SOUTH));
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(8.5, 1.0, 10.5), 0.0f);
+		TheHead head = head(helper, new Vec3(15.5, 6.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	// under an overhang high enough for him the roof does not matter, he comes in at full size
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void comesUnderAnOverhang(GameTestHelper helper) {
+		fill(helper, 0, 4, 0, 6, 4, 19, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		TheHead head = head(helper, new Vec3(15.5, 0.5, 10.5), target);
+		neverShrinks(helper, head);
+		boolean[] dug = { false };
+		helper.onEachTick(() -> dug[0] |= !head.isRemoved() && head.digging());
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive, head " + helper.relativeVec(head.position()));
+			helper.assertFalse(dug[0], "dug under an overhang he fits under");
+			leave(helper, target);
+		});
+	}
+
+	// pearl hops of ten blocks are not running, so they never speed him up
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void pearlHopsDoNotSpeedHimUp(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 2.5), -90.0f);
+		TheHead head = head(helper, new Vec3(16.5, 0.5, 16.5), target);
+		helper.onEachTick(() -> {
+			long t = helper.getTick();
+			if (t > 60 && t % 20 == 0 && !target.isDeadOrDying()) {
+				Vec3 to = helper.absoluteVec(new Vec3((t / 20) % 2 == 0 ? 2.5 : 16.5, 0.0, 2.5));
+				target.teleportTo(helper.getLevel(), to.x, to.y, to.z, java.util.Set.of(), -90.0f, 0.0f, true);
+			}
+			if (!head.isRemoved() && head.phase() == HeadPhase.CHARGE) {
+				helper.assertTrue(head.chargeSpeed() <= RevSpring.peak(head.revs()) + 1e-9,
+					"speed " + head.chargeSpeed() + " over the rev " + head.revs() + " peak after a hop");
+			}
+		});
+		helper.runAtTickTime(390, () -> {
+			if (!target.isDeadOrDying()) {
+				leave(helper, target);
+			}
+			helper.succeed();
+		});
+	}
+
+	// riding a boat changes nothing, the player in it is caught
+	@GameTest(structure = ARENA, maxTicks = 500)
+	public void catchesAPlayerInABoat(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		var boat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(2.5, 0.0, 10.5));
+		helper.assertTrue(target.startRiding(boat, true, false), "the player did not get in the boat");
+		TheHead head = head(helper, new Vec3(14.5, 0.5, 10.5), target);
+		caughtWithin(helper, target, head);
+	}
+
+	// three heads on one player: one catch, and the other two are gone with the chase
+	@GameTest(structure = ARENA, maxTicks = 500)
+	public void threeHeadsMakeOneCatch(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(2.5, 0.0, 10.5), -90.0f);
+		List<TheHead> heads = List.of(head(helper, new Vec3(14.5, 0.5, 4.5), target), head(helper, new Vec3(14.5, 0.5, 10.5), target),
+			head(helper, new Vec3(14.5, 0.5, 16.5), target));
+		int[] deaths = { 0 };
+		helper.onEachTick(() -> deaths[0] = target.getStats().getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.DEATHS)));
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.isDeadOrDying(), "target alive");
+			helper.assertTrue(heads.stream().allMatch(TheHead::isRemoved), "heads left after the catch: " + heads.stream().filter(h -> !h.isRemoved()).count());
+			helper.assertTrue(deaths[0] == 1, "died " + deaths[0] + " times");
+			leave(helper, target);
+		});
+	}
+
 	// a fence ring keeps walkers out, he floats over it
 	@GameTest(structure = ARENA, maxTicks = 700)
 	public void floatsOverAFenceRing(GameTestHelper helper) {

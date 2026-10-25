@@ -362,7 +362,7 @@ public class TheHead extends Monster {
 		} else if (this.burrowing && !this.sealed) {
 			Vec3 c = this.centre();
 			this.burrowing = !HeadRoom.fits(this, c.x, c.y, c.z, this.squeeze());
-		} else if (this.digging && this.fitsWay && !this.sealed) {
+		} else if (this.digging && this.fitsWay && !this.roofed && this.chased != null && this.chased.distanceTo(this) > DIG_RELEASE) {
 			this.setDigging(false);
 		}
 	}
@@ -605,7 +605,7 @@ public class TheHead extends Monster {
 				return new Vec3(node.x + 0.5, node.y, node.z + 0.5);
 			}
 		}
-		double floor = HeadRoom.surface(this, c, -FLOOR_SEARCH);
+		double floor = HeadRoom.surface(this, c, -FLOOR_SEARCH, this.squeeze());
 		return Double.isNaN(floor) ? null : new Vec3(c.x, floor, c.z);
 	}
 
@@ -922,6 +922,12 @@ public class TheHead extends Monster {
 
 	@Override
 	public boolean isPushable() {
+		return false;
+	}
+
+	// boats and minecarts would hold him off their riders
+	@Override
+	public boolean canCollideWith(Entity entity) {
 		return false;
 	}
 

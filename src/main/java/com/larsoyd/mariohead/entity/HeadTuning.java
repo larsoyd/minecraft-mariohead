@@ -94,6 +94,8 @@ public final class HeadTuning {
 	public static final float HARD_BLOCK = 100.0f;
 	public static final double DIG_PROGRESS = 1.0;
 	public static final int DIG_STALLS = 3;
+	// a dig only ends for a player who got out from under the rock and away
+	public static final double DIG_RELEASE = 12.0;
 
 	private HeadTuning() {
 	}
