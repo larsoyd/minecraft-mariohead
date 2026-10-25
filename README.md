@@ -80,10 +80,13 @@ The command needs operator rights (permission level 2).
   Repeated pearls keep the burst active; he still has to navigate or tunnel through obstacles.
 - Hide near a bed in a sealed room, or behind a closed house door, and he says "Hmm, you have a
   nice place here!", pauses half a second, then asks "Can I have it?" His TNT dash starts after
-  another 0.2 seconds. This sequence can happen even after he has started digging.
-- A room with a chest can distract him once per chase. He asks for food or a drink, then
-  attacks the chests for at most five seconds, destroying their contents when mobGriefing is on.
-  Adding more chests cannot extend the diversion. He returns to his original player with
+  another 0.2 seconds. This enables TNT dashes for the rest of the chase, without a later underground
+  announcement. Starting underground first still allows the house dialogue.
+- A room with a chest can distract him once per chase. He breaks into the room and gets near a visible
+  chest before asking for food or a drink, then attacks the chests for at most five seconds,
+  destroying their contents when mobGriefing is on.
+  Touching him is still lethal during the diversion. Adding more chests cannot extend it.
+  He returns to his original player with
   "Hmm, guess what time it is? It's time for you to die!"
 - He cannot be hurt. `/kill` removes him. He leaves on Peaceful.
 - Before he says hello he will go after whoever else is near if his player leaves. After hello

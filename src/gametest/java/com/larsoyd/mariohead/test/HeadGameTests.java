@@ -159,8 +159,8 @@ public class HeadGameTests {
 	}
 
 	private void villageHouseScenario(GameTestHelper helper, String name, boolean withChest, boolean raised) {
-		fill(helper, 0, 0, 0, 19, 20, 19, Blocks.AIR.defaultBlockState());
-		fill(helper, 0, -1, 0, 19, -1, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 0, 0, 0, 23, 20, 23, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, -1, 0, 23, -1, 23, Blocks.STONE.defaultBlockState());
 		var level = helper.getLevel();
 		var template = level.getStructureTemplateManager().get(net.minecraft.resources.Identifier.withDefaultNamespace("village/" + (name.contains("/") ? name : "plains/houses/" + name))).orElseThrow();
 		var settings = new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings()
@@ -189,6 +189,7 @@ public class HeadGameTests {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, helper.relativeVec(Vec3.atBottomCenterOf(playerPos)), 90);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, helper.relativeVec(new Vec3(origin.getX() - 3.5, raised ? helper.absoluteVec(new Vec3(0, 0.5, 0)).y : playerPos.getY(), playerPos.getZ() + 0.5)));
 		head.chase(target);
+		Vec3 ownerEyes = target.getEyePosition();
 		boolean[] home = { false };
 		boolean[] food = { false };
 		boolean[] entered = { false };
@@ -198,9 +199,12 @@ public class HeadGameTests {
 			food[0] |= head.cue() == HeadCue.HOME_HUNGRY || head.cue() == HeadCue.HOME_THIRSTY;
 			returned[0] |= head.cue() == HeadCue.HOME_RETURN;
 			Vec3 c = head.centre();
+
 			entered[0] |= c.x > origin.getX() + 1 && c.x < origin.getX() + template.getSize().getX() - 1
 				&& c.z > origin.getZ() + 1 && c.z < origin.getZ() + template.getSize().getZ() - 1
-				&& c.distanceTo(target.getEyePosition()) < 3 && level.noCollision(head, head.getBoundingBox().deflate(1e-5));
+				&& c.distanceTo(ownerEyes) < 3 && level.noCollision(head, head.getBoundingBox().deflate(1e-5));
+			if (withChest && home[0] && head.cue().digHum()) target.setPos(helper.absoluteVec(new Vec3(25.5, playerPos.getY() - helper.absolutePos(BlockPos.ZERO).getY(), 9.5)));
+			if (withChest && food[0]) helper.assertTrue(entered[0], "food began before entering native house " + name + " at " + helper.relativeVec(c) + " owner " + helper.relativeVec(ownerEyes));
 			if (home[0] && entered[0] && (!withChest || food[0] && returned[0] && level.getBlockState(chestPos).isAir())) {
 				com.larsoyd.mariohead.MarioHead.LOG.info("[home-test] house={} entered={} food={} returned={} tick={}", name, entered[0], food[0], returned[0], helper.getTick());
 				helper.succeed();
@@ -312,6 +316,7 @@ public class HeadGameTests {
 		helper.onEachTick(() -> {
 			HeadCue cue = head.cue();
 			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
+			if (cues.contains(HeadCue.HOME_ASK) && cue.digHum()) target.setPos(helper.absoluteVec(new Vec3(25.5, 1, 9.5)));
 			if (scenario == 3 && cue.digHum() && !food[0]) fill(helper, 8, 1, 7, 8, 3, 9, Blocks.AIR.defaultBlockState());
 			if (scenario == 10 && cue.digHum() && !food[0]) {
 				if (ignitionAt[0] < 0) {
@@ -327,6 +332,12 @@ public class HeadGameTests {
 				if (scenario == 4) fill(helper, 8, 1, 7, 8, 3, 9, Blocks.AIR.defaultBlockState());
 			}
 			if (cue == HeadCue.HOME_HUNGRY || cue == HeadCue.HOME_THIRSTY) {
+				if (!food[0]) helper.assertTrue(helper.relativeVec(head.centre()).x > 10.5
+					&& helper.getLevel().noCollision(head, head.getBoundingBox()), "food line began before full house entry: " + helper.relativeVec(head.centre()));
+				if (!food[0]) helper.assertTrue(chests.stream().map(helper::absolutePos).anyMatch(pos ->
+					head.centre().distanceTo(Vec3.atCenterOf(pos)) < 4.2 && helper.getLevel().clip(new net.minecraft.world.level.ClipContext(
+						head.centre(), Vec3.atCenterOf(pos), net.minecraft.world.level.ClipContext.Block.COLLIDER,
+						net.minecraft.world.level.ClipContext.Fluid.NONE, head)).getBlockPos().equals(pos)), "food line began without a nearby visible chest");
 				if (scenario == 6 && !food[0]) {
 					for (BlockPos pos : chests) {
 						((net.minecraft.world.Container) helper.getLevel().getBlockEntity(helper.absolutePos(pos))).clearContent();
@@ -352,6 +363,166 @@ public class HeadGameTests {
 					item -> item.getItem().is(net.minecraft.world.item.Items.DIAMOND));
 				helper.assertTrue(drops.isEmpty(), "raid dropped inventory");
 				helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void houseTntChasesThroughSecondHouseWithoutUndergroundSpeech(GameTestHelper helper) {
+		fill(helper, 0, 0, 0, 23, 12, 23, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, -1, 0, 23, -1, 23, Blocks.STONE.defaultBlockState());
+		fill(helper, 4, 0, 3, 10, 5, 9, Blocks.STONE.defaultBlockState());
+		fill(helper, 5, 1, 4, 9, 4, 8, Blocks.AIR.defaultBlockState());
+		helper.setBlock(new BlockPos(7, 1, 8), Blocks.BED.red().defaultBlockState());
+		fill(helper, 12, 0, 12, 20, 5, 20, Blocks.STONE.defaultBlockState());
+		fill(helper, 13, 1, 13, 19, 4, 19, Blocks.AIR.defaultBlockState());
+		helper.setBlock(new BlockPos(17, 1, 18), Blocks.BED.red().defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(8.5, 1, 6.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(0.5, 1, 6.5));
+		head.chase(target);
+		List<HeadCue> cues = new ArrayList<>();
+		boolean[] moved = { false };
+		helper.onEachTick(() -> {
+			HeadCue cue = head.cue();
+			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
+			if (!moved[0] && cues.contains(HeadCue.HOME_ASK) && cue.digHum()) {
+				moved[0] = true;
+				target.setPos(helper.absoluteVec(new Vec3(18.5, 1, 16.5)));
+			}
+			helper.assertTrue(!cues.contains(HeadCue.UNDERGROUND), "second house repeated underground speech: " + cues);
+			if (target.isDeadOrDying()) {
+				Vec3 c = helper.relativeVec(head.centre());
+				helper.assertTrue(moved[0] && c.x > 13 && c.z > 13, "did not reach player inside second house: " + c);
+				helper.assertTrue(cues.stream().filter(v -> v == HeadCue.HOME_NICE).count() == 1, "house speech repeated");
+				helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void undergroundChaseEntersHouseBeforeChestDialogue(GameTestHelper helper) {
+		fill(helper, 0, -5, 0, 19, 14, 19, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, -5, 0, 19, 4, 19, Blocks.STONE.defaultBlockState());
+		fill(helper, 2, -3, 7, 6, 0, 12, Blocks.AIR.defaultBlockState());
+		fill(helper, 14, -3, 9, 15, -2, 10, Blocks.AIR.defaultBlockState());
+		fill(helper, 8, 5, 4, 18, 10, 14, Blocks.STONE.defaultBlockState());
+		fill(helper, 9, 5, 5, 17, 9, 13, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, 11, 0, 19, 14, 19, Blocks.AIR.defaultBlockState());
+		helper.setBlock(new BlockPos(14, 5, 12), Blocks.BED.red().defaultBlockState());
+		BlockPos chest = new BlockPos(11, 5, 9);
+		helper.setBlock(chest, Blocks.CHEST.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(14.5, -3, 9.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(3.5, -3, 9.5));
+		head.chase(target);
+		List<HeadCue> cues = new ArrayList<>();
+		boolean[] moved = { false };
+		boolean[] escaped = { false };
+		boolean[] food = { false };
+		helper.onEachTick(() -> {
+			HeadCue cue = head.cue();
+			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
+			if (!moved[0] && cues.contains(HeadCue.UNDERGROUND) && cue.digHum()) {
+				moved[0] = true;
+				target.setPos(helper.absoluteVec(new Vec3(16.5, 5, 9.5)));
+			}
+			if (!escaped[0] && cues.contains(HeadCue.HOME_ASK) && cue.digHum()) {
+				escaped[0] = true;
+				target.setPos(helper.absoluteVec(new Vec3(25.5, 5, 9.5)));
+			}
+			if (cue == HeadCue.HOME_HUNGRY || cue == HeadCue.HOME_THIRSTY) {
+				Vec3 c = helper.relativeVec(head.centre());
+				helper.assertTrue(c.x > 10.5 && c.y > 6 && helper.getLevel().noCollision(head, head.getBoundingBox()),
+					"underground approach started food before entering house: " + c);
+				food[0] = true;
+			}
+			helper.assertTrue(cues.stream().filter(c -> c == HeadCue.UNDERGROUND).count() <= 1, "house repeated underground line: " + cues);
+			if (cue == HeadCue.HOME_RETURN) {
+				helper.assertTrue(moved[0] && escaped[0] && food[0] && helper.getBlockState(chest).isAir(), "underground to house raid incomplete at " + helper.relativeVec(head.centre()) + ": " + cues);
+				helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA)
+	public void houseTntModePersistsAcrossOpenGround(GameTestHelper helper) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(18.5, 1, 9.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(2.5, 1, 9.5));
+		head.chase(target);
+		try {
+			for (String name : List.of("digging", "homeUsed", "fitsWay")) {
+				var field = TheHead.class.getDeclaredField(name);
+				field.setAccessible(true);
+				field.setBoolean(head, true);
+			}
+			var watch = TheHead.class.getDeclaredMethod("watchForSeal", ServerLevel.class);
+			watch.setAccessible(true);
+			watch.invoke(head, helper.getLevel());
+			var digging = TheHead.class.getDeclaredField("digging");
+			digging.setAccessible(true);
+			helper.assertTrue(digging.getBoolean(head), "house TNT mode ended while crossing open ground");
+			helper.succeed();
+		} catch (ReflectiveOperationException e) {
+			throw new AssertionError(e);
+		}
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 160)
+	public void touchingDuringChestSequenceIsFatal(GameTestHelper helper) {
+		fatalHomeContact(helper, "ASK");
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 160)
+	public void touchingDuringFoodSpeechIsFatal(GameTestHelper helper) {
+		fatalHomeContact(helper, "RAID_START");
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 160)
+	public void touchingDuringChestDashIsFatal(GameTestHelper helper) {
+		fatalHomeContact(helper, "RAID");
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 160)
+	public void touchingDuringReturnSpeechIsFatal(GameTestHelper helper) {
+		fatalHomeContact(helper, "RETURN");
+	}
+
+	private void fatalHomeContact(GameTestHelper helper, String name) {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(5.5, 1, 5.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(5.5, 1, 5.5));
+		head.chase(target);
+		head.setNoAi(true);
+		helper.runAtTickTime(120, () -> {
+			try {
+				var stage = TheHead.class.getDeclaredField("homeStage");
+				stage.setAccessible(true);
+				for (Object value : stage.getType().getEnumConstants()) {
+					if (value.toString().equals(name)) stage.set(head, value);
+				}
+				if (name.startsWith("RAID")) {
+					BlockPos pos = helper.absolutePos(new BlockPos(8, 1, 5));
+					helper.getLevel().setBlock(pos, Blocks.CHEST.defaultBlockState(), 3);
+					var chests = TheHead.class.getDeclaredField("homeChests");
+					chests.setAccessible(true);
+					@SuppressWarnings("unchecked")
+					List<BlockPos> targets = (List<BlockPos>) chests.get(head);
+					targets.add(pos);
+					var until = TheHead.class.getDeclaredField("raidUntil");
+					until.setAccessible(true);
+					until.setLong(head, helper.getLevel().getGameTime() + 100);
+				}
+				Vec3 c = head.centre();
+				target.setPos(c.x, c.y - 0.9, c.z);
+				var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+				cue.setAccessible(true);
+				cue.invoke(head, name.equals("RAID_START") ? HeadCue.HOME_HUNGRY : name.equals("RETURN") ? HeadCue.HOME_RETURN
+					: name.equals("RAID") ? HeadCue.DIG_MMM1 : HeadCue.HOME_NICE);
+				var charge = TheHead.class.getDeclaredMethod("charge", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+				charge.setAccessible(true);
+				charge.invoke(head, helper.getLevel(), target);
+				helper.assertTrue(target.isDeadOrDying(), "contact during " + name + " did not kill player");
+				helper.succeed();
+			} catch (ReflectiveOperationException e) {
+				throw new AssertionError(e);
 			}
 		});
 	}
@@ -446,7 +617,7 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 160)
-	public void homeDiggingDoesNotConsumeUndergroundAnnouncement(GameTestHelper helper) {
+	public void homeDiggingSuppressesUndergroundAnnouncement(GameTestHelper helper) {
 		helper.runAtTickTime(120, () -> {
 			TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(4.5, 1, 4.5));
 			try {
@@ -461,7 +632,7 @@ public class HeadGameTests {
 				var watch = TheHead.class.getDeclaredMethod("watchForSeal", ServerLevel.class);
 				watch.setAccessible(true);
 				watch.invoke(head, helper.getLevel());
-				helper.assertTrue(head.cue() == HeadCue.UNDERGROUND, "home TNT mode suppressed underground announcement");
+				helper.assertTrue(head.cue() != HeadCue.UNDERGROUND, "house TNT mode repeated underground announcement");
 				helper.succeed();
 			} catch (ReflectiveOperationException e) {
 				throw new AssertionError(e);
@@ -485,6 +656,7 @@ public class HeadGameTests {
 		boolean[] hungry = { false };
 		long[] raid = { -1 };
 		helper.onEachTick(() -> {
+			if (head.cue().digHum()) target.setPos(helper.absoluteVec(new Vec3(25.5, 1, 9.5)));
 			if (head.cue() == HeadCue.HOME_HUNGRY || head.cue() == HeadCue.HOME_THIRSTY) hungry[0] = true;
 			long now = helper.getLevel().getGameTime();
 			if (hungry[0] && head.cue().digHum() && raid[0] < 0) {
