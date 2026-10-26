@@ -512,7 +512,7 @@ public class TheHead extends Monster {
 	}
 
 	private void resumeAfterGrace() {
-		this.revs = -1;
+		this.revs = PACE_FROM_REV;
 		this.tempo.stall();
 		this.dashBoost = 1;
 		this.stallFollowing = false;

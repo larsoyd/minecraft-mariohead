@@ -3662,6 +3662,20 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 30)
+	public void stallGraceExpiryAcceleratesInsteadOfRestartingBelowRunnerPace(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), 90);
+		TheHead head = graceHead(helper, target);
+		var state = TheHead.class.getDeclaredField("grace"); state.setAccessible(true);
+		((com.larsoyd.mariohead.entity.StallGrace) state.get(head)).start(helper.getLevel().getGameTime() - 1800, 0.5, 1, 0);
+		var charge = TheHead.class.getDeclaredMethod("charge", ServerLevel.class, net.minecraft.world.entity.player.Player.class); charge.setAccessible(true);
+		target.setPos(target.position().add(-0.356, 0, 0));
+		charge.invoke(head, helper.getLevel(), target);
+		helper.assertTrue(head.chargeSpeed() >= 0.35, "grace expiry restarted below runner pace: " + head.chargeSpeed());
+		helper.assertTrue(head.revs() == com.larsoyd.mariohead.entity.HeadTuning.PACE_FROM_REV, "grace expiry retained hidden revs");
+		head.discard(); helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
 	public void stallGraceEquipmentDisablesAndPreservesCutoffPursuit(GameTestHelper helper) throws ReflectiveOperationException {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
 		TheHead head = graceHead(helper, target);
@@ -3835,7 +3849,7 @@ public class HeadGameTests {
 			if (ended[0] && grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.NONE) {
 				helper.assertTrue(spoke[0] >= 0, "reversal discarded cutoff line");
 				helper.assertTrue(helper.getTick() - spoke[0] >= (line[0].clip().millis() + 49) / 50, "cutoff line was interrupted");
-				helper.assertTrue(head.revs() <= 0, "cutoff inherited grace acceleration");
+				helper.assertTrue(head.revs() == com.larsoyd.mariohead.entity.HeadTuning.PACE_FROM_REV, "cutoff inherited grace acceleration");
 				head.discard(); helper.succeed();
 			}
 		});
@@ -4235,9 +4249,10 @@ public class HeadGameTests {
 				if (completed[0] && grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.NONE && graceEnded[0] < 0) {
 					graceEnded[0] = helper.getTick();
 					helper.assertTrue(graceEnded[0] - graceBegan[0] == 1800, "live grace duration " + (graceEnded[0] - graceBegan[0]));
-					helper.assertTrue(head.revs() <= 0, "grace exit inherited hidden acceleration");
+					helper.assertTrue(head.revs() >= 4 && head.revs() <= 5, "grace exit inherited hidden acceleration");
+					helper.assertTrue(head.chargeSpeed() > 0.28, "grace exit slowed below runner pace");
 				}
-				if (graceEnded[0] >= 0 && head.revs() >= 4) {
+				if (graceEnded[0] >= 0 && head.revs() >= 6) {
 					helper.assertTrue(head.chargeSpeed() > 0.28, "normal per-dash acceleration never resumed");
 					helper.assertFalse(target.isDeadOrDying(), "grace caught escaping runner");
 					helper.assertTrue(((com.larsoyd.mariohead.entity.EarlyStall) state.get(head)).active(2000), "normal grace expiry disabled future stalls");
