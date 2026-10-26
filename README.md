@@ -121,4 +121,4 @@ Copy `build/libs/mariohead-x.x.x-dev.jar` into your Minecraft instance's `mods` 
 - Voice: clips of the Floating Mario Head from Mario Teaches Typing.
 - His arrival sound is Minecraft's own illusioner mirror move sound, lowered in pitch.
 - LLMs were used as an assistant during the development & for documentation with a human in the loop. 
-- No LLMs were used and no LLMs will ever be used for the creation of the assets, 3d models and/or voice clips.
+- No LLMs will ever be used for the creation of art assets like textures, models and/or voice clips.
