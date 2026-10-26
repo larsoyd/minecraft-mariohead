@@ -37,7 +37,27 @@ The command needs operator rights (permission level 2).
 
 ---
 
-### Building from source
+### Building from source (i.e Manual Install)
+
+If you want you can manually build the mod yourself from the source you can manually build it. The supported paths to do so is Ubuntu on WSL (Windows) or Ubuntu LTS if you are on Linux.
+
+Please note that the developer version might have bugs and it is recommended that you use the release *.jar instead.
+
+### What the build does
+
+Java 21 starts the bundled Gradle wrapper. The project's Gradle configuration downloads Java 25
+for the build automatically. The first build needs internet access to download Gradle, Java and
+Minecraft/Fabric dependencies. You do not need to install Gradle separately.
+See [Ubuntu's Java setup guide](https://ubuntu.com/developers/docs/howto/java-setup/) and
+[Gradle's daemon JVM documentation](https://docs.gradle.org/current/userguide/gradle_daemon.html#sec:daemon_jvm_criteria).
+
+`build.sh` runs the build, unit tests and server game tests with at most four Gradle workers and a 20-minute timeout.
+It prints the output jar path when successful. It does not install the mod or open a game client.
+The model and runtime sounds are already included in the source tree.
+
+To run unit tests separately, use `./gradlew test`. Server game tests use `./gradlew runGameTest`.
+
+---
 
 #### Windows (WSL with Ubuntu)
 
@@ -84,19 +104,7 @@ cd minecraft-mariohead
 Copy `build/libs/mariohead-x.x.x.jar` into your Minecraft instance's `mods` folder
 (`~/.minecraft/mods` for the standard launcher), alongside Fabric API for Minecraft 26.3.
 
-### What the build does
-
-Java 21 starts the bundled Gradle wrapper. The project's Gradle configuration downloads Java 25
-for the build automatically. The first build needs internet access to download Gradle, Java and
-Minecraft/Fabric dependencies. You do not need to install Gradle separately.
-See [Ubuntu's Java setup guide](https://ubuntu.com/developers/docs/howto/java-setup/) and
-[Gradle's daemon JVM documentation](https://docs.gradle.org/current/userguide/gradle_daemon.html#sec:daemon_jvm_criteria).
-
-`build.sh` runs the build, unit tests and server game tests with at most four Gradle workers and a 20-minute timeout.
-It prints the output jar path when successful. It does not install the mod or open a game client.
-The model and runtime sounds are already included in the source tree.
-
-To run unit tests separately, use `./gradlew test`. Server game tests use `./gradlew runGameTest`.
+---
 
 ## Credits
 
@@ -104,3 +112,4 @@ To run unit tests separately, use `./gradlew test`. Server game tests use `./gra
   and swatch textures is based on the Floating Mario Head from Mario Teaches Typing. The original creator is unknown since I cannot find the site where I originally found it. If it's you, please come forward.
 - Voice: clips of the Floating Mario Head from Mario Teaches Typing.
 - His arrival sound is Minecraft's own illusioner mirror move sound, lowered in pitch.
+- LLMs were used during development & documentation with a human in the loop.
