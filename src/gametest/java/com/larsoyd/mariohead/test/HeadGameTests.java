@@ -413,6 +413,11 @@ public class HeadGameTests {
 		homeRaidScenario(helper, 17);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void houseReturnThenTauntLaughResumesTnt(GameTestHelper helper) {
+		homeRaidScenario(helper, 20);
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 850)
 	public void chestAboveEntryDoesNotLeaveHeadHoveringOverRoof(GameTestHelper helper) {
 		homeRaidScenario(helper, 18);
@@ -482,6 +487,8 @@ public class HeadGameTests {
 		int[] waitingRevs = { -1 };
 		boolean[] fallen = { false };
 		boolean[] fallSpoken = { false };
+		long[] laughAt = { -1 };
+		HeadCue[] laughCue = { HeadCue.NONE };
 		helper.onEachTick(() -> {
 			HeadCue cue = head.cue();
 			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
@@ -551,7 +558,7 @@ public class HeadGameTests {
 				}
 				if (waitingRevs[0] >= 0) helper.assertTrue(head.revs() == waitingRevs[0], "new dash before pending return threat");
 			}
-			if ((scenario == 12 || scenario == 13 || scenario == 15 || scenario == 17) && (cue == HeadCue.HOME_RETURN || returnAt[0] >= 0)) {
+			if ((scenario == 12 || scenario == 13 || scenario == 15 || scenario == 17 || scenario == 20) && (cue == HeadCue.HOME_RETURN || returnAt[0] >= 0)) {
 				if (returnAt[0] < 0) {
 					try {
 						Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
@@ -576,7 +583,20 @@ public class HeadGameTests {
 					return;
 				}
 				if (scenario == 13) helper.assertTrue(head.position().distanceTo(returnPos[0]) > 1, "return threat did not follow moving owner");
-				if (scenario == 17) {
+				if (scenario == 17 || scenario == 20) {
+					if (scenario == 20 && cue == HeadCue.FALL_019 && !fallSpoken[0]) {
+						try {
+							Field voices = TheHead.class.getDeclaredField("voices");
+							voices.setAccessible(true);
+							((com.larsoyd.mariohead.entity.ChaseVoices) voices.get(head)).follow(1, 0);
+						} catch (ReflectiveOperationException e) {
+							throw new AssertionError(e);
+						}
+					}
+					if (cue.laugh() && laughAt[0] < 0) {
+						laughAt[0] = helper.getTick();
+						laughCue[0] = cue;
+					}
 					fallSpoken[0] |= cue == HeadCue.FALL_019;
 					if (cue.digHum() && !fallen[0]) {
 						try {
@@ -601,6 +621,11 @@ public class HeadGameTests {
 					if (!fallSpoken[0]) return;
 				}
 				if (head.cue().digHum()) {
+					if (scenario == 20) {
+						helper.assertTrue(laughAt[0] >= 0, "house TNT hum overtook queued laugh");
+						helper.assertTrue(helper.getTick() - laughAt[0] >= (laughCue[0].clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS,
+							"house TNT dash cut laugh short");
+					}
 					helper.assertTrue(food[0], "return threat skipped chest routine");
 					helper.assertTrue(head.digging(), "return threat lost persistent TNT mode");
 					try {
@@ -1821,6 +1846,9 @@ public class HeadGameTests {
 			dash.setAccessible(true);
 			digging.invoke(head, true);
 			helper.assertTrue((boolean) taunt.invoke(head, target, 0.0), "TNT mode blocked regular taunt");
+			Field voices = TheHead.class.getDeclaredField("voices");
+			voices.setAccessible(true);
+			((com.larsoyd.mariohead.entity.ChaseVoices) voices.get(head)).follow(0, 0);
 			long now = helper.getLevel().getGameTime();
 			helper.assertFalse((boolean) dash.invoke(head, now), "dash interrupted taunt");
 			helper.assertTrue((boolean) dash.invoke(head, now + 300), "dash did not resume after taunt");
@@ -3228,6 +3256,55 @@ public class HeadGameTests {
 		helper.runAtTickTime(140, () -> {
 			helper.assertTrue(spoken[0] == (scenario == 0), "wrong queued fall outcome: " + scenario);
 			if (scenario != 0) helper.succeed();
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 240)
+	public void tauntLaughPrecedesOrdinaryDash(GameTestHelper helper) throws ReflectiveOperationException {
+		tauntLaugh(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 240)
+	public void tauntLaughPrecedesTntDash(GameTestHelper helper) throws ReflectiveOperationException {
+		tauntLaugh(helper, true);
+	}
+
+	private void tauntLaugh(GameTestHelper helper, boolean tnt) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = head(helper, new Vec3(10.5, 0.5, 10.5), target);
+		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+		var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
+		var teasing = TheHead.class.getDeclaredField("teasing");
+		var voices = TheHead.class.getDeclaredField("voices");
+		var boost = TheHead.class.getDeclaredField("dashBoost");
+		for (var method : new java.lang.reflect.Method[] { phase, cue, digging }) method.setAccessible(true);
+		for (var field : new Field[] { teasing, voices, boost }) field.setAccessible(true);
+		phase.invoke(head, HeadPhase.CHARGE);
+		digging.invoke(head, tnt);
+		teasing.setBoolean(head, true);
+		cue.invoke(head, HeadCue.TAUNT_100);
+		((com.larsoyd.mariohead.entity.ChaseVoices) voices.get(head)).follow(1, 0);
+		long[] laughAt = { -1 };
+		HeadCue[] laugh = { HeadCue.NONE };
+		helper.onEachTick(() -> {
+			if (head.cue().laugh() && laughAt[0] < 0) {
+				laughAt[0] = helper.getLevel().getGameTime();
+				laugh[0] = head.cue();
+			}
+			if (head.cue().clip() != null && !head.cue().spoken()) {
+				helper.assertTrue(laughAt[0] >= 0, "hum overtook queued laugh tnt=" + tnt);
+				long elapsed = helper.getLevel().getGameTime() - laughAt[0];
+				helper.assertTrue(elapsed >= (laugh[0].clip().millis() + 49) / 50 + HeadClock.LATE_VOICE_TICKS,
+					"dash cut off laugh at " + elapsed);
+				try {
+					helper.assertTrue(boost.getDouble(head) == 1.1, "laugh consumed post-taunt boost");
+				} catch (IllegalAccessException e) {
+					throw new IllegalStateException(e);
+				}
+				head.discard();
+				helper.succeed();
+			}
 		});
 	}
 

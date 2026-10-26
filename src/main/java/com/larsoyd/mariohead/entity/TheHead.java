@@ -90,6 +90,7 @@ public class TheHead extends Monster {
 	private double pearlBoost;
 	private final ChaseTempo tempo = new ChaseTempo();
 	private final HeadSpeech speech = new HeadSpeech();
+	private final ChaseVoices voices = new ChaseVoices();
 	private final DashChatter dashChatter = new DashChatter();
 	private HeadCue dashLine = HeadCue.NONE;
 	private long nextDigDash = -1;
@@ -268,6 +269,8 @@ public class TheHead extends Monster {
 			return;
 		}
 		this.speech.started(cue, now);
+		this.voices.played(cue);
+		if (cue.taunt() && cue != HeadCue.HOME_RETURN) this.voices.follow(0.1, this.random.nextDouble());
 		if (cue.clip() != null && !cue.spoken()) {
 			this.tempo.hum();
 		}
@@ -406,7 +409,9 @@ public class TheHead extends Monster {
 		HeadCue cue = this.cue();
 		boolean undergroundRhythm = this.digging || this.burrowing || cue.chatter() || this.dashLine != HeadCue.NONE;
 		boolean digDash = false;
-		if (undergroundRhythm) {
+		if (this.tickLaugh(level.getGameTime())) {
+			this.nextDigDash = -1;
+		} else if (undergroundRhythm) {
 			digDash = this.tickDigDash(level.getGameTime());
 		} else if (this.pendingVoice != HeadCue.NONE) {
 			this.setCue(this.pendingVoice);
@@ -823,6 +828,7 @@ public class TheHead extends Monster {
 	}
 
 	private boolean tickDigDash(long now) {
+		if (this.tickLaugh(now)) return false;
 		if (this.homeStage == HomeStage.RETURN && this.teasing) {
 			this.nextDigDash = -1;
 			return false;
@@ -947,7 +953,15 @@ public class TheHead extends Monster {
 			return false;
 		}
 		this.teasing = true;
-		this.setCue(HeadCue.taunt(this.random.nextInt(TauntVoice.CLIPS.length)));
+		this.setCue(this.voices.choose(ChaseVoices.TAUNTS, this.random.nextDouble()));
+		return true;
+	}
+
+	private boolean tickLaugh(long now) {
+		if (!this.voices.waiting()) return false;
+		if (this.speech.canStart(HeadCue.VARIETY_LAUGH1, now)) {
+			this.setCue(this.voices.laugh(this.random.nextDouble()));
+		}
 		return true;
 	}
 
