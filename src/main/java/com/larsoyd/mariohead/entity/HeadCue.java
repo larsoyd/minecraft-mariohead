@@ -44,7 +44,30 @@ public enum HeadCue {
 	HOME_RETURN,
 	PRANK_WARNING,
 	PRANK_RESPONSE,
-	FALL_019;
+	FALL_019,
+	VARIETY_017,
+	VARIETY_036,
+	VARIETY_037,
+	VARIETY_043,
+	VARIETY_045,
+	VARIETY_049,
+	VARIETY_050,
+	VARIETY_051,
+	VARIETY_065,
+	VARIETY_071,
+	VARIETY_074,
+	VARIETY_081,
+	VARIETY_084,
+	VARIETY_085,
+	VARIETY_101,
+	VARIETY_102,
+	VARIETY_WEEE2,
+	VARIETY_LAUGH1,
+	VARIETY_LAUGH2,
+	VARIETY_LAUGH3,
+	VARIETY_LAUGH4,
+	VARIETY_LAUGH5,
+	VARIETY_DROWNING;
 
 	private static final HeadCue[] BY_ID = values();
 	private static final HeadCue[] HUMS = { MMM1, MMM2, MMM3 };
@@ -53,9 +76,10 @@ public enum HeadCue {
 		new HeadVoice.Clip("dig_mmm2", 2200, new int[66]),
 		new HeadVoice.Clip("dig_mmm3", 1940, new int[59])
 	};
-	private static final int CUE_BITS = 6;
+	private static final int CUE_BITS = 7;
 
 	public HeadVoice.@Nullable Clip clip() {
+		if (this.variety()) return VarietyVoice.CLIPS[this.ordinal() - VARIETY_017.ordinal()];
 		return switch (this) {
 			case FALL_019 -> FallVoice.CLIPS[0];
 			case PRANK_WARNING, PRANK_RESPONSE -> PrankVoice.CLIPS[this.ordinal() - PRANK_WARNING.ordinal()];
@@ -73,7 +97,15 @@ public enum HeadCue {
 
 	// words move his mouth, a hum keeps it shut
 	public boolean spoken() {
-		return this == HELLO || this == UNDERGROUND || this.taunt() || this.chatter() || this.home() || this.prank();
+		return this == HELLO || this == UNDERGROUND || this.taunt() || this.chatter() || this.home() || this.prank() || this.variety();
+	}
+
+	public boolean variety() {
+		return this.ordinal() >= VARIETY_017.ordinal();
+	}
+
+	public boolean laugh() {
+		return this.ordinal() >= VARIETY_LAUGH1.ordinal() && this.ordinal() <= VARIETY_LAUGH5.ordinal();
 	}
 
 	public boolean taunt() {

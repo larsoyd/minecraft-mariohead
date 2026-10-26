@@ -174,5 +174,97 @@
 	"entity.the_head.fall_019": {
 		"subtitle": "subtitles.mariohead.the_head.fall_019",
 		"sounds": ["mariohead:the_head/fall_019"]
+	},
+	"entity.the_head.variety_017": {
+		"subtitle": "subtitles.mariohead.the_head.variety_017",
+		"sounds": ["mariohead:the_head/variety_017"]
+	},
+	"entity.the_head.variety_036": {
+		"subtitle": "subtitles.mariohead.the_head.variety_036",
+		"sounds": ["mariohead:the_head/variety_036"]
+	},
+	"entity.the_head.variety_037": {
+		"subtitle": "subtitles.mariohead.the_head.variety_037",
+		"sounds": ["mariohead:the_head/variety_037"]
+	},
+	"entity.the_head.variety_043": {
+		"subtitle": "subtitles.mariohead.the_head.variety_043",
+		"sounds": ["mariohead:the_head/variety_043"]
+	},
+	"entity.the_head.variety_045": {
+		"subtitle": "subtitles.mariohead.the_head.variety_045",
+		"sounds": ["mariohead:the_head/variety_045"]
+	},
+	"entity.the_head.variety_049": {
+		"subtitle": "subtitles.mariohead.the_head.variety_049",
+		"sounds": ["mariohead:the_head/variety_049"]
+	},
+	"entity.the_head.variety_050": {
+		"subtitle": "subtitles.mariohead.the_head.variety_050",
+		"sounds": ["mariohead:the_head/variety_050"]
+	},
+	"entity.the_head.variety_051": {
+		"subtitle": "subtitles.mariohead.the_head.variety_051",
+		"sounds": ["mariohead:the_head/variety_051"]
+	},
+	"entity.the_head.variety_065": {
+		"subtitle": "subtitles.mariohead.the_head.variety_065",
+		"sounds": ["mariohead:the_head/variety_065"]
+	},
+	"entity.the_head.variety_071": {
+		"subtitle": "subtitles.mariohead.the_head.variety_071",
+		"sounds": ["mariohead:the_head/variety_071"]
+	},
+	"entity.the_head.variety_074": {
+		"subtitle": "subtitles.mariohead.the_head.variety_074",
+		"sounds": ["mariohead:the_head/variety_074"]
+	},
+	"entity.the_head.variety_081": {
+		"subtitle": "subtitles.mariohead.the_head.variety_081",
+		"sounds": ["mariohead:the_head/variety_081"]
+	},
+	"entity.the_head.variety_084": {
+		"subtitle": "subtitles.mariohead.the_head.variety_084",
+		"sounds": ["mariohead:the_head/variety_084"]
+	},
+	"entity.the_head.variety_085": {
+		"subtitle": "subtitles.mariohead.the_head.variety_085",
+		"sounds": ["mariohead:the_head/variety_085"]
+	},
+	"entity.the_head.variety_101": {
+		"subtitle": "subtitles.mariohead.the_head.variety_101",
+		"sounds": ["mariohead:the_head/variety_101"]
+	},
+	"entity.the_head.variety_102": {
+		"subtitle": "subtitles.mariohead.the_head.variety_102",
+		"sounds": ["mariohead:the_head/variety_102"]
+	},
+	"entity.the_head.variety_weee2": {
+		"subtitle": "subtitles.mariohead.the_head.variety_weee2",
+		"sounds": ["mariohead:the_head/variety_weee2"]
+	},
+	"entity.the_head.variety_laugh1": {
+		"subtitle": "subtitles.mariohead.the_head.variety_laugh1",
+		"sounds": ["mariohead:the_head/variety_laugh1"]
+	},
+	"entity.the_head.variety_laugh2": {
+		"subtitle": "subtitles.mariohead.the_head.variety_laugh2",
+		"sounds": ["mariohead:the_head/variety_laugh2"]
+	},
+	"entity.the_head.variety_laugh3": {
+		"subtitle": "subtitles.mariohead.the_head.variety_laugh3",
+		"sounds": ["mariohead:the_head/variety_laugh3"]
+	},
+	"entity.the_head.variety_laugh4": {
+		"subtitle": "subtitles.mariohead.the_head.variety_laugh4",
+		"sounds": ["mariohead:the_head/variety_laugh4"]
+	},
+	"entity.the_head.variety_laugh5": {
+		"subtitle": "subtitles.mariohead.the_head.variety_laugh5",
+		"sounds": ["mariohead:the_head/variety_laugh5"]
+	},
+	"entity.the_head.variety_drowning": {
+		"subtitle": "subtitles.mariohead.the_head.variety_drowning",
+		"sounds": ["mariohead:the_head/variety_drowning"]
 	}
 }

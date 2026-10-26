@@ -1,0 +1,141 @@
+[
+  {
+    "id": "017_00m55s_i_ain_t_got_nobody",
+    "sha256": "db9b05143f0b4d295a0e1ad3c77b26d5367d843762e133d396a1f1f2aea8d0f3",
+    "millis": 3646,
+    "text": "I ain't got nobody"
+  },
+  {
+    "id": "036_02m09s_hmm_guess_what_time_it_is_it_s_time_for_you_to_tie",
+    "sha256": "de4b8287b2378271c65f4d6b3e39522fb03386f589a53ff750a49aebc71f6d2b",
+    "millis": 4351,
+    "text": "Hmm, guess what time it is? It's time for you to type!"
+  },
+  {
+    "id": "037_02m13s_let_s_do_this",
+    "sha256": "a3a55c8795e5237886ae644a5b5d7981cf5aa633b9420c40d950538caff3bace",
+    "millis": 1132,
+    "text": "Let's do this!"
+  },
+  {
+    "id": "043_02m40s_hey_don_t_leave_me_all_alone",
+    "sha256": "944ff98420ae158cf14789b45fd0ac6231a8bc956ea9cd95699c632eeecf549a",
+    "millis": 2503,
+    "text": "Hey, don't leave me all alone!"
+  },
+  {
+    "id": "045_02m46s_come_back",
+    "sha256": "f084a53e45e9099c056f57f994137346b2d5545b48ddd51a44555a9af3109677",
+    "millis": 1078,
+    "text": "Come back!"
+  },
+  {
+    "id": "049_02m59s_pongsound",
+    "sha256": "bc7036b89aab203f04da08840184979559e649bdf3273c3df2a5046d56cc3543",
+    "millis": 807,
+    "text": "Mario makes a pong sound"
+  },
+  {
+    "id": "050_03m01s_pongsoundx2",
+    "sha256": "9e4fbb6399f85c1efbb8aeeca9ef97aa0687c595acce1766c703feabbefe8131",
+    "millis": 1150,
+    "text": "Mario makes two pong sounds"
+  },
+  {
+    "id": "051_03m02s_pongsoundx3",
+    "sha256": "55ca65ed2f180fcecc1e56e361dbd064e3091c6037f10139906bdbd6462c45cf",
+    "millis": 1955,
+    "text": "Mario makes three pong sounds"
+  },
+  {
+    "id": "065_03m53s_weee",
+    "sha256": "81e9f3ba74a00f2d88672d27cb428c830d175682d385e2d9b820d447af399182",
+    "millis": 1321,
+    "text": "Wheee!"
+  },
+  {
+    "id": "071_04m14s_mario_s_wet_world_challenge",
+    "sha256": "6e453690e46918d8d695800d3c02d2ff8af4c44e10665cc40cc5fdf51a0cb4e6",
+    "millis": 2444,
+    "text": "Mario's Wet World Challenge!"
+  },
+  {
+    "id": "074_04m31s_okie_dokie_now_we_go_to_the_advanced_level",
+    "sha256": "9b3d9c43789cf794896135c2d5ed6b48d8458979e392d659209656c36da8cde0",
+    "millis": 3238,
+    "text": "Okie-tokie, now we go to the advanced level."
+  },
+  {
+    "id": "081_04m57s_okie_dokie_get_ready_to_move_your_fingers",
+    "sha256": "eb86659c62eac6d350b990ef9239545f00160a2b57ab423aa7175954461e4d5c",
+    "millis": 3785,
+    "text": "Okidoki, get ready to move your fingers!"
+  },
+  {
+    "id": "084_05m11s_on_your_mark_get_set_go",
+    "sha256": "b2aca4422df53bb030f1f9d7c034ae8c90a2a738c723bf4b18e81dd643a8fece",
+    "millis": 3375,
+    "text": "On your mark, get set, go!"
+  },
+  {
+    "id": "085_05m16s_oh_i_can_swim_very_fast_when_someone_is_chasing_me",
+    "sha256": "ea6a06bc64b5c847cd259a67670f0ba05fdcf6b95be13d779ec3521929947869",
+    "millis": 3376,
+    "text": "Oh, I can swim very fast when someone is chasing me."
+  },
+  {
+    "id": "101_06m35s_want_to_try_again",
+    "sha256": "75d266ae95fef67d5f6d4fbd3fdc2b626374b984a0a849c51fe3070191e4e332",
+    "millis": 1243,
+    "text": "Want to try again?"
+  },
+  {
+    "id": "102_06m38s_you_re_fantastic",
+    "sha256": "dd9322bf50a4b50a7179e845bd9ed722a45f8a95f44fc64537825de9e2c20c67",
+    "millis": 1648,
+    "text": "You're fantastic!"
+  },
+  {
+    "id": "weee2",
+    "sha256": "b6fba411a4d60638c95802686a397f64563cc3542b133a389b91d288a888e49f",
+    "millis": 2153,
+    "text": "Wheee!"
+  },
+  {
+    "id": "laugh1",
+    "sha256": "da293702e1eefb5982bbd7be88c43ef3a3b670c5653b2bc33c31a09711b0ad7e",
+    "millis": 875,
+    "text": "Mario laughs"
+  },
+  {
+    "id": "laugh2",
+    "sha256": "f1a898ce52c655bc47330e698f5525afbb2c22beb2f4964eba3a58bad1b5f0c0",
+    "millis": 1060,
+    "text": "Mario laughs"
+  },
+  {
+    "id": "laugh3",
+    "sha256": "4fe34c8126193747e0b48758e92dba3229ff7d97020d82ec3223aa1a89bafa11",
+    "millis": 1387,
+    "text": "Mario laughs"
+  },
+  {
+    "id": "laugh4",
+    "sha256": "d10fac489c965acd3f55b0e459137720d2af268ad88184db830fc80800edb318",
+    "millis": 1165,
+    "text": "Mario laughs"
+  },
+  {
+    "id": "laugh5",
+    "sha256": "2c007844412ea42c1ca12a92e8f257eeba114f8f02554c70cadcde611f6ac90e",
+    "millis": 885,
+    "text": "Mario laughs"
+  },
+  {
+    "id": "drowning",
+    "sha256": "5436b6f7d101b7ef4476a7ef07f9c7d4c552494cb23fa724dd3f609b3067cbaf",
+    "millis": 1341,
+    "text": "Mario mocks your drowning",
+    "source_sha256": "9a8af204d761ff336632197a74f1cb73abcf672a11a28237ddacb1683c37205f"
+  }
+]
