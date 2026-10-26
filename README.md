@@ -120,5 +120,8 @@ Copy `build/libs/mariohead-x.x.x-dev.jar` into your Minecraft instance's `mods` 
   and swatch textures is based on the Floating Mario Head from Mario Teaches Typing. The original creator is unknown since I cannot find the site where I originally found it. If it's you, please come forward.
 - Voice: clips of the Floating Mario Head from Mario Teaches Typing.
 - His arrival sound is Minecraft's own illusioner mirror move sound, lowered in pitch.
-- LLMs were used as an assistant during the development & for documentation with a human in the loop. 
-- No LLMs will ever be used for the creation of art assets like textures, models and/or voice clips.
+
+#### LLM/AI Policy & Disclosure
+
+- LLMs were used exclusively with a human in the loop in an assistive capacity during development & for the writing of documentation.  
+- No LLMs was and ever will be used for the generation of art assets like textures, models and/or voice clips.
