@@ -126,3 +126,7 @@ Copy `build/libs/mariohead-x.x.x-dev.jar` into your Minecraft instance's `mods` 
 
 - LLMs were used exclusively with a human in the loop in an assistive capacity during development & for the writing of documentation.  
 - No LLMs was and ever will be used for the generation of art assets like textures, models and/or voice clips.
+
+## License
+
+MIT, see [LICENSE](LICENSE). 
