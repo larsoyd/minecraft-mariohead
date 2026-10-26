@@ -32,6 +32,11 @@ public final class ChaseTempo {
 		this.hums = 0;
 	}
 
+	public void stall() {
+		this.multiplier = 1.0;
+		this.hums = 0;
+	}
+
 	public void hum() {
 		this.hums++;
 	}
@@ -47,6 +52,10 @@ public final class ChaseTempo {
 	}
 
 	public static boolean canTaunt(int chaseTicks, boolean onLand, double gap, double chance) {
-		return chaseTicks < 6000 && onLand && gap <= 8.0 && chance < 0.55;
+		return canTaunt(chaseTicks, onLand, gap, chance, 6000, 0.55);
+	}
+
+	public static boolean canTaunt(int chaseTicks, boolean onLand, double gap, double chance, int until, double probability) {
+		return chaseTicks < until && onLand && gap <= 8.0 && chance < probability;
 	}
 }

@@ -8,6 +8,21 @@ import org.junit.jupiter.api.Test;
 
 class ChaseTempoTest {
 	@Test
+	void stallClearsAccumulatedSpeedWithoutForgettingTransportEscalation() {
+		ChaseTempo tempo = new ChaseTempo();
+		tempo.observe(true, false, false, 0);
+		for (int i = 0; i < 30; i++) {
+			tempo.dash();
+			tempo.hum();
+		}
+		tempo.stall();
+		assertEquals(1.0, tempo.multiplier());
+		assertEquals(1.0, tempo.humMultiplier());
+		tempo.dash();
+		assertEquals(1.03, tempo.multiplier());
+	}
+
+	@Test
 	void everyHumAddsThreeTenthsOfAPercentUntilATaunt() {
 		ChaseTempo tempo = new ChaseTempo();
 		for (int hum = 1; hum <= 200; hum++) {
@@ -109,6 +124,13 @@ class ChaseTempoTest {
 		assertEquals(1.03, tempo.multiplier());
 		tempo.observe(false, false, true, 0.3);
 		assertEquals(1.0, tempo.multiplier());
+	}
+
+	@Test
+	void earlyTauntUsesReducedChanceThroughoutRandomStallWindow() {
+		assertTrue(ChaseTempo.canTaunt(8999, true, 8, 0.199999, 9000, 0.2));
+		assertFalse(ChaseTempo.canTaunt(8999, true, 8, 0.2, 9000, 0.2));
+		assertFalse(ChaseTempo.canTaunt(9000, true, 8, 0, 9000, 0.2));
 	}
 
 	@Test

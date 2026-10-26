@@ -91,6 +91,11 @@ public class TheHead extends Monster {
 	private final ChaseTempo tempo = new ChaseTempo();
 	private final HeadSpeech speech = new HeadSpeech();
 	private final ChaseVoices voices = new ChaseVoices();
+	private @Nullable EarlyStall stalls;
+	private long stallUntil = -1;
+	private boolean stallFollowing;
+	private boolean stallEscalated;
+	private boolean cutoffPending;
 	private final DashChatter dashChatter = new DashChatter();
 	private HeadCue dashLine = HeadCue.NONE;
 	private long nextDigDash = -1;
@@ -269,6 +274,7 @@ public class TheHead extends Monster {
 			return;
 		}
 		this.speech.started(cue, now);
+		if (cue.clip() != null && !cue.laugh()) this.stallFollowing = false;
 		this.voices.played(cue);
 		if (cue.taunt() && cue != HeadCue.HOME_RETURN) this.voices.follow(0.1, this.random.nextDouble());
 		if (cue.clip() != null && !cue.spoken()) {
@@ -387,6 +393,7 @@ public class TheHead extends Monster {
 
 	public void pearlTeleported(Player player, Vec3 before) {
 		if (this.chased == player) {
+			this.stallEscalated = true;
 			this.pearlPursuit.teleported(this.centre().distanceTo(before), this.centre().distanceTo(player.position()));
 			this.replanIn = 0;
 		}
@@ -398,18 +405,33 @@ public class TheHead extends Monster {
 
 	private void charge(ServerLevel level, Player target) {
 		Vec3 before = this.centre();
+		if (this.touching(target, before)) {
+			this.caught(level, target);
+			return;
+		}
+		this.updateStalls(target);
+		boolean mock = this.tickStall(level.getGameTime());
 		this.updateFallTaunt(target);
-		if (this.tickPrank(level, target) || this.tickHome(level, target)) {
-			if (!this.isRemoved() && !this.teasing && this.touching(target, before)) this.caught(level, target);
+		if (!mock && (this.tickPrank(level, target) || this.tickHome(level, target))) {
+			if (!this.isRemoved() && this.touching(target, before)) this.caught(level, target);
 			return;
 		}
 		this.trackPace(target);
 		this.pearlBoost = this.pearlPursuit.boost(this.centre().distanceTo(target.position()));
-		if (this.homeStage != HomeStage.RETURN) this.tryTaunt(target, this.random.nextDouble());
+		if (!mock && !this.teasing && !this.digging && !this.burrowing && this.pendingVoice == HeadCue.NONE
+			&& this.cue() == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
+			&& Math.abs(this.getXRot() - this.pitchTo(target)) <= PITCH_RATE
+			&& this.speech.canStart(HeadCue.VARIETY_043, level.getGameTime())) {
+			this.stalls.beginDash(this.phaseTicks);
+			mock = this.tryStall(target, this.random.nextDouble());
+		}
+		if (!mock && !this.cutoffPending && this.homeStage != HomeStage.RETURN) this.tryTaunt(target, this.random.nextDouble());
 		HeadCue cue = this.cue();
 		boolean undergroundRhythm = this.digging || this.burrowing || cue.chatter() || this.dashLine != HeadCue.NONE;
 		boolean digDash = false;
-		if (this.tickLaugh(level.getGameTime())) {
+		if (mock) {
+			this.nextDigDash = -1;
+		} else if (this.tickCutoff(target) || this.tickLaugh(level.getGameTime())) {
 			this.nextDigDash = -1;
 		} else if (undergroundRhythm) {
 			digDash = this.tickDigDash(level.getGameTime());
@@ -439,6 +461,7 @@ public class TheHead extends Monster {
 		}
 		double boost = cue.clip() != null && !cue.spoken() ? this.dashBoost : 1.0;
 		this.chargeSpeed = this.teasing ? this.pace : RevSpring.speed(this.revs, sag, this.pace) * this.tempo.multiplier() * this.tempo.humMultiplier() * boost + this.pearlBoost;
+		if (mock || this.stallFollowing) this.chargeSpeed = this.pace * 0.97;
 		if (this.homeStage == HomeStage.RETURN && !this.teasing) this.chargeSpeed *= 1.25;
 		this.moveChase(level, target, cue, digDash);
 	}
@@ -481,6 +504,7 @@ public class TheHead extends Monster {
 		if (this.teasing) {
 			this.moveSpeed = Math.min(this.pace, Math.max(0.0, target.position().subtract(centre).horizontalDistance() - 3.0));
 		}
+		if (this.stallUntil >= 0 || this.stallFollowing) this.moveSpeed = Math.min(this.moveSpeed, this.chargeSpeed);
 		this.faceTowards(this.moveYaw, target);
 		if (this.burrowing) {
 			this.burrow(target, cue);
@@ -489,7 +513,7 @@ public class TheHead extends Monster {
 		} else {
 			this.fly(target, straight);
 		}
-		if (!this.teasing && this.touching(target, centre)) {
+		if (this.touching(target, centre)) {
 			this.caught(level, target);
 			return;
 		}
@@ -933,7 +957,7 @@ public class TheHead extends Monster {
 	}
 
 	private boolean tryTaunt(Player target, double chance) {
-		if (this.teasing || this.cue().chatter() || this.dashLine != HeadCue.NONE || this.tauntRolled || this.pendingVoice != HeadCue.NONE || this.burrowing
+		if (this.teasing || this.stallUntil >= 0 || this.cutoffPending || this.cue().chatter() || this.dashLine != HeadCue.NONE || this.tauntRolled || this.pendingVoice != HeadCue.NONE || this.burrowing
 			|| this.level().getGameTime() < this.tauntReadyAt || target.isPassenger() || target.isInWater() || target.isFallFlying()) {
 			return false;
 		}
@@ -941,7 +965,10 @@ public class TheHead extends Monster {
 		double floor = HeadRoom.surface(this, target.position().add(0.0, 0.05, 0.0), -1.55);
 		boolean onLand = target.onGround() || !Double.isNaN(floor);
 		double gap = target.position().subtract(centre).horizontalDistance();
-		if (!ChaseTempo.canTaunt(this.phaseTicks, onLand, gap, 0.0)) {
+		boolean early = this.stalls != null && this.stalls.active(this.phaseTicks);
+		int until = early ? this.stalls.cutoff() : 6000;
+		double probability = early ? 0.2 : 0.55;
+		if (!ChaseTempo.canTaunt(this.phaseTicks, onLand, gap, 0.0, until, probability)) {
 			return false;
 		}
 		Vec3 goal = new Vec3(target.getX(), (Double.isNaN(floor) ? target.getY() : floor) + HOVER * this.squeeze(), target.getZ());
@@ -949,7 +976,7 @@ public class TheHead extends Monster {
 			return false;
 		}
 		this.tauntRolled = true;
-		if (!ChaseTempo.canTaunt(this.phaseTicks, onLand, gap, chance)) {
+		if (!ChaseTempo.canTaunt(this.phaseTicks, onLand, gap, chance, until, probability)) {
 			return false;
 		}
 		this.teasing = true;
@@ -961,6 +988,94 @@ public class TheHead extends Monster {
 		if (!this.voices.waiting()) return false;
 		if (this.speech.canStart(HeadCue.VARIETY_LAUGH1, now)) {
 			this.setCue(this.voices.laugh(this.random.nextDouble()));
+		}
+		return true;
+	}
+
+	private boolean tryStall(Player target, double chance) {
+		this.updateStalls(target);
+		long now = this.level().getGameTime();
+		if (this.prank.stage() != BehindPrank.Stage.WAITING && this.prank.stage() != BehindPrank.Stage.DONE) return false;
+		if (this.teasing || this.stallUntil >= 0 || this.pendingVoice != HeadCue.NONE || this.voices.waiting()
+			|| !this.speech.canStart(HeadCue.VARIETY_043, now) || this.homeStage != HomeStage.NONE) return false;
+		Vec3 c = this.centre();
+		Vec3 direction = target.getBoundingBox().getCenter().subtract(c).normalize();
+		double speed = RevSpring.peak(this.revs + 1) * this.tempo.multiplier() * this.tempo.humMultiplier();
+		double closing = Math.max(0, speed - this.chasedVelocity.dot(direction));
+		boolean imminent = c.distanceTo(target.getEyePosition()) <= 8 && this.clearLine(c, target.getEyePosition())
+			&& HeadContact.sweeps(c, c.add(direction.scale(closing * 8)), this.getYRot(), this.getXRot(), this.roll,
+				this.squeeze(), target.getBoundingBox(), CONTACT_REACH);
+		boolean selected = this.stalls.tryStart(this.phaseTicks, imminent, chance);
+		MarioHead.LOG.debug("[head] stall_roll id={} imminent={} chance={} selected={}", this.getId(), imminent, chance, selected);
+		if (!selected) return false;
+		HeadCue line = this.voices.choose(ChaseVoices.STALLS, this.random.nextDouble());
+		this.setCue(line);
+		this.voices.follow(0.4, this.random.nextDouble());
+		this.stallUntil = now + (line.clip().millis() + 49) / 50;
+		this.stallFollowing = true;
+		this.tauntReadyAt = this.stallUntil + HeadClock.LATE_VOICE_TICKS + 600;
+		this.revs = -1;
+		this.tempo.stall();
+		this.dashBoost = 1;
+		this.pearlBoost = 0;
+		this.chargeSpeed = this.pace * 0.97;
+		this.moveSpeed = Math.min(this.moveSpeed, this.chargeSpeed);
+		MarioHead.LOG.debug("[head] stall id={} cue={} ticks={} speed={}", this.getId(), line, this.stallUntil - now, this.chargeSpeed);
+		return true;
+	}
+
+	private boolean tickStall(long now) {
+		if (this.stallUntil < 0) return false;
+		if (now < this.stallUntil) return true;
+		this.stallUntil = -1;
+		this.stalls.finished(this.phaseTicks);
+		return false;
+	}
+
+	private void updateStalls(Player target) {
+		if (this.stalls == null) this.stalls = new EarlyStall(this.random.nextDouble());
+		this.stallEscalated |= this.digging || this.burrowing || this.prankDigging || this.prankBurrowing
+			|| target.isFallFlying() || this.centre().distanceTo(target.getEyePosition()) > 64;
+		var inventory = target.getInventory();
+		for (int slot = 0; !this.stallEscalated && slot < inventory.getContainerSize(); slot++) {
+			var item = inventory.getItem(slot);
+			this.stallEscalated = item.is(net.minecraft.world.item.Items.ENDER_PEARL) || item.is(net.minecraft.world.item.Items.ELYTRA)
+				|| item.is(net.minecraft.world.item.Items.GOLDEN_APPLE) || item.is(net.minecraft.world.item.Items.ENCHANTED_GOLDEN_APPLE)
+				|| item.is(net.minecraft.tags.ItemTags.HEAD_ARMOR) || item.is(net.minecraft.tags.ItemTags.CHEST_ARMOR)
+				|| item.is(net.minecraft.tags.ItemTags.LEG_ARMOR) || item.is(net.minecraft.tags.ItemTags.FOOT_ARMOR);
+		}
+		Entity vehicle = target.getRootVehicle();
+		if (vehicle instanceof net.minecraft.world.entity.vehicle.boat.AbstractBoat) {
+			var box = vehicle.getBoundingBox();
+			for (BlockPos pos : BlockPos.betweenClosed(BlockPos.containing(box.minX, box.minY - 0.01, box.minZ),
+				BlockPos.containing(box.maxX, box.minY - 0.01, box.maxZ))) {
+				this.stallEscalated |= this.level().getBlockState(pos).is(net.minecraft.tags.BlockTags.ICE);
+			}
+		}
+		this.cutoffPending |= this.stalls.expire(this.phaseTicks, this.stallEscalated,
+			VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) > 0);
+		if (this.stallEscalated) {
+			this.cutoffPending = false;
+			if (this.stallFollowing) this.voices.follow(0, 0);
+			this.stallFollowing = false;
+			if (this.stallUntil >= 0) {
+				this.stallUntil = -1;
+				this.voices.follow(0, 0);
+				this.stalls.finished(this.phaseTicks);
+			}
+		}
+	}
+
+	private boolean tickCutoff(Player target) {
+		if (!this.cutoffPending) return false;
+		if (VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) == 0) {
+			this.cutoffPending = false;
+			return false;
+		}
+		if (this.speech.canStart(HeadCue.VARIETY_037, this.level().getGameTime())) {
+			this.setCue(this.voices.choose(ChaseVoices.CUTOFF, this.random.nextDouble()));
+			this.voices.follow(0, 0);
+			this.cutoffPending = false;
 		}
 		return true;
 	}
@@ -1029,6 +1144,7 @@ public class TheHead extends Monster {
 	}
 
 	private void setDigging(boolean digging) {
+		this.stallEscalated |= digging;
 		this.digging = digging;
 		this.entityData.set(DATA_DIGGING, digging);
 	}
