@@ -81,7 +81,7 @@ cd minecraft-mariohead
 ```
 
 
-Copy `build/libs/mariohead-0.1.0.jar` into your Minecraft instance's `mods` folder
+Copy `build/libs/mariohead-x.x.x.jar` into your Minecraft instance's `mods` folder
 (`~/.minecraft/mods` for the standard launcher), alongside Fabric API for Minecraft 26.3.
 
 ### What the build does
