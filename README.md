@@ -101,6 +101,6 @@ To run unit tests separately, use `./gradlew test`. Server game tests use `./gra
 ## Credits
 
 - Head model: the high quality Mario head Blender model (`mario_head.blend`) with its cap, iris
-  and swatch textures based on the Floating Mario Head from Mario Teaches Typing.
+  and swatch textures is based on the Floating Mario Head from Mario Teaches Typing. The original creator is unknown since I cannot find the site where I originally found it. If it's you, please come forward.
 - Voice: clips of the Floating Mario Head from Mario Teaches Typing.
 - His arrival sound is Minecraft's own illusioner mirror move sound, lowered in pitch.
