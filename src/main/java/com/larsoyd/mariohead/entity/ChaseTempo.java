@@ -51,11 +51,7 @@ public final class ChaseTempo {
 		return this.multiplier;
 	}
 
-	public static boolean canTaunt(int chaseTicks, boolean onLand, double gap, double chance) {
-		return canTaunt(chaseTicks, onLand, gap, chance, 6000, 0.55);
-	}
-
-	public static boolean canTaunt(int chaseTicks, boolean onLand, double gap, double chance, int until, double probability) {
-		return chaseTicks < until && onLand && gap <= 8.0 && chance < probability;
+	public static boolean canTaunt(boolean stallsPossible, boolean onLand, double gap, double chance) {
+		return !stallsPossible && onLand && gap <= 8.0 && chance < 0.55;
 	}
 }

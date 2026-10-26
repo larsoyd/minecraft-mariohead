@@ -24,14 +24,26 @@ class EarlyStallTest {
 	}
 
 	@Test
-	void cutoffIsChosenOnceBetweenFiveAndTenMinutes() {
+	void cutoffIsChosenOnceBetweenFiveAndTwentyMinutes() {
 		assertEquals(6000, new EarlyStall(0).cutoff());
-		assertEquals(12000, new EarlyStall(0.999999).cutoff());
+		assertEquals(24000, new EarlyStall(0.999999).cutoff());
 		EarlyStall stall = new EarlyStall(0.5);
-		assertTrue(stall.active(8999));
-		assertTrue(stall.expire(9000, false, true));
-		assertFalse(stall.active(9000));
-		assertFalse(stall.expire(9001, false, true));
+		assertTrue(stall.active(14999));
+		assertTrue(stall.expire(15000, false, true));
+		assertFalse(stall.active(15000));
+		assertFalse(stall.expire(15001, false, true));
+	}
+
+	@Test
+	void everyRandomWindowAllowsFiveMinutesAndEndsByTwenty() {
+		java.util.Random random = new java.util.Random(829);
+		for (int i = 0; i < 10000; i++) {
+			EarlyStall stall = new EarlyStall(random.nextDouble());
+			assertTrue(stall.active(5999));
+			assertFalse(stall.expire(5999, false, true));
+			assertTrue(stall.expire(24000, false, true));
+			assertFalse(stall.active(24000));
+		}
 	}
 
 	@Test

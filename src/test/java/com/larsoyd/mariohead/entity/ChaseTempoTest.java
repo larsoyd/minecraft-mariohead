@@ -127,18 +127,18 @@ class ChaseTempoTest {
 	}
 
 	@Test
-	void earlyTauntUsesReducedChanceThroughoutRandomStallWindow() {
-		assertTrue(ChaseTempo.canTaunt(8999, true, 8, 0.199999, 9000, 0.2));
-		assertFalse(ChaseTempo.canTaunt(8999, true, 8, 0.2, 9000, 0.2));
-		assertFalse(ChaseTempo.canTaunt(9000, true, 8, 0, 9000, 0.2));
+	void possibleStallsExcludeTauntsEvenWithWinningRolls() {
+		for (double chance : new double[] {0, 0.1, 0.2, 0.54}) {
+			assertFalse(ChaseTempo.canTaunt(true, true, 8, chance));
+			assertTrue(ChaseTempo.canTaunt(false, true, 8, chance));
+		}
 	}
 
 	@Test
-	void tauntHasStrictTimeChanceAndProximityBoundaries() {
-		assertTrue(ChaseTempo.canTaunt(5999, true, 8, 0.549999));
-		assertFalse(ChaseTempo.canTaunt(6000, true, 8, 0));
-		assertFalse(ChaseTempo.canTaunt(100, true, 8, 0.55));
-		assertFalse(ChaseTempo.canTaunt(100, false, 8, 0));
-		assertFalse(ChaseTempo.canTaunt(100, true, 8.01, 0));
+	void tauntHasStrictChanceAndProximityBoundaries() {
+		assertTrue(ChaseTempo.canTaunt(false, true, 8, 0.549999));
+		assertFalse(ChaseTempo.canTaunt(false, true, 8, 0.55));
+		assertFalse(ChaseTempo.canTaunt(false, false, 8, 0));
+		assertFalse(ChaseTempo.canTaunt(false, true, 8.01, 0));
 	}
 }

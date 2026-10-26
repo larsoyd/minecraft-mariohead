@@ -7,7 +7,7 @@ public final class EarlyStall {
 	private long readyAt;
 
 	public EarlyStall(double random) {
-		this.cutoff = 6000 + (int) (random * 6001);
+		this.cutoff = 6000 + (int) (random * 18001);
 	}
 
 	public int cutoff() {

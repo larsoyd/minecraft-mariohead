@@ -956,7 +956,7 @@ public class TheHead extends Monster {
 	public void playerFell(ServerPlayer player) {
 		long now = this.level().getGameTime();
 		if (this.chased == player && this.phase() == HeadPhase.CHARGE && player.isAlive()
-			&& now >= this.tauntReadyAt && this.fallTauntUntil < now && !this.teasing
+			&& this.tauntsAllowed(player) && now >= this.tauntReadyAt && this.fallTauntUntil < now && !this.teasing
 			&& VoiceCurve.volume(this.centre().distanceTo(player.getEyePosition())) > 0 && this.random.nextDouble() < 0.15) {
 			this.fallTauntUntil = now + 200;
 		}
@@ -965,7 +965,7 @@ public class TheHead extends Monster {
 	private void updateFallTaunt(Player target) {
 		if (this.fallTauntUntil < 0) return;
 		long now = this.level().getGameTime();
-		if (now >= this.fallTauntUntil || now < this.tauntReadyAt || VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) == 0) {
+		if (!this.tauntsAllowed(target) || now >= this.fallTauntUntil || now < this.tauntReadyAt || VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) == 0) {
 			this.fallTauntUntil = -1;
 			if (this.pendingVoice == HeadCue.FALL_019) {
 				this.pendingVoice = HeadCue.NONE;
@@ -983,6 +983,7 @@ public class TheHead extends Monster {
 	}
 
 	private boolean tryTaunt(Player target, double chance) {
+		this.updateStalls(target);
 		if (this.teasing || this.stallUntil >= 0 || this.stallVoice != HeadCue.NONE || this.cutoffPending || this.cue().chatter() || this.dashLine != HeadCue.NONE || this.tauntRolled || this.pendingVoice != HeadCue.NONE || this.burrowing
 			|| this.level().getGameTime() < this.tauntReadyAt || target.isPassenger() || target.isInWater() || target.isFallFlying()) {
 			return false;
@@ -991,10 +992,8 @@ public class TheHead extends Monster {
 		double floor = HeadRoom.surface(this, target.position().add(0.0, 0.05, 0.0), -1.55);
 		boolean onLand = target.onGround() || !Double.isNaN(floor);
 		double gap = target.position().subtract(centre).horizontalDistance();
-		boolean early = this.stalls != null && this.stalls.active(this.phaseTicks);
-		int until = early ? this.stalls.cutoff() : 6000;
-		double probability = early ? 0.2 : 0.55;
-		if (!ChaseTempo.canTaunt(this.phaseTicks, onLand, gap, 0.0, until, probability)) {
+		boolean early = this.stalls.active(this.phaseTicks);
+		if (!ChaseTempo.canTaunt(early, onLand, gap, 0.0)) {
 			return false;
 		}
 		Vec3 goal = new Vec3(target.getX(), (Double.isNaN(floor) ? target.getY() : floor) + HOVER * this.squeeze(), target.getZ());
@@ -1002,7 +1001,7 @@ public class TheHead extends Monster {
 			return false;
 		}
 		this.tauntRolled = true;
-		if (!ChaseTempo.canTaunt(this.phaseTicks, onLand, gap, chance, until, probability)) {
+		if (!ChaseTempo.canTaunt(early, onLand, gap, chance)) {
 			return false;
 		}
 		this.teasing = true;
@@ -1040,10 +1039,20 @@ public class TheHead extends Monster {
 	}
 
 	public void playerDrowned(ServerPlayer player) {
-		if (this.chased == player && player.isAlive() && !this.drownedSpoken) this.drowningUntil = this.level().getGameTime() + 200;
+		if (this.chased == player && player.isAlive() && !this.drownedSpoken && this.tauntsAllowed(player)) this.drowningUntil = this.level().getGameTime() + 200;
+	}
+
+	private boolean tauntsAllowed(Player target) {
+		this.updateStalls(target);
+		return !this.stalls.active(this.phaseTicks);
 	}
 
 	private boolean tickWaterSpeech(Player target, double chance) {
+		if (!this.tauntsAllowed(target)) {
+			this.waterPending = false;
+			this.drowningUntil = -1;
+			return false;
+		}
 		long now = this.level().getGameTime();
 		if (this.drowningUntil >= 0 && (now >= this.drowningUntil || !this.submerged(target)
 			|| VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) == 0)) this.drowningUntil = -1;

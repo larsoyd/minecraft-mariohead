@@ -116,6 +116,16 @@ public class HeadGameTests {
 		});
 	}
 
+	private static void equipForTaunts(GameTestHelper helper, TheHead head, ServerPlayer target) {
+		target.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE));
+		try {
+			var update = TheHead.class.getDeclaredMethod("updateStalls", net.minecraft.world.entity.player.Player.class); update.setAccessible(true);
+			var state = TheHead.class.getDeclaredField("stalls"); state.setAccessible(true);
+			update.invoke(head, target);
+			helper.assertFalse(((com.larsoyd.mariohead.entity.EarlyStall) state.get(head)).active(0), "equipment left stalls eligible");
+		} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 800)
 	public void entersRealVillageSmallHouse(GameTestHelper helper) {
 		villageHouseScenario(helper, "plains_small_house_1", false);
@@ -3176,6 +3186,7 @@ public class HeadGameTests {
 	private void fallRejection(GameTestHelper helper, int scenario) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(16.5, 0.5, 10.5));
+		equipForTaunts(helper, head, target);
 		head.chase(target);
 		head.setNoAi(true);
 		helper.runAtTickTime(80, () -> {
@@ -3215,6 +3226,7 @@ public class HeadGameTests {
 	public void longFallRollUsesFifteenPercentOnce(GameTestHelper helper) throws ReflectiveOperationException {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(16.5, 0.5, 10.5));
+		equipForTaunts(helper, head, target);
 		head.chase(target);
 		head.setNoAi(true);
 		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
@@ -3265,6 +3277,7 @@ public class HeadGameTests {
 	private void fallQueueScenario(GameTestHelper helper, int scenario) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		head.setNoAi(true);
 		long[] humAt = { -1 };
 		boolean[] spoken = { false };
@@ -3395,6 +3408,7 @@ public class HeadGameTests {
 		}
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, 40, 9.5), -90);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(6, 40, 9.5));
+		if (!house) equipForTaunts(helper, head, target);
 		head.chase(target);
 		var voicesField = TheHead.class.getDeclaredField("voices"); voicesField.setAccessible(true);
 		var voices = (com.larsoyd.mariohead.entity.ChaseVoices) voicesField.get(head);
@@ -3483,6 +3497,7 @@ public class HeadGameTests {
 		fill(helper, 0, 20, 0, 20, 27, 20, Blocks.WATER.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(4.5, 22, 10.5), -90);
 		TheHead head = head(helper, new Vec3(10.5, 22.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		head.setNoAi(true);
 		var dive = TheHead.class.getDeclaredField("diveTaunt"); dive.setAccessible(true);
 		var policy = (com.larsoyd.mariohead.entity.DiveTaunt) dive.get(head);
@@ -3502,6 +3517,7 @@ public class HeadGameTests {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(4.5, 22, 10.5), -90);
 		target.setNoGravity(true);
 		TheHead head = head(helper, new Vec3(10.5, 22.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		head.setNoAi(true);
 		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class); phase.setAccessible(true);
 		phase.invoke(head, HeadPhase.CHARGE);
@@ -3536,6 +3552,81 @@ public class HeadGameTests {
 				head.discard(); helper.succeed();
 			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
 		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void earlyStallSuppressesOrdinaryAndFallTaunts(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		target.setOnGround(true);
+		var state = TheHead.class.getDeclaredField("stalls"); state.setAccessible(true);
+		var age = TheHead.class.getDeclaredField("phaseTicks"); age.setAccessible(true);
+		var fall = TheHead.class.getDeclaredField("fallTauntUntil"); fall.setAccessible(true);
+		var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class); taunt.setAccessible(true);
+		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class); phase.setAccessible(true);
+		for (int tick : new int[] {0, 5999, 11000, 15000, 23999}) {
+			TheHead head = head(helper, new Vec3(9.5, 0.5, 10.5), target);
+			head.setNoAi(true);
+			phase.invoke(head, HeadPhase.CHARGE);
+			state.set(head, new com.larsoyd.mariohead.entity.EarlyStall(0.999999));
+			age.setInt(head, tick);
+			helper.assertFalse((boolean) taunt.invoke(head, target, 0), "eligible stalls allowed ordinary taunt at " + tick);
+			for (int seed = 0; seed < 10000; seed++) {
+				if (net.minecraft.util.RandomSource.create(seed).nextDouble() < 0.15) { head.getRandom().setSeed(seed); break; }
+			}
+			head.playerFell(target);
+			helper.assertTrue(fall.getLong(head) < 0, "eligible stalls queued fall taunt at " + tick);
+			head.discard();
+		}
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void earlyStallSuppressesSwimmingTaunt(GameTestHelper helper) throws ReflectiveOperationException {
+		fill(helper, 0, 20, 0, 20, 27, 20, Blocks.WATER.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(4.5, 22, 10.5), -90);
+		TheHead head = head(helper, new Vec3(10.5, 22.5, 10.5), target);
+		head.setNoAi(true);
+		var state = TheHead.class.getDeclaredField("stalls"); state.setAccessible(true);
+		state.set(head, new com.larsoyd.mariohead.entity.EarlyStall(0.999999));
+		var dive = TheHead.class.getDeclaredField("diveTaunt"); dive.setAccessible(true);
+		var policy = (com.larsoyd.mariohead.entity.DiveTaunt) dive.get(head);
+		for (int tick = 0; tick < 40; tick++) policy.observe(true);
+		var speak = TheHead.class.getDeclaredMethod("tickWaterSpeech", net.minecraft.world.entity.player.Player.class, double.class); speak.setAccessible(true);
+		helper.assertFalse((boolean) speak.invoke(head, target, 0), "eligible stalls allowed swimming taunt");
+		head.discard(); helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void earlyStallSuppressesDrowningQueue(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = head(helper, new Vec3(9.5, 0.5, 10.5), target);
+		head.setNoAi(true);
+		var state = TheHead.class.getDeclaredField("stalls"); state.setAccessible(true);
+		state.set(head, new com.larsoyd.mariohead.entity.EarlyStall(0.999999));
+		var queued = TheHead.class.getDeclaredField("drowningUntil"); queued.setAccessible(true);
+		head.playerDrowned(target);
+		helper.assertTrue(queued.getLong(head) < 0, "eligible stalls queued drowning taunt");
+		head.discard(); helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void earlyStallDisabledAllowsTauntsAfterTwentyMinutes(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		target.setOnGround(true);
+		var state = TheHead.class.getDeclaredField("stalls"); state.setAccessible(true);
+		var age = TheHead.class.getDeclaredField("phaseTicks"); age.setAccessible(true);
+		var taunt = TheHead.class.getDeclaredMethod("tryTaunt", net.minecraft.world.entity.player.Player.class, double.class); taunt.setAccessible(true);
+		for (int tick : new int[] {0, 6000, 24000, 100000}) {
+			TheHead head = head(helper, new Vec3(9.5, 0.5, 10.5), target);
+			head.setNoAi(true);
+			var stalls = new com.larsoyd.mariohead.entity.EarlyStall(0.999999);
+			stalls.expire(0, true, false);
+			state.set(head, stalls);
+			age.setInt(head, tick);
+			helper.assertTrue((boolean) taunt.invoke(head, target, 0.54), "disabled stalls prevented usual taunt at " + tick);
+			head.discard();
+		}
+		helper.succeed();
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 30)
@@ -3942,6 +4033,7 @@ public class HeadGameTests {
 	private void tauntLaugh(GameTestHelper helper, boolean tnt) throws ReflectiveOperationException {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
 		TheHead head = head(helper, new Vec3(10.5, 0.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
 		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
 		var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
@@ -3982,6 +4074,7 @@ public class HeadGameTests {
 	public void tauntMatchesPaceThenBoostsOneDash(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		boolean[] taunted = { false };
 		boolean[] resumed = { false };
 		helper.runAtTickTime(80, () -> {
@@ -4017,6 +4110,7 @@ public class HeadGameTests {
 	public void nearbyRunnersGetOneTauntRollEvenDuringJumps(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		head.setNoAi(true);
 		helper.runAtTickTime(80, () -> {
 			try {
@@ -4043,6 +4137,7 @@ public class HeadGameTests {
 	public void failedTauntRollCannotRepeatUntilNextDash(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(7.0, 0.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		head.setNoAi(true);
 		helper.runAtTickTime(80, () -> {
 			try {
@@ -4074,6 +4169,7 @@ public class HeadGameTests {
 	public void tauntCooldownBlocksNearbyRollsUntilReady(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(7.0, 0.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		head.setNoAi(true);
 		helper.runAtTickTime(80, () -> {
 			try {
@@ -4101,6 +4197,7 @@ public class HeadGameTests {
 	public void approachingDashPausesForTauntAndStartsCooldown(GameTestHelper helper) {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		head.setNoAi(true);
 		long[] started = { -1 };
 		long[] humAt = { -1 };
@@ -4153,6 +4250,7 @@ public class HeadGameTests {
 		fill(helper, -12, 63, 7, 120, 63, 13, Blocks.STONE.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(10.5, 64, 10.5), -90.0f);
 		TheHead head = head(helper, new Vec3(-4.5, 64.5, 10.5), target);
+		equipForTaunts(helper, head, target);
 		HeadCue[] last = { HeadCue.NONE };
 		long[] tauntAt = { -1 };
 		long[] boostAt = { -1 };
