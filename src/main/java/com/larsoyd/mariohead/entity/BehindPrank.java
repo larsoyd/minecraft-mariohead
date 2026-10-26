@@ -11,6 +11,13 @@ public final class BehindPrank {
 
 	public Stage stage() { return this.stage; }
 	public boolean punishment() { return this.punishment; }
+	public boolean begin(long now) {
+		if (this.used || this.stage != Stage.WAITING) return false;
+		this.used = true;
+		this.stage = Stage.APPROACH;
+		this.deadline = now + 600;
+		return true;
+	}
 
 	public boolean readyToRoll(long now) {
 		return !this.used && this.stage == Stage.WAITING && this.awaySince >= 0 && now - this.awaySince >= 100;
@@ -24,11 +31,9 @@ public final class BehindPrank {
 		}
 		if (this.awaySince < 0) this.awaySince = now;
 		if (now - this.awaySince < 100) return false;
+		if (roll < 0.55) return this.begin(now);
 		this.used = true;
-		if (roll >= 0.55) return false;
-		this.stage = Stage.APPROACH;
-		this.deadline = now + 600;
-		return true;
+		return false;
 	}
 
 	public void warning(long now, int ticks) {

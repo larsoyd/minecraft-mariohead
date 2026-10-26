@@ -5,6 +5,18 @@ import org.junit.jupiter.api.Test;
 
 class BehindPrankTest {
 	@Test
+	void selectedGraceStalkStartsWithoutAnotherChanceOrEscapeTimer() {
+		BehindPrank prank = new BehindPrank();
+		assertTrue(prank.begin(500));
+		assertEquals(BehindPrank.Stage.APPROACH, prank.stage());
+		assertFalse(prank.expired(1099));
+		assertTrue(prank.expired(1100));
+		assertFalse(prank.begin(600));
+		prank.finish();
+		assertFalse(prank.begin(1200));
+	}
+
+	@Test
 	void needsFiveContinuousSecondsAndStrictFiftyFivePercentRoll() {
 		for (double roll : new double[] { 0, 0.549999, 0.55, 0.999999 }) {
 			BehindPrank prank = new BehindPrank();
