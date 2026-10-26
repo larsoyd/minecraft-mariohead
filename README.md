@@ -16,10 +16,10 @@ He does not give up. If he touches you, you die.
 
 ## Install
 
-Download `mariohead-0.1.0.jar` from the [latest release](https://github.com/larsoyd/minecraft-mariohead/releases/latest).
+Download the newest `mariohead-x.x.x.jar` from the [latest release](https://github.com/larsoyd/minecraft-mariohead/releases/latest).
 Install Fabric Loader for Minecraft 26.3, then put the mod jar and
 [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3 in your instance's `mods` folder.
-Use Java 25 in your Minecraft launcher. Repository access is required to download this private release.
+Use Java 25 in your Minecraft launcher.
 
 To use `/mariohead summon` in singleplayer, create the world with Allow Commands on, or open it to
 LAN with cheats allowed.
@@ -34,6 +34,8 @@ LAN with cheats allowed.
   from an egg chases the nearest player in survival or adventure within 32 blocks.
 
 The command needs operator rights (permission level 2).
+
+---
 
 ## Building from source
 
@@ -99,6 +101,6 @@ To run unit tests separately, use `./gradlew test`. Server game tests use `./gra
 ## Credits
 
 - Head model: the high quality Mario head Blender model (`mario_head.blend`) with its cap, iris
-  and swatch textures.
+  and swatch textures based on the Floating Mario Head from Mario Teaches Typing.
 - Voice: clips of the Floating Mario Head from Mario Teaches Typing.
 - His arrival sound is Minecraft's own illusioner mirror move sound, lowered in pitch.
