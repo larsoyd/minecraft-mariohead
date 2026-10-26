@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_taunts
 
 
-def build(source):
+def build(source, threat_mix):
     entries = json.loads(Path(__file__).with_name('variety-lines.json').read_text())
     with tempfile.TemporaryDirectory(prefix='mariohead-variety-') as directory:
         staging = Path(directory)
@@ -26,6 +26,8 @@ def build(source):
                                 '-map', '0:a:0', '-ac', '1', '-ar', '48000', '-c:a', 'libvorbis',
                                 '-q:a', '6', '-fflags', '+bitexact', '-flags:a', '+bitexact',
                                 str(staging / 'drowning.ogg')], check=True, timeout=30)
+            elif entry['id'].startswith('036_'):
+                shutil.copyfile(threat_mix, staging / (entry['id'] + '.ogg'))
             else:
                 shutil.copyfile(source / 'ogg' / (entry['id'] + '.ogg'), staging / (entry['id'] + '.ogg'))
         build_taunts.build(staging, 'variety-lines.json', 'variety', 'VarietyVoice')
@@ -34,4 +36,6 @@ def build(source):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path, help='directory containing ogg and wav source folders')
-    build(parser.parse_args().source)
+    parser.add_argument('--threat-mix', type=Path, required=True, help='approved line 036 OGG')
+    args = parser.parse_args()
+    build(args.source, args.threat_mix)
