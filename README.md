@@ -61,7 +61,7 @@ cd minecraft-mariohead
 ./build.sh
 ```
 
-The jar is `build/libs/mariohead-0.1.0.jar`. Run `cd build/libs && explorer.exe .` from Ubuntu to open the output
+The jar is `build/libs/mariohead-x.x.x.jar`. Run `cd build/libs && explorer.exe .` from Ubuntu to open the output
 folder in Windows, then copy the jar to your Windows Minecraft instance's `mods` folder.
 For the standard launcher, that is `%APPDATA%\.minecraft\mods`.
 Install Fabric Loader and Fabric API on Windows as described above, then launch Minecraft on Windows.
