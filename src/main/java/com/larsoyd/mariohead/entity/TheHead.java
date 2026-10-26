@@ -86,6 +86,7 @@ public class TheHead extends Monster {
 	private int phaseTicks = -1;
 	private int cueTicks = -1;
 	private int revs;
+	private final DashCadence cadence = new DashCadence();
 	private final PearlPursuit pearlPursuit = new PearlPursuit();
 	private double pearlBoost;
 	private final ChaseTempo tempo = new ChaseTempo();
@@ -287,7 +288,8 @@ public class TheHead extends Monster {
 		if (cue.clip() != null && !cue.laugh()) this.stallFollowing = false;
 		this.voices.played(cue);
 		if (cue.taunt() && cue != HeadCue.HOME_RETURN) this.voices.follow(0.1, this.random.nextDouble());
-		if (cue.clip() != null && !cue.spoken()) {
+		if (cue.clip() != null && !cue.spoken() && !this.graceFollowing()
+			&& (this.stalls == null || !this.stalls.active(this.phaseTicks) || this.cadence.grows())) {
 			this.tempo.hum();
 		}
 		if (cue.taunt()) {
@@ -389,6 +391,7 @@ public class TheHead extends Monster {
 				if (this.cueTicks + 1 >= ticks(clipSeconds(HeadCue.HELLO))) {
 					this.setPhase(HeadPhase.CHARGE);
 					this.revs = -1;
+					this.cadence.reset();
 					this.moveYaw = this.getYRot();
 					this.setCue(HeadCue.INHALE);
 				}
@@ -442,12 +445,14 @@ public class TheHead extends Monster {
 		this.trackPace(target);
 		this.pearlBoost = this.pearlPursuit.boost(this.centre().distanceTo(target.position()));
 		boolean water = !mock && this.tickWaterSpeech(target, this.submerged(target) ? this.random.nextDouble() : 1);
-		if (!mock && !water && this.grace.stage() == StallGrace.Stage.NONE && !this.teasing && !this.digging && !this.burrowing && this.pendingVoice == HeadCue.NONE
-			&& this.cue() == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
+		boolean readyDash = this.cue() == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
 			&& Math.abs(this.getXRot() - this.pitchTo(target)) <= PITCH_RATE
-			&& this.speech.canStart(HeadCue.hum(this.revs + 1), level.getGameTime())) {
-			this.stalls.beginDash(this.phaseTicks);
-			mock = this.tryStall(target, this.random.nextDouble());
+			&& this.speech.canStart(HeadCue.hum(this.cadence.beat() + 1), now);
+		if (!mock && !water && this.grace.stage() == StallGrace.Stage.NONE && !this.teasing && !this.digging && !this.burrowing && this.pendingVoice == HeadCue.NONE) {
+			if (readyDash) this.stalls.beginDash(this.phaseTicks);
+			if (this.stalls.canRoll(this.phaseTicks) && (readyDash || this.cue().clip() != null && !this.cue().spoken())) {
+				mock = this.tryStall(target, this.random.nextDouble());
+			}
 		}
 		if (!mock && !water && !this.cutoffPending && this.homeStage != HomeStage.RETURN) this.tryTaunt(target, this.random.nextDouble());
 		HeadCue cue = this.cue();
@@ -463,12 +468,11 @@ public class TheHead extends Monster {
 			this.setCue(this.pendingVoice);
 		} else if (cue == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
 			&& Math.abs(this.getXRot() - this.pitchTo(target)) <= PITCH_RATE
-			&& this.speech.canStart(HeadCue.hum(this.revs + 1), level.getGameTime())) {
-			this.revs++;
-			this.tempo.dash();
+			&& this.speech.canStart(HeadCue.hum(this.cadence.beat() + 1), level.getGameTime())) {
+			this.advanceDash();
 			this.dashBoost = this.teasing ? 1.1 : 1.0;
 			this.teasing = false;
-			this.setCue(HeadCue.hum(this.revs));
+			this.setCue(HeadCue.hum(this.cadence.beat()));
 			if (this.graceFollowing()) {
 				this.revs = Math.floorMod(this.revs, 3);
 				this.tempo.stall();
@@ -508,12 +512,21 @@ public class TheHead extends Monster {
 		this.moveChase(level, target, cue, digDash);
 	}
 
+	private void advanceDash() {
+		boolean alternate = this.stalls != null && this.stalls.active(this.phaseTicks) && this.grace.stage() != StallGrace.Stage.STALK;
+		this.revs = this.cadence.advance(this.revs, alternate);
+		if (this.cadence.grows() && !this.graceFollowing()) this.tempo.dash();
+		MarioHead.LOG.debug("[head] dash id={} age={} beat={} rev={} growth={} eligible={}",
+			this.getId(), this.phaseTicks, this.cadence.beat() + 1, this.revs, this.cadence.grows(), alternate);
+	}
+
 	private boolean graceFollowing() {
 		return this.grace.stage() == StallGrace.Stage.FOLLOW || this.grace.stage() == StallGrace.Stage.WITHDRAW;
 	}
 
 	private void resumeAfterGrace() {
 		this.revs = PACE_FROM_REV;
+		this.cadence.reset();
 		this.tempo.stall();
 		this.dashBoost = 1;
 		this.stallFollowing = false;
@@ -702,9 +715,8 @@ public class TheHead extends Monster {
 
 	private void startPrankDash(long now, boolean punishment) {
 		this.prank.dash(punishment);
-		this.revs++;
-		this.tempo.dash();
-		HeadCue hum = HeadCue.hum(this.revs);
+		this.advanceDash();
+		HeadCue hum = HeadCue.hum(this.cadence.beat());
 		this.prankDashUntil = now + ticks(clipSeconds(hum) * this.tempo.multiplier() * (punishment ? 1.5 : 1.0));
 		this.dashBoost = 1;
 		if (punishment) this.setCue(hum);
@@ -893,7 +905,7 @@ public class TheHead extends Monster {
 			case ASK -> HeadCue.HOME_ASK;
 			case LOOT -> this.random.nextBoolean() ? HeadCue.HOME_HUNGRY : HeadCue.HOME_THIRSTY;
 			case RETURN -> HeadCue.HOME_RETURN;
-			default -> HeadCue.digHum(this.revs + 1);
+			default -> HeadCue.digHum(this.cadence.beat() + 1);
 		};
 		if (this.speech.canStart(line, now)) {
 			HomeStage stage = this.homeStage;
@@ -975,7 +987,7 @@ public class TheHead extends Monster {
 			return false;
 		}
 		HeadCue cue = this.cue();
-		HeadCue hum = HeadCue.digHum(this.revs + 1);
+		HeadCue hum = HeadCue.digHum(this.cadence.beat() + 1);
 		if (cue.spoken() && !cue.chatter() && !this.speech.canStart(hum, now)) {
 			this.nextDigDash = -1;
 			return false;
@@ -1004,8 +1016,7 @@ public class TheHead extends Monster {
 		this.digDashTicks = (int) Math.ceil(interval * this.dashBoost);
 		this.nextDigDash = now + this.digDashTicks;
 		this.teasing = false;
-		this.revs++;
-		this.tempo.dash();
+		this.advanceDash();
 		this.tauntRolled = false;
 		boolean returning = this.homeStage == HomeStage.RETURN && this.chased != null
 			&& this.centre().distanceTo(this.chased.getEyePosition()) <= DIALOGUE_REACH;
@@ -1165,26 +1176,34 @@ public class TheHead extends Monster {
 	}
 
 	private boolean tryStall(Player target, double chance) {
+		return this.tryStall(target, chance, null);
+	}
+
+	private boolean tryStall(Player target, double chance, @Nullable Vec3 step) {
 		this.updateStalls(target);
-		if (this.grace.stage() != StallGrace.Stage.NONE) return false;
+		if (this.grace.stage() != StallGrace.Stage.NONE || !this.stalls.canRoll(this.phaseTicks)) return false;
 		long now = this.level().getGameTime();
 		if (this.prank.stage() != BehindPrank.Stage.WAITING && this.prank.stage() != BehindPrank.Stage.DONE) return false;
 		if (this.teasing || this.stallUntil >= 0 || this.stallVoice != HeadCue.NONE || this.pendingVoice != HeadCue.NONE || this.voices.waiting()
-			|| !this.speech.canStart(HeadCue.INHALE, now) || this.homeStage != HomeStage.NONE) return false;
+			|| this.homeStage != HomeStage.NONE) return false;
 		Vec3 c = this.centre();
-		Vec3 direction = target.position().add(0, HOVER * this.squeeze(), 0).subtract(c).normalize();
-		double speed = RevSpring.peak(this.revs + 1) * this.tempo.multiplier() * this.tempo.humMultiplier();
+		Vec3 direction = target.position().subtract(c).multiply(1, 0, 1).normalize();
+		double speed = Math.max(this.moveSpeed, RevSpring.speed(this.revs, 0, this.pace) * this.tempo.multiplier() * this.tempo.humMultiplier());
 		double closing = Math.max(0, speed - this.chasedVelocity.dot(direction));
 		Vec3 contact = c.distanceTo(target.getEyePosition()) <= 8 && this.clearLine(c, target.getEyePosition())
-			? HeadContact.firstContact(c, c.add(direction.scale(closing * 8)), this.getYRot(), this.getXRot(), this.roll,
+			? HeadContact.firstContact(c, c.add(step == null ? direction.scale(closing * 8) : step), this.getYRot(), this.getXRot(), this.roll,
 				this.squeeze(), target.getBoundingBox(), CONTACT_REACH) : null;
 		boolean imminent = contact != null && HeadRoom.sweep(this, c, contact, this.squeeze());
-		boolean selected = this.stalls.tryStart(this.phaseTicks, imminent, chance);
-		MarioHead.LOG.debug("[head] stall_roll id={} imminent={} chance={} selected={}", this.getId(), imminent, chance, selected);
+		if (!imminent) return false;
+		boolean guaranteed = this.stalls.guaranteed(this.phaseTicks);
+		boolean selected = this.stalls.tryStart(this.phaseTicks, true, chance);
+		MarioHead.LOG.debug("[head] stall_roll id={} age={} cutoff={} probability={} guaranteed={} chance={} selected={} sweep={}",
+			this.getId(), this.phaseTicks, this.stalls.cutoff(), this.stalls.probability(this.phaseTicks), guaranteed, chance, selected, step != null);
 		if (!selected) return false;
 		this.stallVoice = this.voices.choose(ChaseVoices.STALLS, this.random.nextDouble());
 		this.stallFollowing = true;
 		this.revs = -1;
+		this.cadence.reset();
 		this.tempo.stall();
 		this.dashBoost = 1;
 		this.pearlBoost = 0;
@@ -1220,6 +1239,7 @@ public class TheHead extends Monster {
 
 	private void updateStalls(Player target) {
 		if (this.stalls == null) this.stalls = new EarlyStall(this.random.nextDouble());
+		boolean wasActive = this.stalls.active(this.phaseTicks - 1);
 		this.stallEscalated |= this.digging || this.burrowing || this.prankDigging || this.prankBurrowing
 			|| target.isFallFlying() || this.centre().distanceTo(target.getEyePosition()) > 64;
 		var inventory = target.getInventory();
@@ -1240,6 +1260,11 @@ public class TheHead extends Monster {
 		}
 		this.cutoffPending |= this.stalls.expire(this.phaseTicks, this.stallEscalated,
 			VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) > 0);
+		if (wasActive && !this.stalls.active(this.phaseTicks)) {
+			MarioHead.LOG.debug("[head] stall_disabled id={} age={} cutoff={} escalated={} gap={} digging={} flying={} passenger={}",
+				this.getId(), this.phaseTicks, this.stalls.cutoff(), this.stallEscalated, this.centre().distanceTo(target.getEyePosition()),
+				this.digging || this.burrowing || this.prankDigging || this.prankBurrowing, target.isFallFlying(), target.isPassenger());
+		}
 		if (!this.stalls.active(this.phaseTicks) && this.grace.stage() != StallGrace.Stage.NONE
 			&& this.grace.stage() != StallGrace.Stage.ENDING) this.endGrace(false);
 		if (this.stallVoice != HeadCue.NONE && !this.stalls.active(this.phaseTicks)) {
@@ -1783,6 +1808,19 @@ public class TheHead extends Monster {
 		if (!((ServerLevel) this.level()).isPositionEntityTicking(BlockPos.containing(before.x + dx, before.y + dy, before.z + dz))) {
 			dx = 0.0;
 			dz = 0.0;
+		}
+		if (this.phase() == HeadPhase.CHARGE && this.chased != null && !this.wedged && !this.digging && !this.burrowing) {
+			Vec3 step = new Vec3(dx, dy, dz);
+			if (this.stalls != null && this.stalls.canRoll(this.phaseTicks)) this.tryStall(this.chased, this.random.nextDouble(), step);
+			if (this.stallVoice != HeadCue.NONE || this.stallUntil >= 0) {
+				Vec3 c = this.centre();
+				Vec3 contact = HeadContact.firstContact(c, c.add(step), this.getYRot(), this.getXRot(), this.roll,
+					this.squeeze(), this.chased.getBoundingBox(), CONTACT_REACH);
+				double limit = Math.min(step.length(), this.chargeSpeed);
+				if (contact != null) limit = Math.min(limit, Math.max(0, c.distanceTo(contact) - 0.05));
+				step = step.normalize().scale(limit);
+				dx = step.x; dy = step.y; dz = step.z;
+			}
 		}
 		this.noPhysics = this.wedged || this.burrowing;
 		this.move(MoverType.SELF, new Vec3(dx, dy, dz));

@@ -4,6 +4,7 @@ public final class EarlyStall {
 	private final int cutoff;
 	private boolean disabled;
 	private boolean rolled;
+	private boolean started;
 	private long readyAt;
 
 	public EarlyStall(double random) {
@@ -28,10 +29,24 @@ public final class EarlyStall {
 		this.rolled = chaseTick < this.readyAt;
 	}
 
+	public boolean canRoll(long chaseTick) {
+		return this.active(chaseTick) && !this.rolled && chaseTick >= this.readyAt;
+	}
+
+	public boolean guaranteed(long chaseTick) {
+		return !this.started && chaseTick < 6000;
+	}
+
+	public double probability(long chaseTick) {
+		return this.active(chaseTick) ? 0.70 - 0.60 * Math.max(0, chaseTick) / this.cutoff : 0;
+	}
+
 	public boolean tryStart(long chaseTick, boolean imminent, double chance) {
-		if (!this.active(chaseTick) || this.rolled || chaseTick < this.readyAt || !imminent) return false;
+		if (!this.canRoll(chaseTick) || !imminent) return false;
 		this.rolled = true;
-		return chance < 0.55 - 0.45 * Math.max(0, chaseTick) / this.cutoff;
+		boolean selected = this.guaranteed(chaseTick) || chance < this.probability(chaseTick);
+		this.started |= selected;
+		return selected;
 	}
 
 	public void finished(long chaseTick) {

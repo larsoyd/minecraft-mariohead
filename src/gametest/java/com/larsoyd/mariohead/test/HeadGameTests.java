@@ -3019,15 +3019,20 @@ public class HeadGameTests {
 
 	@GameTest(structure = ARENA, maxTicks = 400)
 	public void boatDashesGrowInSpeedAndDuration(GameTestHelper helper) {
-		boatDashGrowth(helper, false);
+		boatDashGrowth(helper, false, false);
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 400)
 	public void iceBoatReboardingRetainsDashGrowth(GameTestHelper helper) {
-		boatDashGrowth(helper, true);
+		boatDashGrowth(helper, true, true);
 	}
 
-	private static void boatDashGrowth(GameTestHelper helper, boolean reboard) {
+	@GameTest(structure = ARENA, maxTicks = 600)
+	public void boatDashesAfterStallsEndGrowEveryDash(GameTestHelper helper) {
+		boatDashGrowth(helper, false, true);
+	}
+
+	private static void boatDashGrowth(GameTestHelper helper, boolean reboard, boolean disabled) {
 		if (reboard) {
 			fill(helper, 1, -1, 8, 5, -1, 12, Blocks.BLUE_ICE.defaultBlockState());
 		}
@@ -3036,6 +3041,7 @@ public class HeadGameTests {
 		var otherBoat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(3.5, 0.0, 7.5));
 		helper.assertTrue(target.startRiding(boat, true, false), "could not board boat");
 		TheHead head = head(helper, new Vec3(16.5, 0.5, 10.5), target);
+		if (disabled && !reboard) disableEarlyStalls(helper, head, target);
 		HeadCue[] last = { HeadCue.NONE };
 		long[] started = { 0 };
 		int[] dashes = { 0 };
@@ -3055,12 +3061,13 @@ public class HeadGameTests {
 				if (cue.clip() != null && !cue.spoken()) {
 					dashes[0]++;
 					started[0] = helper.getTick();
-					double expected = RevSpring.peak(head.revs()) * Math.pow(1.03, head.revs() + 1) * (1.0 + (head.revs() + 1) * 0.003);
+					int growth = disabled ? dashes[0] : dashes[0] / 2;
+					double expected = RevSpring.peak(head.revs()) * Math.pow(1.03, growth) * (1.0 + growth * 0.003);
 					helper.assertTrue(Math.abs(head.chargeSpeed() - expected) < 1e-6,
 						"dash " + dashes[0] + " speed=" + head.chargeSpeed() + " expected=" + expected);
 				} else if (cue == HeadCue.INHALE && last[0].clip() != null && !last[0].spoken()) {
 					long duration = helper.getTick() - started[0];
-					int expected = (int) Math.ceil(last[0].clip().frames() / 30.0 * 20 * Math.pow(1.03, dashes[0]));
+					int expected = (int) Math.ceil(last[0].clip().frames() / 30.0 * 20 * Math.pow(1.03, disabled ? dashes[0] : dashes[0] / 2));
 					helper.assertTrue(duration >= expected, "dash duration=" + duration + " expected at least=" + expected);
 					if (dashes[0] == 3) {
 						head.discard();
@@ -4017,6 +4024,148 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 40)
+	public void earlyStallReservesDuringAnActiveHumBeforeContact(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), 90);
+		TheHead head = head(helper, new Vec3(6.5, 0.5, 10.5), target);
+		head.setNoAi(true); head.setYRot(90);
+		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+		var charge = TheHead.class.getDeclaredMethod("charge", ServerLevel.class, net.minecraft.world.entity.player.Player.class);
+		for (var method : new java.lang.reflect.Method[] {phase, cue, charge}) method.setAccessible(true);
+		phase.invoke(head, HeadPhase.CHARGE); cue.invoke(head, HeadCue.MMM1);
+		for (String name : new String[] {"revs", "phaseTicks"}) {
+			var field = TheHead.class.getDeclaredField(name); field.setAccessible(true);
+			field.setInt(head, name.equals("revs") ? 12 : 100);
+		}
+		for (String name : new String[] {"pace", "moveSpeed"}) {
+			var field = TheHead.class.getDeclaredField(name); field.setAccessible(true); field.setDouble(head, 0.4);
+		}
+		var pending = TheHead.class.getDeclaredField("stallVoice"); pending.setAccessible(true);
+		charge.invoke(head, helper.getLevel(), target);
+		helper.assertFalse(target.isDeadOrDying(), "first imminent catch killed target");
+		helper.assertTrue(pending.get(head) != HeadCue.NONE, "active hum prevented guaranteed stall reservation");
+		helper.assertTrue(head.cue() == HeadCue.MMM1, "stall interrupted the current hum");
+		helper.assertTrue(head.revs() == -1, "reservation retained chase acceleration");
+		head.discard(); helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void earlyStallStopsTheActualMovementSweepBeforeContact(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), 90);
+		TheHead head = head(helper, new Vec3(7.5, 0.5, 10.5), target);
+		head.setNoAi(true); head.setYRot(90);
+		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+		var body = TheHead.class.getDeclaredMethod("body", double.class, double.class, double.class);
+		var update = TheHead.class.getDeclaredMethod("updateStalls", net.minecraft.world.entity.player.Player.class);
+		for (var method : new java.lang.reflect.Method[] {phase, cue, body, update}) method.setAccessible(true);
+		phase.invoke(head, HeadPhase.CHARGE); update.invoke(head, target);
+		var age = TheHead.class.getDeclaredField("phaseTicks"); age.setAccessible(true); age.setInt(head, 100);
+		var pace = TheHead.class.getDeclaredField("pace"); pace.setAccessible(true); pace.setDouble(head, 0.36);
+		var pending = TheHead.class.getDeclaredField("stallVoice"); pending.setAccessible(true);
+		var touching = TheHead.class.getDeclaredMethod("touching", net.minecraft.world.entity.player.Player.class, Vec3.class); touching.setAccessible(true);
+		helper.onEachTick(() -> {
+			if (head.isRemoved()) return;
+			helper.getLevel().getChunkSource().addTicketWithRadius(HeadEntities.CHASE_TICKET, head.chunkPosition(), 4);
+			try {
+				Thread.sleep(2);
+				if (!helper.getLevel().isPositionEntityTicking(target.blockPosition())) return;
+				cue.invoke(head, HeadCue.MMM1);
+				Vec3 before = head.centre();
+				body.invoke(head, -4.0, 0.0, 0.0);
+				helper.assertTrue(pending.get(head) != HeadCue.NONE, "movement sweep bypassed first guarantee");
+				helper.assertTrue(head.centre().distanceTo(before) <= 0.36, "selected stall retained lethal movement step");
+				helper.assertFalse((boolean) touching.invoke(head, target, before), "reserved stall moved through contact");
+				head.discard(); helper.succeed();
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new AssertionError(e); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 600)
+	public void earlyStallLiveJumperReservesBusyHumAndCompletesGraceEntry(GameTestHelper helper) throws ReflectiveOperationException {
+		fill(helper, -180, 179, 5, 30, 179, 15, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 180, 10.5), 90);
+		target.setNoGravity(true);
+		TheHead head = head(helper, new Vec3(18.5, 180.5, 10.5), target);
+		head.setNoAi(true); head.setYRot(90);
+		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+		phase.setAccessible(true); cue.setAccessible(true);
+		var revs = TheHead.class.getDeclaredField("revs"); revs.setAccessible(true);
+		var speed = TheHead.class.getDeclaredField("moveSpeed"); speed.setAccessible(true);
+		var pace = TheHead.class.getDeclaredField("pace"); pace.setAccessible(true);
+		var until = TheHead.class.getDeclaredField("stallUntil"); until.setAccessible(true);
+		var pending = TheHead.class.getDeclaredField("stallVoice"); pending.setAccessible(true);
+		var graceField = TheHead.class.getDeclaredField("grace"); graceField.setAccessible(true);
+		var grace = (com.larsoyd.mariohead.entity.StallGrace) graceField.get(head);
+		long[] began = {-1}, reserved = {-1}, spoken = {-1};
+		double[] jumps = {0, 0.42, 0.7532, 1.0013, 1.1661, 1.2492, 1.2522, 1.1768, 1.0244, 0.7967, 0.4952, 0.1213};
+		helper.onEachTick(() -> {
+			try {
+				if (began[0] < 0) {
+					helper.getLevel().getChunkSource().addTicketWithRadius(HeadEntities.CHASE_TICKET, head.chunkPosition(), 4);
+					helper.getLevel().getChunkSource().addTicketWithRadius(HeadEntities.CHASE_TICKET, target.chunkPosition(), 4);
+					Thread.sleep(2);
+					if (helper.getTick() < 100 || !helper.getLevel().isPositionEntityTicking(target.blockPosition())) return;
+					began[0] = helper.getTick();
+					phase.invoke(head, HeadPhase.CHARGE); cue.invoke(head, HeadCue.MMM1);
+					revs.setInt(head, 16); speed.setDouble(head, 0.45); pace.setDouble(head, 0.36);
+					head.setNoAi(false);
+				}
+				int elapsed = (int) (helper.getTick() - began[0]);
+				target.setPos(target.getX() - 0.36, helper.absoluteVec(new Vec3(0, 180, 0)).y + jumps[elapsed % jumps.length], target.getZ());
+				target.setOnGround(elapsed % jumps.length == 0);
+				if (pending.get(head) != HeadCue.NONE && reserved[0] < 0) reserved[0] = elapsed;
+				if (until.getLong(head) >= 0 && spoken[0] < 0) {
+					spoken[0] = elapsed;
+					helper.assertTrue(elapsed >= (HeadCue.MMM1.clip().millis() + 49) / 50, "stall clipped busy hum");
+				}
+				helper.assertFalse(target.isDeadOrDying(), "continuous jumper caught before guaranteed grace elapsed=" + elapsed);
+				if (grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.FOLLOW) {
+					helper.assertTrue(reserved[0] >= 0 && spoken[0] > reserved[0], "jumper did not reserve during busy audio");
+					helper.assertTrue(head.distanceTo(target) > 3, "grace started in contact range");
+					head.discard(); helper.succeed();
+				}
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new AssertionError(e); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void earlyStallLiveDashGrowthAndHumsStaySeparate(GameTestHelper helper) throws ReflectiveOperationException {
+		fill(helper, -200, 179, 5, 30, 179, 15, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(-7.5, 180, 10.5), 90);
+		target.setNoGravity(true);
+		TheHead head = head(helper, new Vec3(12.5, 180.5, 10.5), target);
+		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+		phase.setAccessible(true); cue.setAccessible(true);
+		phase.invoke(head, HeadPhase.CHARGE); cue.invoke(head, HeadCue.INHALE);
+		var revs = TheHead.class.getDeclaredField("revs"); revs.setAccessible(true); revs.setInt(head, -1);
+		var cadenceField = TheHead.class.getDeclaredField("cadence"); cadenceField.setAccessible(true);
+		var cadence = (com.larsoyd.mariohead.entity.DashCadence) cadenceField.get(head);
+		var tempoField = TheHead.class.getDeclaredField("tempo"); tempoField.setAccessible(true);
+		var tempo = (ChaseTempo) tempoField.get(head);
+		int[] observed = {-1};
+		helper.onEachTick(() -> {
+			target.setPos(head.getX() - 20, helper.absoluteVec(new Vec3(0, 180, 0)).y, head.getZ());
+			target.setOnGround(true);
+			int beat = cadence.beat();
+			if (beat <= observed[0]) return;
+			observed[0] = beat;
+			int dash = beat + 1;
+			int expected = dash <= 6 ? dash / 2 : 3 + dash - 6;
+			helper.assertTrue(head.revs() == expected, "wrong live speed dash=" + dash + " rev=" + head.revs());
+			helper.assertTrue(Math.abs(tempo.humMultiplier() - (1 + expected * 0.003)) < 1e-9,
+				"skipped dash gained hidden hum speed dash=" + dash + " multiplier=" + tempo.humMultiplier());
+			helper.assertTrue(head.cue() == HeadCue.hum(beat), "alternate growth skipped a hum dash=" + dash + " cue=" + head.cue());
+			if (dash == 6) target.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE));
+			if (dash == 9) { head.discard(); helper.succeed(); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
 	public void earlyStallEscalationCancelsMockAndFollowing(GameTestHelper helper) throws ReflectiveOperationException {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
 		var update = TheHead.class.getDeclaredMethod("updateStalls", net.minecraft.world.entity.player.Player.class);
@@ -4312,7 +4461,14 @@ public class HeadGameTests {
 			var prank = TheHead.class.getDeclaredField("prank"); prank.setAccessible(true);
 			((com.larsoyd.mariohead.entity.BehindPrank) prank.get(head)).dash(true);
 		}
-		helper.assertTrue((boolean) start.invoke(head, target, success || stalking ? 0.149999 : 0.55) == success, "wrong imminent stall roll outcome");
+		if (!success && !stalking) {
+			var state = TheHead.class.getDeclaredField("stalls"); state.setAccessible(true);
+			var stalls = new com.larsoyd.mariohead.entity.EarlyStall(0.5);
+			helper.assertTrue(stalls.tryStart(0, true, 0), "fixture failed to consume first guarantee");
+			stalls.beginDash(0);
+			state.set(head, stalls);
+		}
+		helper.assertTrue((boolean) start.invoke(head, target, success || stalking ? 0.149999 : 0.70) == success, "wrong imminent stall roll outcome");
 		if (success) {
 			helper.assertTrue(java.util.List.of(com.larsoyd.mariohead.entity.ChaseVoices.STALLS).contains(head.cue()), "stall used wrong line");
 			helper.assertTrue(until.getLong(head) == helper.getLevel().getGameTime() + (head.cue().clip().millis() + 49) / 50, "mock duration differs from recording");
@@ -5023,8 +5179,9 @@ public class HeadGameTests {
 			helper.assertTrue(humStarts.size() >= 5, "hums " + humStarts.size());
 			for (int i = 0; i < humStarts.size(); i++) {
 				double[] s = humStarts.get(i);
-				helper.assertTrue(s[0] == i, "rev " + s[0] + " at hum " + i);
-				helper.assertTrue(Math.abs(s[1] - RevSpring.speed(i, 0.0, 0.0)) < 0.02, "hum " + i + " starts at " + s[1]);
+				int rev = (i + 1) / 2;
+				helper.assertTrue(s[0] == rev, "rev " + s[0] + " at hum " + i);
+				helper.assertTrue(Math.abs(s[1] - RevSpring.speed(rev, 0.0, 0.0)) < 0.02, "hum " + i + " starts at " + s[1]);
 				helper.assertTrue(s[2] < s[1] * (1.0 - HeadTuning.SAG) + 1e-6, "no sag before hum " + i + ": " + s[2]);
 			}
 			leave(helper, target);

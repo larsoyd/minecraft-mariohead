@@ -9,11 +9,11 @@ class EarlyStallTest {
 		for (double duration : new double[] { 0, 0.5, 0.999999 }) {
 			int cutoff = new EarlyStall(duration).cutoff();
 			for (int tick : new int[] { 0, cutoff / 4, cutoff / 2, cutoff - 1 }) {
-				double threshold = 0.55 - 0.45 * tick / cutoff;
-				EarlyStall below = new EarlyStall(duration);
+				double threshold = 0.70 - 0.60 * tick / cutoff;
+				EarlyStall below = usedGuarantee(duration);
 				below.beginDash(tick);
 				assertTrue(below.tryStart(tick, true, threshold - 0.000001), "below threshold at " + tick);
-				EarlyStall above = new EarlyStall(duration);
+				EarlyStall above = usedGuarantee(duration);
 				above.beginDash(tick);
 				assertFalse(above.tryStart(tick, true, threshold + 0.000001), "above threshold at " + tick);
 			}
@@ -21,6 +21,41 @@ class EarlyStallTest {
 			ended.beginDash(cutoff);
 			assertFalse(ended.tryStart(cutoff, true, 0));
 		}
+	}
+
+	private static EarlyStall usedGuarantee(double duration) {
+		EarlyStall stall = new EarlyStall(duration);
+		stall.beginDash(0);
+		assertTrue(stall.tryStart(0, true, 0));
+		return stall;
+	}
+
+	@Test
+	void firstImminentCatchIsGuaranteedOnlyBeforeFiveMinutes() {
+		for (int tick : new int[] {0, 1, 3000, 5999}) {
+			EarlyStall stall = new EarlyStall(0.999999);
+			stall.beginDash(tick);
+			assertFalse(stall.tryStart(tick, false, 0), "distance consumed guarantee");
+			assertTrue(stall.tryStart(tick, true, 0.999999), "first catch was not guaranteed at " + tick);
+			stall.finished(tick);
+			stall.beginDash(tick + 180);
+			assertFalse(stall.tryStart(tick + 180, true, 0.999999), "guarantee returned after cooldown");
+		}
+		for (int tick : new int[] {6000, 6001, 23999, 24000}) {
+			EarlyStall stall = new EarlyStall(0.999999);
+			stall.beginDash(tick);
+			assertFalse(stall.tryStart(tick, true, 0.999999), "late catch received guarantee at " + tick);
+		}
+	}
+
+	@Test
+	void disabledStallsCannotSpendTheGuarantee() {
+		EarlyStall stall = new EarlyStall(0.999999);
+		stall.expire(10, true, false);
+		stall.beginDash(11);
+		assertFalse(stall.tryStart(11, true, 0));
+		stall.beginDash(200);
+		assertFalse(stall.tryStart(200, true, 0));
 	}
 
 	@Test
@@ -59,9 +94,9 @@ class EarlyStallTest {
 
 	@Test
 	void rollsOncePerDashAndCooldownCannotExpireIntoAnExistingDash() {
-		EarlyStall stall = new EarlyStall(0);
+		EarlyStall stall = usedGuarantee(0);
 		stall.beginDash(0);
-		assertFalse(stall.tryStart(1, true, 0.55));
+		assertFalse(stall.tryStart(1, true, 0.70));
 		assertFalse(stall.tryStart(2, true, 0));
 		stall.beginDash(10);
 		assertFalse(stall.tryStart(11, false, 0));
