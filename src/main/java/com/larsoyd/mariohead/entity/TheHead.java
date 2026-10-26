@@ -498,7 +498,8 @@ public class TheHead extends Monster {
 		}
 		if (this.homeStage == HomeStage.RETURN && !this.teasing) this.chargeSpeed *= 1.25;
 		if (this.grace.stage() == StallGrace.Stage.WITHDRAW
-			|| this.grace.stage() == StallGrace.Stage.ENDING && this.grace.retreating() && toward >= -0.02) {
+			|| this.grace.stage() == StallGrace.Stage.ENDING && this.grace.retreating() && toward >= -0.02
+				&& this.centre().distanceTo(target.getEyePosition()) <= 12.5) {
 			double retreatSpeed = Math.clamp(12 - this.centre().distanceTo(target.getEyePosition()), 0, 0.45);
 			this.moveAway(target, this.grace.stage() == StallGrace.Stage.WITHDRAW ? 0.18 : retreatSpeed);
 			if (this.touching(target, before)) this.caught(level, target);

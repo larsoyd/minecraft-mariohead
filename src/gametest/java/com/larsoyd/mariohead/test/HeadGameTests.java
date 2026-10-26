@@ -3817,11 +3817,20 @@ public class HeadGameTests {
 
 	@GameTest(structure = ARENA, maxTicks = 400)
 	public void stallGraceLiveReversalCompletesCutoffBeforeResuming(GameTestHelper helper) throws ReflectiveOperationException {
+		liveGraceCutoff(helper, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallGraceLiveApproachThenStopStillCompletesCutoff(GameTestHelper helper) throws ReflectiveOperationException {
+		liveGraceCutoff(helper, false);
+	}
+
+	private void liveGraceCutoff(GameTestHelper helper, boolean reverse) throws ReflectiveOperationException {
 		fill(helper, -120, 219, 5, 40, 219, 15, Blocks.STONE.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), -90);
 		target.setNoGravity(true);
 		TheHead head = graceHead(helper, target);
-		head.setPos(helper.absoluteVec(new Vec3(24.5, 220.5, 10.5)));
+		head.setPos(helper.absoluteVec(new Vec3(reverse ? 24.5 : 32.5, 220.5, 10.5)));
 		var graceField = TheHead.class.getDeclaredField("grace"); graceField.setAccessible(true);
 		var grace = (com.larsoyd.mariohead.entity.StallGrace) graceField.get(head);
 		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class); cue.setAccessible(true);
@@ -3837,7 +3846,7 @@ public class HeadGameTests {
 				grace.start(helper.getLevel().getGameTime(), 0.5, 1, 0);
 				head.setNoAi(false);
 				target.setPos(target.position().add(0.28, 0, 0));
-			} else {
+			} else if (reverse) {
 				target.setPos(target.position().add(-0.28, 0, 0));
 				target.setYRot(90);
 			}
@@ -3845,6 +3854,7 @@ public class HeadGameTests {
 			if (java.util.List.of(com.larsoyd.mariohead.entity.ChaseVoices.CUTOFF).contains(head.cue()) && spoke[0] < 0) {
 				spoke[0] = helper.getTick(); line[0] = head.cue();
 			}
+			if (helper.getTick() == 250) helper.assertTrue(spoke[0] >= 0, "stopped approach left cutoff outside speaking range");
 			helper.assertTrue(!head.isRemoved() && !target.isDeadOrDying(), "cutoff pursuit caught reversing runner before finishing speech cue=" + head.cue());
 			if (ended[0] && grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.NONE) {
 				helper.assertTrue(spoke[0] >= 0, "reversal discarded cutoff line");
