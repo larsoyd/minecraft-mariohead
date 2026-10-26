@@ -81,8 +81,7 @@ cd minecraft-mariohead
 ./build.sh
 ```
 
-Authenticate with a GitHub account that has access to this private repository. Use a personal access
-token instead of your account password when cloning over HTTPS.
+
 Copy `build/libs/mariohead-0.1.0.jar` into your Minecraft instance's `mods` folder
 (`~/.minecraft/mods` for the standard launcher), alongside Fabric API for Minecraft 26.3.
 
