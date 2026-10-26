@@ -38,6 +38,10 @@ Install Fabric Loader for Minecraft 26.3, then put the mod jar and
 [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3 in your instance's `mods` folder.
 Use Java 25 in your Minecraft launcher.
 
+### Updating
+
+If you need to update to a new version, download the latest version and remove the one you already have. This mod does not support two versions of the same mod in the mods directory!
+
 ---
 
 ### Building from source (i.e Manual Install)
