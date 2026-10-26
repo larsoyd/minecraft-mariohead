@@ -96,6 +96,13 @@ public class TheHead extends Monster {
 	private boolean stallFollowing;
 	private boolean stallEscalated;
 	private boolean cutoffPending;
+	private final DiveTaunt diveTaunt = new DiveTaunt();
+	private @Nullable BlockPos waterEntry;
+	private boolean wasInWater;
+	private boolean waterSpeaking;
+	private boolean waterPending;
+	private boolean drownedSpoken;
+	private long drowningUntil = -1;
 	private final DashChatter dashChatter = new DashChatter();
 	private HeadCue dashLine = HeadCue.NONE;
 	private long nextDigDash = -1;
@@ -410,28 +417,30 @@ public class TheHead extends Monster {
 			return;
 		}
 		this.updateStalls(target);
+		this.updateDive(target);
 		boolean mock = this.tickStall(level.getGameTime());
 		this.updateFallTaunt(target);
-		if (!mock && (this.tickPrank(level, target) || this.tickHome(level, target))) {
+		if (!mock && !this.waterSpeaking && (this.tickPrank(level, target) || this.tickHome(level, target))) {
 			if (!this.isRemoved() && this.touching(target, before)) this.caught(level, target);
 			return;
 		}
 		this.trackPace(target);
 		this.pearlBoost = this.pearlPursuit.boost(this.centre().distanceTo(target.position()));
-		if (!mock && !this.teasing && !this.digging && !this.burrowing && this.pendingVoice == HeadCue.NONE
+		boolean water = !mock && this.tickWaterSpeech(target, this.submerged(target) ? this.random.nextDouble() : 1);
+		if (!mock && !water && !this.teasing && !this.digging && !this.burrowing && this.pendingVoice == HeadCue.NONE
 			&& this.cue() == HeadCue.INHALE && this.cueTicks >= ticks(INHALE_SECONDS)
 			&& Math.abs(this.getXRot() - this.pitchTo(target)) <= PITCH_RATE
 			&& this.speech.canStart(HeadCue.VARIETY_043, level.getGameTime())) {
 			this.stalls.beginDash(this.phaseTicks);
 			mock = this.tryStall(target, this.random.nextDouble());
 		}
-		if (!mock && !this.cutoffPending && this.homeStage != HomeStage.RETURN) this.tryTaunt(target, this.random.nextDouble());
+		if (!mock && !water && !this.cutoffPending && this.homeStage != HomeStage.RETURN) this.tryTaunt(target, this.random.nextDouble());
 		HeadCue cue = this.cue();
 		boolean undergroundRhythm = this.digging || this.burrowing || cue.chatter() || this.dashLine != HeadCue.NONE;
 		boolean digDash = false;
-		if (mock) {
+		if (mock || water) {
 			this.nextDigDash = -1;
-		} else if (this.tickCutoff(target) || this.tickLaugh(level.getGameTime())) {
+		} else if (!this.waterSpeaking && this.tickCutoff(target) || this.tickLaugh(level.getGameTime())) {
 			this.nextDigDash = -1;
 		} else if (undergroundRhythm) {
 			digDash = this.tickDigDash(level.getGameTime());
@@ -988,6 +997,61 @@ public class TheHead extends Monster {
 		if (!this.voices.waiting()) return false;
 		if (this.speech.canStart(HeadCue.VARIETY_LAUGH1, now)) {
 			this.setCue(this.voices.laugh(this.random.nextDouble()));
+		}
+		return true;
+	}
+
+	private boolean submerged(Entity entity) {
+		return this.level().getFluidState(BlockPos.containing(entity.getEyePosition())).is(net.minecraft.tags.FluidTags.WATER);
+	}
+
+	private void updateDive(Player target) {
+		boolean wet = target.isInWater();
+		if (wet && !this.wasInWater) {
+			BlockPos entry = target.blockPosition();
+			boolean different = this.waterEntry == null || WaterVisit.different(this.waterEntry, entry,
+				pos -> !this.level().hasChunkAt(pos) ? -1 : this.level().getFluidState(pos).is(net.minecraft.tags.FluidTags.WATER) ? 1 : 0);
+			this.diveTaunt.enter(different);
+			if (different) this.waterEntry = entry;
+		}
+		this.wasInWater = wet;
+		double step = target.position().distanceToSqr(this.chasedLast);
+		this.diveTaunt.observe(target.isSwimming() && this.submerged(target) && step > 0.0004 && step < PACE_TELEPORT * PACE_TELEPORT);
+		if (this.waterSpeaking && !this.voices.waiting() && this.speech.canStart(HeadCue.INHALE, this.level().getGameTime())) {
+			this.waterSpeaking = false;
+		}
+	}
+
+	public void playerDrowned(ServerPlayer player) {
+		if (this.chased == player && player.isAlive() && !this.drownedSpoken) this.drowningUntil = this.level().getGameTime() + 200;
+	}
+
+	private boolean tickWaterSpeech(Player target, double chance) {
+		long now = this.level().getGameTime();
+		if (this.drowningUntil >= 0 && (now >= this.drowningUntil || !this.submerged(target)
+			|| VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) == 0)) this.drowningUntil = -1;
+		if (this.waterSpeaking || this.homeStage != HomeStage.NONE || this.stallUntil >= 0 || this.pendingVoice != HeadCue.NONE
+			|| this.prank.stage() != BehindPrank.Stage.WAITING && this.prank.stage() != BehindPrank.Stage.DONE) return false;
+		boolean drowning = this.drowningUntil >= 0 && !this.drownedSpoken;
+		boolean eligible = !this.teasing && !this.voices.waiting() && this.submerged(target)
+			&& this.submerged(this) && this.centre().distanceTo(target.getEyePosition()) <= 8
+			&& this.clearLine(this.centre(), target.getEyePosition());
+		if (!eligible) this.waterPending = false;
+		if (!drowning && !this.waterPending) this.waterPending = this.diveTaunt.tryStart(now, eligible, chance);
+		if (!drowning && !this.waterPending) return false;
+		if (!this.speech.canStart(HeadCue.VARIETY_DROWNING, now)) return true;
+		this.teasing = true;
+		this.dashLine = HeadCue.NONE;
+		this.chatterRoll = false;
+		this.setCue(drowning ? HeadCue.VARIETY_DROWNING : this.voices.choose(ChaseVoices.WATER, this.random.nextDouble()));
+		this.waterSpeaking = true;
+		this.waterPending = false;
+		this.voices.followWater(drowning, this.random.nextDouble());
+		if (drowning) {
+			this.drownedSpoken = true;
+			this.drowningUntil = -1;
+		} else {
+			this.diveTaunt.played(now);
 		}
 		return true;
 	}

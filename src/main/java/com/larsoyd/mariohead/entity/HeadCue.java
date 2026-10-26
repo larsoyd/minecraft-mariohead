@@ -109,7 +109,8 @@ public enum HeadCue {
 	}
 
 	public boolean taunt() {
-		return this == HOME_RETURN || this == FALL_019 || this.ordinal() >= TAUNT_006.ordinal() && this.ordinal() <= TAUNT_107.ordinal();
+		return this == HOME_RETURN || this == FALL_019 || this == VARIETY_071 || this == VARIETY_085 || this == VARIETY_DROWNING
+			|| this.ordinal() >= TAUNT_006.ordinal() && this.ordinal() <= TAUNT_107.ordinal();
 	}
 
 	public boolean chatter() {

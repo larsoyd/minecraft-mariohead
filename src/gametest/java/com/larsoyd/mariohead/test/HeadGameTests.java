@@ -3283,6 +3283,210 @@ public class HeadGameTests {
 		});
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void waterPursuitTauntLaughResumesOrdinaryDash(GameTestHelper helper) throws ReflectiveOperationException {
+		waterPursuit(helper, false, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void waterPursuitTauntLaughAfterHouseResumesTnt(GameTestHelper helper) throws ReflectiveOperationException {
+		waterPursuit(helper, true, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void waterPursuitDrowningLaughResumesOrdinaryDash(GameTestHelper helper) throws ReflectiveOperationException {
+		waterPursuit(helper, false, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void waterPursuitDrowningLaughAfterHouseResumesTnt(GameTestHelper helper) throws ReflectiveOperationException {
+		waterPursuit(helper, true, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void waterPursuitEmergingCancelsQueuedTaunt(GameTestHelper helper) throws ReflectiveOperationException {
+		waterPursuit(helper, false, false, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void waterPursuitEmergingAfterHouseCancelsQueuedTaunt(GameTestHelper helper) throws ReflectiveOperationException {
+		waterPursuit(helper, true, false, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void waterPursuitEmergingCancelsQueuedDrowning(GameTestHelper helper) throws ReflectiveOperationException {
+		waterPursuit(helper, false, true, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1100)
+	public void waterPursuitEmergingAfterHouseCancelsQueuedDrowning(GameTestHelper helper) throws ReflectiveOperationException {
+		waterPursuit(helper, true, true, true);
+	}
+
+	private void waterPursuit(GameTestHelper helper, boolean house, boolean drowning) throws ReflectiveOperationException {
+		waterPursuit(helper, house, drowning, false);
+	}
+
+	private void waterPursuit(GameTestHelper helper, boolean house, boolean drowning, boolean cancel) throws ReflectiveOperationException {
+		int y = 120 + (house ? 20 : 0) + (drowning ? 40 : 0);
+		fill(helper, 0, y - 1, 0, 90, y - 1, 20, Blocks.STONE.defaultBlockState());
+		fill(helper, 0, y, 0, 90, y + 10, 0, Blocks.STONE.defaultBlockState());
+		fill(helper, 0, y, 20, 90, y + 10, 20, Blocks.STONE.defaultBlockState());
+		fill(helper, 0, y, 0, 0, y + 10, 20, Blocks.STONE.defaultBlockState());
+		fill(helper, 90, y, 0, 90, y + 10, 20, Blocks.STONE.defaultBlockState());
+		fill(helper, 1, y, 1, 89, y + 9, 19, Blocks.WATER.defaultBlockState());
+		fill(helper, 0, 39, 0, 50, 39, 23, Blocks.STONE.defaultBlockState());
+		if (house) {
+			fill(helper, 8, 40, 4, 18, 44, 14, Blocks.STONE.defaultBlockState());
+			fill(helper, 9, 40, 5, 17, 43, 13, Blocks.AIR.defaultBlockState());
+			helper.setBlock(new BlockPos(14, 40, 12), Blocks.BED.red().defaultBlockState());
+			helper.setBlock(new BlockPos(9, 40, 9), Blocks.CHEST.defaultBlockState());
+		}
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, 40, 9.5), -90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(6, 40, 9.5));
+		head.chase(target);
+		var voicesField = TheHead.class.getDeclaredField("voices"); voicesField.setAccessible(true);
+		var voices = (com.larsoyd.mariohead.entity.ChaseVoices) voicesField.get(head);
+		List<HeadCue> cues = new ArrayList<>();
+		long[] entered = { -1 }, spoken = { -1 }, laughed = { -1 };
+		long[] canceled = { -1 };
+		int[] cancelRev = { -1 };
+		var queued = TheHead.class.getDeclaredField(drowning ? "drowningUntil" : "waterPending"); queued.setAccessible(true);
+		HeadCue[] line = { HeadCue.NONE }, laugh = { HeadCue.NONE };
+		boolean[] damaged = { false };
+		long seed = 0;
+		for (; seed < 10000; seed++) {
+			var random = net.minecraft.util.RandomSource.create(seed);
+			random.nextInt(1000);
+			if (random.nextDouble() < 0.15) break;
+		}
+		final long waterSeed = seed;
+		helper.onEachTick(() -> {
+			HeadCue cue = head.cue();
+			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
+			if (house && entered[0] < 0 && cues.contains(HeadCue.HOME_ASK) && cue.digHum()) target.setPos(helper.absoluteVec(new Vec3(42.5, 40, 9.5)));
+			if (entered[0] < 0 && (house ? cue == HeadCue.HOME_RETURN : cue.clip() != null && !cue.spoken())) {
+				if (house) helper.assertTrue(cues.contains(HeadCue.HOME_NICE) && cues.contains(HeadCue.HOME_ASK)
+					&& (cues.contains(HeadCue.HOME_HUNGRY) || cues.contains(HeadCue.HOME_THIRSTY)), "water fixture skipped house/chest sequence: " + cues);
+				helper.assertTrue(head.digging() == house, "wrong initial water pursuit mode");
+				entered[0] = helper.getTick();
+				head.setPos(helper.absoluteVec(new Vec3(8.5, y + 2.5, 10.5)));
+				target.setPos(helper.absoluteVec(new Vec3(14.5, y + 2, 10.5)));
+				target.setNoGravity(true);
+			}
+			if (entered[0] < 0) return;
+			head.getRandom().setSeed(waterSeed);
+			target.setSprinting(true); target.setSwimming(true);
+			target.setPos(target.position().add(0.18, 0, 0));
+			if (target.getX() - head.getX() < 5 || target.getX() - head.getX() > 7) target.setPos(head.getX() + 6, helper.absoluteVec(new Vec3(0, y + 2, 0)).y, head.getZ());
+			if (drowning && !damaged[0] && helper.getTick() - entered[0] >= 40) {
+				helper.assertTrue(target.hurtServer(helper.getLevel(), target.damageSources().drown(), 2), "water fixture drowning damage refused");
+				damaged[0] = true;
+			}
+			if (cancel) {
+				try {
+					if (canceled[0] < 0 && (drowning ? queued.getLong(head) >= 0 : queued.getBoolean(head))) {
+						canceled[0] = helper.getTick(); cancelRev[0] = head.revs();
+					}
+				} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+				if (canceled[0] >= 0) {
+					target.setPos(head.getX() + 6, helper.absoluteVec(new Vec3(0, y + 12, 0)).y, head.getZ());
+					helper.assertTrue(cue != HeadCue.VARIETY_DROWNING && cue != HeadCue.VARIETY_071 && cue != HeadCue.VARIETY_085, "surfaced owner received stale water speech");
+					if (head.revs() > cancelRev[0]) {
+						helper.assertTrue(head.digging() == house && cue.digHum() == house, "emerging lost dash mode");
+						head.discard(); helper.succeed(); return;
+					}
+				}
+			}
+			boolean reaction = drowning ? cue == HeadCue.VARIETY_DROWNING : cue == HeadCue.VARIETY_071 || cue == HeadCue.VARIETY_085;
+			if (reaction && spoken[0] < 0) {
+				spoken[0] = helper.getTick(); line[0] = cue;
+				helper.assertTrue(spoken[0] - entered[0] >= 40, "water reaction preceded two seconds of swimming/damage");
+				if (!drowning) voices.follow(1, 0);
+			}
+			if (spoken[0] >= 0 && cue.laugh() && laughed[0] < 0) {
+				laughed[0] = helper.getTick(); laugh[0] = cue;
+				helper.assertTrue(laughed[0] - spoken[0] >= (line[0].clip().millis() + 49) / 50, "laugh cut off water recording");
+			}
+			if (spoken[0] >= 0 && cue.clip() != null && !cue.spoken()) {
+				helper.assertTrue(laughed[0] >= 0 && helper.getTick() - laughed[0] >= (laugh[0].clip().millis() + 49) / 50, "dash overtook water laugh: " + cues);
+				helper.assertTrue(head.digging() == house && cue.digHum() == house && head.chargeSpeed() > 0.1, "water reaction lost original chase mode");
+				helper.assertTrue(cues.stream().filter(c -> c == HeadCue.VARIETY_071 || c == HeadCue.VARIETY_085).count() <= 1, "water reaction chained both lines");
+				head.discard(); helper.succeed();
+			}
+			helper.assertFalse(target.isDeadOrDying() || head.isRemoved() && spoken[0] < 0, "water fixture lost owner before reaction: " + cues);
+			if (helper.getTick() - entered[0] >= 300) {
+				try {
+					var field = TheHead.class.getDeclaredField("diveTaunt"); field.setAccessible(true);
+					var ticks = com.larsoyd.mariohead.entity.DiveTaunt.class.getDeclaredField("swimmingTicks"); ticks.setAccessible(true);
+					var rolled = com.larsoyd.mariohead.entity.DiveTaunt.class.getDeclaredField("rolled"); rolled.setAccessible(true);
+					helper.fail("water reaction did not finish: " + cues + " swimming=" + target.isSwimming() + " activeTicks=" + ticks.getInt(field.get(head))
+						+ " rolled=" + rolled.getBoolean(field.get(head)) + " head=" + helper.relativeVec(head.position()) + " player=" + helper.relativeVec(target.position()));
+				} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void waterTauntChoosesOneRequestedLineAtFifteenPercent(GameTestHelper helper) throws ReflectiveOperationException {
+		fill(helper, 0, 20, 0, 20, 27, 20, Blocks.WATER.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(4.5, 22, 10.5), -90);
+		TheHead head = head(helper, new Vec3(10.5, 22.5, 10.5), target);
+		head.setNoAi(true);
+		var dive = TheHead.class.getDeclaredField("diveTaunt"); dive.setAccessible(true);
+		var policy = (com.larsoyd.mariohead.entity.DiveTaunt) dive.get(head);
+		for (int tick = 0; tick < 40; tick++) policy.observe(true);
+		var speak = TheHead.class.getDeclaredMethod("tickWaterSpeech", net.minecraft.world.entity.player.Player.class, double.class);
+		speak.setAccessible(true);
+		helper.assertTrue((boolean) speak.invoke(head, target, 0.149999), "eligible dive did not speak");
+		helper.assertTrue(head.cue() == HeadCue.VARIETY_071 || head.cue() == HeadCue.VARIETY_085, "wrong water line: " + head.cue());
+		helper.assertTrue(head.cue().taunt(), "water speech did not use taunt movement/boost");
+		helper.assertFalse((boolean) speak.invoke(head, target, 0), "water taunt queued a second line");
+		head.discard(); helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 260)
+	public void drowningThroughAbsorptionQueuesOneReactionWithGuaranteedLaugh(GameTestHelper helper) throws ReflectiveOperationException {
+		fill(helper, 0, 20, 0, 20, 27, 20, Blocks.WATER.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(4.5, 22, 10.5), -90);
+		target.setNoGravity(true);
+		TheHead head = head(helper, new Vec3(10.5, 22.5, 10.5), target);
+		head.setNoAi(true);
+		var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class); phase.setAccessible(true);
+		phase.invoke(head, HeadPhase.CHARGE);
+		helper.runAtTickTime(100, () -> {
+			try {
+				target.setPos(helper.absoluteVec(new Vec3(4.5, 22, 10.5)));
+				target.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.ABSORPTION, 400));
+				helper.assertTrue(target.hurtServer(helper.getLevel(), target.damageSources().drown(), 2), "drowning damage refused");
+				helper.assertTrue(target.getHealth() == 20 && target.getAbsorptionAmount() == 2, "drowning did not consume absorption health=" + target.getHealth() + " absorption=" + target.getAbsorptionAmount());
+				var speak = TheHead.class.getDeclaredMethod("tickWaterSpeech", net.minecraft.world.entity.player.Player.class, double.class);
+				speak.setAccessible(true);
+				helper.assertTrue((boolean) speak.invoke(head, target, 1), "real drowning did not queue speech");
+				helper.assertTrue(head.cue() == HeadCue.VARIETY_DROWNING, "drowning selected wrong voice");
+				var voices = TheHead.class.getDeclaredField("voices"); voices.setAccessible(true);
+				helper.assertTrue(((com.larsoyd.mariohead.entity.ChaseVoices) voices.get(head)).waiting(), "drowning omitted guaranteed laugh");
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+		helper.runAtTickTime(150, () -> {
+			try {
+				var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class); cue.setAccessible(true);
+				cue.invoke(head, HeadCue.VARIETY_LAUGH1);
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+		helper.runAtTickTime(240, () -> {
+			try {
+				target.setPos(helper.absoluteVec(new Vec3(4.5, 22, 10.5)));
+				var update = TheHead.class.getDeclaredMethod("updateDive", net.minecraft.world.entity.player.Player.class); update.setAccessible(true);
+				update.invoke(head, target);
+				helper.assertTrue(target.hurtServer(helper.getLevel(), target.damageSources().drown(), 2), "second drowning damage refused");
+				var speak = TheHead.class.getDeclaredMethod("tickWaterSpeech", net.minecraft.world.entity.player.Player.class, double.class); speak.setAccessible(true);
+				helper.assertFalse((boolean) speak.invoke(head, target, 1), "drowning reaction repeated after laugh");
+				head.discard(); helper.succeed();
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 30)
 	public void earlyStallResetsSpeedAndRemainsDistinctFromTaunt(GameTestHelper helper) throws ReflectiveOperationException {
 		earlyStallRoll(helper, true);

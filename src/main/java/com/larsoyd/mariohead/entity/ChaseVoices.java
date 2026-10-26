@@ -28,6 +28,10 @@ public final class ChaseVoices {
 		this.waiting = roll < chance;
 	}
 
+	public void followWater(boolean drowning, double roll) {
+		this.follow(drowning ? 1 : 0.6, roll);
+	}
+
 	public boolean waiting() {
 		return this.waiting;
 	}

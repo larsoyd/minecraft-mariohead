@@ -20,6 +20,17 @@ class ChaseVoicesTest {
 	}
 
 	@Test
+	void waterLaughUsesSixtyPercentAndDrowningAlwaysLaughs() {
+		ChaseVoices voices = new ChaseVoices();
+		voices.followWater(false, 0.599999);
+		assertTrue(voices.waiting());
+		voices.followWater(false, 0.6);
+		assertFalse(voices.waiting());
+		voices.followWater(true, 0.999999);
+		assertTrue(voices.waiting());
+	}
+
+	@Test
 	void stallAndTauntShareRecordingHistoryEvenWithLaughterBetweenThem() {
 		ChaseVoices voices = new ChaseVoices();
 		voices.played(HeadCue.TAUNT_100);
