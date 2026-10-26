@@ -124,7 +124,7 @@ Copy `build/libs/mariohead-x.x.x-dev.jar` into your Minecraft instance's `mods` 
 
 #### LLM/AI Policy & Disclosure
 
-- LLMs were exclusively used with a human in the loop and only for an assistive capacity with testing, development & documentation.  
+- LLMs were exclusively used with a human in the loop in an assistive capacity for testing, development & documentation.  
 - No LLMs was and ever will be used for the generation of art assets like textures, models and/or voice clips.
 
 ## License
