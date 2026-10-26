@@ -42,7 +42,7 @@ Use Java 25 in your Minecraft launcher.
 
 ### Building from source (i.e Manual Install)
 
-These are the instructions to manually build the mod yourself from the source. Unless you know you want to do this, it is not recommended. The supported paths to do so is Ubuntu on WSL (Windows) or Ubuntu LTS if you are on Linux.
+These are the instructions to manually build the mod yourself from the source. Unless you know you want to do this, it is not recommended. The supported paths to do so is Ubuntu on WSL (Windows) or Ubuntu LTS if you are on Linux. **Remove any other version of the mod from your mods directory before you do this!**
 
 Please note that the developer version might have bugs and it is recommended that you use the release *.jar instead (See previous "Install" category if you missed it)
 
