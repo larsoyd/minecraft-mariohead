@@ -350,7 +350,7 @@ public class TheHead extends Monster {
 		} else if (this.digging) {
 			this.wedged = false;
 			this.halted = false;
-		} else if (this.homeStage != HomeStage.APPROACH) {
+		} else if (this.homeStage == HomeStage.NONE) {
 			this.fitSqueeze(phase == HeadPhase.CHARGE);
 		}
 		if (target == null && (phase == HeadPhase.TALK || phase == HeadPhase.CHARGE)) {
@@ -657,6 +657,20 @@ public class TheHead extends Monster {
 		this.setCue(HeadCue.INHALE);
 	}
 
+	private boolean restoreHouseSize(ServerLevel level) {
+		if (this.squeeze() == 1) return true;
+		if (HeadSight.seen(level, this.getBoundingBox())) return false;
+		Vec3 c = this.centre();
+		Vec3 at = HeadRoom.nearestFit(this, c.x, c.z, c.y, 1);
+		if (!HeadRoom.fits(this, at.x, at.y, at.z, 1)
+			|| HeadSight.seen(level, HeadRoom.box(at.x, at.y, at.z, 1))) return false;
+		this.setSqueeze(1);
+		this.setPos(at.x, at.y - this.getBbHeight() / 2, at.z);
+		this.path = null;
+		this.replanIn = 0;
+		return true;
+	}
+
 	private boolean tickHome(ServerLevel level, Player target) {
 		long now = level.getGameTime();
 		double ownerGap = this.centre().distanceTo(target.getEyePosition());
@@ -677,6 +691,8 @@ public class TheHead extends Monster {
 				boolean home = !this.homeUsed && room.sheltered();
 				boolean loot = !this.raidUsed && !room.chests().isEmpty() && level.getGameRules().get(GameRules.MOB_GRIEFING);
 				if (home || loot) {
+					if (!this.restoreHouseSize(level)) return false;
+					this.burrowing = false;
 					this.homeUsed |= home;
 					this.roofed = true;
 					this.raidUsed |= loot;

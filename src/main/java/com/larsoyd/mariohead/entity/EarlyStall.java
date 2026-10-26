@@ -31,7 +31,7 @@ public final class EarlyStall {
 	public boolean tryStart(long chaseTick, boolean imminent, double chance) {
 		if (!this.active(chaseTick) || this.rolled || chaseTick < this.readyAt || !imminent) return false;
 		this.rolled = true;
-		return chance < 0.15;
+		return chance < 0.55 - 0.45 * Math.max(0, chaseTick) / this.cutoff;
 	}
 
 	public void finished(long chaseTick) {

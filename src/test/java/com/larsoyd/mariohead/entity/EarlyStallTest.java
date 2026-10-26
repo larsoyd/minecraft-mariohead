@@ -5,6 +5,25 @@ import org.junit.jupiter.api.Test;
 
 class EarlyStallTest {
 	@Test
+	void chanceDeclinesWithSurvivalAcrossEachChosenWindow() {
+		for (double duration : new double[] { 0, 0.5, 0.999999 }) {
+			int cutoff = new EarlyStall(duration).cutoff();
+			for (int tick : new int[] { 0, cutoff / 4, cutoff / 2, cutoff - 1 }) {
+				double threshold = 0.55 - 0.45 * tick / cutoff;
+				EarlyStall below = new EarlyStall(duration);
+				below.beginDash(tick);
+				assertTrue(below.tryStart(tick, true, threshold - 0.000001), "below threshold at " + tick);
+				EarlyStall above = new EarlyStall(duration);
+				above.beginDash(tick);
+				assertFalse(above.tryStart(tick, true, threshold + 0.000001), "above threshold at " + tick);
+			}
+			EarlyStall ended = new EarlyStall(duration);
+			ended.beginDash(cutoff);
+			assertFalse(ended.tryStart(cutoff, true, 0));
+		}
+	}
+
+	@Test
 	void cutoffIsChosenOnceBetweenFiveAndTenMinutes() {
 		assertEquals(6000, new EarlyStall(0).cutoff());
 		assertEquals(12000, new EarlyStall(0.999999).cutoff());
@@ -30,7 +49,7 @@ class EarlyStallTest {
 	void rollsOncePerDashAndCooldownCannotExpireIntoAnExistingDash() {
 		EarlyStall stall = new EarlyStall(0);
 		stall.beginDash(0);
-		assertFalse(stall.tryStart(1, true, 0.15));
+		assertFalse(stall.tryStart(1, true, 0.55));
 		assertFalse(stall.tryStart(2, true, 0));
 		stall.beginDash(10);
 		assertFalse(stall.tryStart(11, false, 0));

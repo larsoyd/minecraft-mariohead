@@ -428,6 +428,39 @@ public class HeadGameTests {
 		homeRaidScenario(helper, 19);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void tinyChaseRegainsFullSizeBeforeHouseAndKeepsItThroughRaid(GameTestHelper helper) {
+		homeRaidScenario(helper, 21);
+	}
+
+	@GameTest(structure = ARENA)
+	public void tinyHouseRestorationWaitsForPrivacyAndFullSizeRoom(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, 1, 9.5), 90);
+		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(6, 1, 9.5));
+		head.setNoAi(true);
+		var size = TheHead.class.getDeclaredMethod("setSqueeze", float.class);
+		var restore = TheHead.class.getDeclaredMethod("restoreHouseSize", ServerLevel.class);
+		size.setAccessible(true);
+		restore.setAccessible(true);
+		size.invoke(head, 0.32f);
+		Vec3 before = head.position();
+		helper.assertFalse((boolean) restore.invoke(head, helper.getLevel()), "watched head grew for house");
+		helper.assertTrue(head.squeeze() == 0.32f && before.equals(head.position()), "watched restoration changed head");
+		target.setYRot(-90);
+		fill(helper, 3, 0, 6, 9, 6, 12, Blocks.STONE.defaultBlockState());
+		helper.assertFalse((boolean) restore.invoke(head, helper.getLevel()), "full-size house head grew inside stone");
+		helper.assertTrue(head.squeeze() == 0.32f && before.equals(head.position()), "blocked restoration changed head");
+		fill(helper, 3, 1, 6, 9, 6, 12, Blocks.AIR.defaultBlockState());
+		helper.assertTrue((boolean) restore.invoke(head, helper.getLevel()), "hidden head failed to restore in open room");
+		helper.assertTrue(head.squeeze() == 1 && helper.getLevel().noCollision(head, head.getBoundingBox()), "restoration clipped full-size hull");
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 850)
+	public void tinyBurrowRegainsFullSizeBeforeHouseAndKeepsItThroughRaid(GameTestHelper helper) {
+		homeRaidScenario(helper, 22);
+	}
+
 	private void homeRaidScenario(GameTestHelper helper, int scenario) {
 		fill(helper, 8, 0, 4, 18, 5, 14, Blocks.STONE.defaultBlockState());
 		fill(helper, 9, 1, 5, 17, scenario == 9 ? 2 : 4, 13, Blocks.AIR.defaultBlockState());
@@ -482,6 +515,7 @@ public class HeadGameTests {
 		boolean[] food = { false };
 		boolean[] changed = { false };
 		boolean[] window = { false };
+		boolean[] shrunk = { false };
 		long[] returnAt = { -1 };
 		Vec3[] returnPos = { Vec3.ZERO };
 		int[] waitingRevs = { -1 };
@@ -491,6 +525,23 @@ public class HeadGameTests {
 		HeadCue[] laughCue = { HeadCue.NONE };
 		helper.onEachTick(() -> {
 			HeadCue cue = head.cue();
+			if ((scenario == 21 || scenario == 22) && !shrunk[0] && head.phase() == HeadPhase.CHARGE) {
+				try {
+					var size = TheHead.class.getDeclaredMethod("setSqueeze", float.class);
+					size.setAccessible(true);
+					size.invoke(head, 0.32f);
+					if (scenario == 22) {
+						var burrowing = TheHead.class.getDeclaredField("burrowing");
+						burrowing.setAccessible(true);
+						burrowing.setBoolean(head, true);
+					}
+				} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+				shrunk[0] = true;
+			}
+			if ((scenario == 21 || scenario == 22) && (cue.home() || head.digging())) {
+				helper.assertTrue(shrunk[0], "fixture never entered tiny chase");
+				helper.assertTrue(head.squeeze() == 1, "house dialogue or TNT retained tiny chase size: " + cue + " size=" + head.squeeze());
+			}
 			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
 			if (waitingRevs[0] < 0 && returnAt[0] < 0 && cues.contains(HeadCue.HOME_ASK) && cue.digHum()) target.setPos(helper.absoluteVec(new Vec3(25.5, 1, 9.5)));
 			if (scenario == 16 && cue == HeadCue.HOME_NICE) {
@@ -558,7 +609,7 @@ public class HeadGameTests {
 				}
 				if (waitingRevs[0] >= 0) helper.assertTrue(head.revs() == waitingRevs[0], "new dash before pending return threat");
 			}
-			if ((scenario == 12 || scenario == 13 || scenario == 15 || scenario == 17 || scenario == 20) && (cue == HeadCue.HOME_RETURN || returnAt[0] >= 0)) {
+			if ((scenario == 12 || scenario == 13 || scenario == 15 || scenario == 17 || scenario == 20 || scenario == 21 || scenario == 22) && (cue == HeadCue.HOME_RETURN || returnAt[0] >= 0)) {
 				if (returnAt[0] < 0) {
 					try {
 						Field ready = TheHead.class.getDeclaredField("tauntReadyAt");
@@ -3863,7 +3914,7 @@ public class HeadGameTests {
 			var prank = TheHead.class.getDeclaredField("prank"); prank.setAccessible(true);
 			((com.larsoyd.mariohead.entity.BehindPrank) prank.get(head)).dash(true);
 		}
-		helper.assertTrue((boolean) start.invoke(head, target, success || stalking ? 0.149999 : 0.15) == success, "wrong imminent stall roll outcome");
+		helper.assertTrue((boolean) start.invoke(head, target, success || stalking ? 0.149999 : 0.55) == success, "wrong imminent stall roll outcome");
 		if (success) {
 			helper.assertTrue(java.util.List.of(com.larsoyd.mariohead.entity.ChaseVoices.STALLS).contains(head.cue()), "stall used wrong line");
 			helper.assertTrue(until.getLong(head) == helper.getLevel().getGameTime() + (head.cue().clip().millis() + 49) / 50, "mock duration differs from recording");
