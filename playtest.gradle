@@ -1,0 +1,30 @@
+sourceSets {
+	playtest {
+		compileClasspath += sourceSets.main.output + sourceSets.client.output + sourceSets.client.compileClasspath
+		runtimeClasspath += sourceSets.main.output + sourceSets.client.output + sourceSets.client.runtimeClasspath
+	}
+	playtestTest {
+		compileClasspath += sourceSets.playtest.output + sourceSets.test.compileClasspath
+		runtimeClasspath += sourceSets.playtest.output + sourceSets.test.runtimeClasspath
+	}
+}
+
+loom {
+	mods {
+		'mariohead-playtest' { sourceSet sourceSets.playtest }
+	}
+	runs {
+		playtest {
+			inherit client
+			sourceSet = sourceSets.playtest.name
+			runDirectory = file('run')
+		}
+	}
+}
+
+tasks.register('playtestTest', Test) {
+	testClassesDirs = sourceSets.playtestTest.output.classesDirs
+	classpath = sourceSets.playtestTest.runtimeClasspath
+	useJUnitPlatform()
+	maxParallelForks = 2
+}

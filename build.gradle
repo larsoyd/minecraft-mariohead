@@ -55,3 +55,7 @@ tasks.withType(JavaCompile).configureEach {
 test {
 	useJUnitPlatform()
 }
+
+if (providers.gradleProperty('playtest').isPresent()) {
+	apply from: 'playtest.gradle'
+}

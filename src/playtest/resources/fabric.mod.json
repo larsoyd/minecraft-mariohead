@@ -1,0 +1,10 @@
+{
+	"schemaVersion": 1,
+	"id": "mariohead-playtest",
+	"version": "1.0.0",
+	"name": "Mario Head player bot",
+	"environment": "client",
+	"entrypoints": {"client": ["com.larsoyd.mariohead.playtest.PlayerBot"]},
+	"mixins": ["playtest.mixins.json"],
+	"depends": {"mariohead": "*"}
+}
