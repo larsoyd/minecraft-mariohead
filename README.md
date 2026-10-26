@@ -7,14 +7,30 @@ He swells into view a few blocks in front of you with a puff of smoke, glances a
 between them, a little faster every time, until he outruns a sprint and starts matching your pace.
 He does not give up. If he touches you, you die.
 
-## Requirements
+---
+
+### Requirements
 
 - Minecraft Java Edition 26.3
 - Fabric Loader 0.20.1 or newer
 - Fabric API 0.165.0+26.3 or newer
 - Java 25
 
-## Install
+### Instructions
+
+- `/mariohead summon` puts him in view of you, 7 to 12 blocks away, somewhere open with a clear
+  line of sight. `/mariohead summon <players>` does it for others. He refuses when there is no room
+  in view, for example when you stare at the floor or a wall, and for players in creative or
+  spectator.
+- The Floating Mario Head Spawn Egg is in the Spawn Eggs tab of the creative inventory. A head
+  from an egg chases the nearest player in survival or adventure within 32 blocks.
+- **NB:** The head uses TNT for some dashing which is destructive. If you wish to turn that off, disable the `tntexplodes` rule.
+
+The command needs operator rights (permission level 2).
+
+---
+
+### Install
 
 Download the newest `mariohead-x.x.x.jar` from the [latest release](https://github.com/larsoyd/minecraft-mariohead/releases/latest).
 Install Fabric Loader for Minecraft 26.3, then put the mod jar and
@@ -24,26 +40,15 @@ Use Java 25 in your Minecraft launcher.
 To use `/mariohead summon` in singleplayer, create the world with Allow Commands on, or open it to
 LAN with cheats allowed.
 
-## Calling him
-
-- `/mariohead summon` puts him in view of you, 7 to 12 blocks away, somewhere open with a clear
-  line of sight. `/mariohead summon <players>` does it for others. He refuses when there is no room
-  in view, for example when you stare at the floor or a wall, and for players in creative or
-  spectator.
-- The Floating Mario Head Spawn Egg is in the Spawn Eggs tab of the creative inventory. A head
-  from an egg chases the nearest player in survival or adventure within 32 blocks.
-
-The command needs operator rights (permission level 2).
-
 ---
 
 ### Building from source (i.e Manual Install)
 
-If you want you can manually build the mod yourself from the source you can manually build it. The supported paths to do so is Ubuntu on WSL (Windows) or Ubuntu LTS if you are on Linux.
+These are the instructions to manually build the mod yourself from the source. Unless you know you want to do this, it is not recommended. The supported paths to do so is Ubuntu on WSL (Windows) or Ubuntu LTS if you are on Linux.
 
 Please note that the developer version might have bugs and it is recommended that you use the release *.jar instead.
 
-### What the build does
+#### What the build does:
 
 Java 21 starts the bundled Gradle wrapper. The project's Gradle configuration downloads Java 25
 for the build automatically. The first build needs internet access to download Gradle, Java and
@@ -57,7 +62,7 @@ The model and runtime sounds are already included in the source tree.
 
 To run unit tests separately, use `./gradlew test`. Server game tests use `./gradlew runGameTest`.
 
----
+### Build Instructions
 
 #### Windows (WSL with Ubuntu)
 
@@ -86,6 +91,7 @@ folder in Windows, then copy the jar to your Windows Minecraft instance's `mods`
 For the standard launcher, that is `%APPDATA%\.minecraft\mods`.
 Install Fabric Loader and Fabric API on Windows as described above, then launch Minecraft on Windows.
 
+
 #### Ubuntu
 
 On Ubuntu 24.04 LTS or newer, open a terminal and run:
@@ -106,7 +112,7 @@ Copy `build/libs/mariohead-x.x.x.jar` into your Minecraft instance's `mods` fold
 
 ---
 
-## Credits
+### Credits
 
 - Head model: the high quality Mario head Blender model (`mario_head.blend`) with its cap, iris
   and swatch textures is based on the Floating Mario Head from Mario Teaches Typing. The original creator is unknown since I cannot find the site where I originally found it. If it's you, please come forward.
