@@ -129,4 +129,4 @@ Copy `build/libs/mariohead-x.x.x-dev.jar` into your Minecraft instance's `mods` 
 
 ## License
 
-MIT, see [LICENSE](LICENSE). 
+All code is licensed under the MIT, see [LICENSE](LICENSE). 
