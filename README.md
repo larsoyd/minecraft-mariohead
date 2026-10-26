@@ -54,8 +54,8 @@ Run the following commands in the Ubuntu terminal, keeping the project in your L
 ```bash
 sudo apt update
 sudo apt install -y git openjdk-21-jdk-headless ca-certificates
-mkdir -p ~/Projects
-cd ~/Projects
+mkdir -p ~/git
+cd ~/git
 git clone https://github.com/larsoyd/minecraft-mariohead.git
 cd minecraft-mariohead
 ./build.sh
@@ -73,8 +73,8 @@ On Ubuntu 24.04 LTS or newer, open a terminal and run:
 ```bash
 sudo apt update
 sudo apt install -y git openjdk-21-jdk-headless ca-certificates
-mkdir -p ~/Projects
-cd ~/Projects
+mkdir -p ~/git
+cd ~/git
 git clone https://github.com/larsoyd/minecraft-mariohead.git
 cd minecraft-mariohead
 ./build.sh
