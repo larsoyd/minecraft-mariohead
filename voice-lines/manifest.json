@@ -1,0 +1,2765 @@
+{
+  "source": "/home/lars/Videos/All Cutscenes & Voice Lines of the Floating Mario Head (Mario Teaches Typing).mkv",
+  "source_sha256": "2dbb3f892b2a44c23d4d81da496768d13cad4c5247df48b49e2fdc7bcba19cab",
+  "model": "FilmCraft whisper-small",
+  "transcript_status": "Machine transcripts with evidence-backed research corrections where review_resolution is present. Raw recognition passes are retained. Nonverbal cues are classified separately. No human listening verification.",
+  "cuts": "Silence boundaries with context joins and 120 ms leading / 160 ms trailing handles, shortened where adjacent content is close.",
+  "clips": [
+    {
+      "id": "001_00m00s_oh_hello_it_s_me_mario_and",
+      "start": 0.739313,
+      "end": 4.132188,
+      "duration": 3.392875,
+      "content_start": 0.859313,
+      "content_end": 3.981063,
+      "transcript": "Oh hello! It's me, Mario!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "greeting"
+      ],
+      "wav": "wav/001_00m00s_oh_hello_it_s_me_mario_and.wav",
+      "ogg": "ogg/001_00m00s_oh_hello_it_s_me_mario_and.ogg",
+      "context_transcript": "Oh hello, it's me Mario and",
+      "clip_transcript": "Oh hello! It's me, Mario!",
+      "review_reasons": []
+    },
+    {
+      "id": "002_00m04s_i_want_to_thank_you_for_choosing_mario_teaches_a_typing",
+      "start": 4.163313,
+      "end": 8.417,
+      "duration": 4.253687,
+      "content_start": 4.283313,
+      "content_end": 8.257000000000001,
+      "transcript": "And I'm going to thank you for choosing Mario Teaches a Typing.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/002_00m04s_i_want_to_thank_you_for_choosing_mario_teaches_a_typing.wav",
+      "ogg": "ogg/002_00m04s_i_want_to_thank_you_for_choosing_mario_teaches_a_typing.ogg",
+      "context_transcript": "I want to thank you for choosing Mario teaches a typing.",
+      "clip_transcript": "And I'm going to thank you for choosing Mario Teaches a Typing.",
+      "review_reasons": []
+    },
+    {
+      "id": "003_00m09s_i_know_you_re_going_to_be_a_great_typist",
+      "start": 8.901062,
+      "end": 12.474125,
+      "duration": 3.573063,
+      "content_start": 9.021062,
+      "content_end": 12.314124999999999,
+      "transcript": "I know you're gonna be a great typeist. Mm-mm!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/003_00m09s_i_know_you_re_going_to_be_a_great_typist.wav",
+      "ogg": "ogg/003_00m09s_i_know_you_re_going_to_be_a_great_typist.ogg",
+      "context_transcript": "I know you're going to be a great typist.",
+      "clip_transcript": "I know you're gonna be a great typeist. Mm-mm!",
+      "review_reasons": []
+    },
+    {
+      "id": "004_00m13s_nice_computer_you_got_here",
+      "start": 12.89625,
+      "end": 16.795751,
+      "duration": 3.899501,
+      "content_start": 13.01625,
+      "content_end": 16.635751,
+      "transcript": "Hmm. Oh, nice computer you got here.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/004_00m13s_nice_computer_you_got_here.wav",
+      "ogg": "ogg/004_00m13s_nice_computer_you_got_here.ogg",
+      "context_transcript": "nice computer you got here.",
+      "clip_transcript": "Hmm. Oh, nice computer you got here.",
+      "review_reasons": []
+    },
+    {
+      "id": "005_00m17s_can_i_have_it",
+      "start": 17.159813,
+      "end": 18.107376,
+      "duration": 0.947563,
+      "content_start": 17.279813,
+      "content_end": 17.947376,
+      "transcript": "Can I have it?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/005_00m17s_can_i_have_it.wav",
+      "ogg": "ogg/005_00m17s_can_i_have_it.ogg",
+      "context_transcript": "Can I have it?",
+      "clip_transcript": "Can I have it?",
+      "review_reasons": []
+    },
+    {
+      "id": "006_00m19s_i_ma_bet_you_can_t_do_this",
+      "start": 18.897688,
+      "end": 20.809312,
+      "duration": 1.911624,
+      "content_start": 19.017688,
+      "content_end": 20.649312000000002,
+      "transcript": "I'ma bet you can't do this!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/006_00m19s_i_ma_bet_you_can_t_do_this.wav",
+      "ogg": "ogg/006_00m19s_i_ma_bet_you_can_t_do_this.ogg",
+      "context_transcript": "I'ma bet you can't do this!",
+      "clip_transcript": "I'ma bet you can't do this!",
+      "review_reasons": []
+    },
+    {
+      "id": "007_00m21s_vocalization_needs_review",
+      "start": 21.16725,
+      "end": 23.320562,
+      "duration": 2.153312,
+      "content_start": 21.28725,
+      "content_end": 23.160562000000002,
+      "transcript": "Whee!",
+      "kind": "vocalization",
+      "review_status": "classified_nonverbal",
+      "suggested_tags": [],
+      "wav": "wav/007_00m21s_vocalization_needs_review.wav",
+      "ogg": "ogg/007_00m21s_vocalization_needs_review.ogg",
+      "context_transcript": "Weeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "clip_transcript": "Weeeeeee!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "007_00m21s_vocalization_needs_review",
+        "wav_sha256": "0838e9eddc116eaf42ab256f4c434129e1c9ddca05f29f752136efc52f22cf29",
+        "prior_transcript": "Weeeeeee!",
+        "transcript": "Whee!",
+        "kind": "vocalization",
+        "status": "classified_nonverbal",
+        "note": "An elongated exclamation, not failed dialogue. Both model sizes identify the same vowel sound.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Weeeeee!"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "008_00m23s_vocalization_needs_review",
+      "start": 23.541812,
+      "end": 24.601624,
+      "duration": 1.059812,
+      "content_start": 23.661812,
+      "content_end": 24.441624,
+      "transcript": "[laughter]",
+      "kind": "vocalization",
+      "review_status": "classified_nonverbal",
+      "suggested_tags": [],
+      "wav": "wav/008_00m23s_vocalization_needs_review.wav",
+      "ogg": "ogg/008_00m23s_vocalization_needs_review.ogg",
+      "context_transcript": "",
+      "clip_transcript": "Ah, ah, ah, ah.",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "008_00m23s_vocalization_needs_review",
+        "wav_sha256": "6c539bf5988c556e1e9f16867c16d51892272ef159f0b68fbbdeb54cca4a8f88",
+        "prior_transcript": "Ah, ah, ah, ah.",
+        "transcript": "[laughter]",
+        "kind": "vocalization",
+        "status": "classified_nonverbal",
+        "note": "The larger model identifies repeated laughter. Use a sound description rather than an invented sentence.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Ha ha ha ha ha"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "009_00m25s_vocalization_needs_review",
+      "start": 25.630187,
+      "end": 28.273812,
+      "duration": 2.643625,
+      "content_start": 25.750187,
+      "content_end": 28.113812,
+      "transcript": "Hey, I got something in my eye. Can you help me get it out?",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/009_00m25s_vocalization_needs_review.wav",
+      "ogg": "ogg/009_00m25s_vocalization_needs_review.ogg",
+      "context_transcript": "",
+      "clip_transcript": "Hey, I got something in my eye. Can you help me get it out?",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "009_00m25s_vocalization_needs_review",
+        "wav_sha256": "fd348a2c4b4c0e75f5219910ce96ed909d8f3446c13a20ea7770326193c62c18",
+        "prior_transcript": "Hey, I got something in my eye. Can you help me get it out?",
+        "transcript": "Hey, I got something in my eye. Can you help me get it out?",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "Both isolated-clip models agree. The source dialogue catalog also identifies this eye-related line.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Hey, I got something in my eye. Can you help me get it out?"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "010_00m32s_hey_are_you_ready_to_mario_size",
+      "start": 32.16275,
+      "end": 34.948875,
+      "duration": 2.786125,
+      "content_start": 32.28275,
+      "content_end": 34.788875,
+      "transcript": "Hey! Are you ready to Mario size?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/010_00m32s_hey_are_you_ready_to_mario_size.wav",
+      "ogg": "ogg/010_00m32s_hey_are_you_ready_to_mario_size.ogg",
+      "context_transcript": "Hey! Are you ready to Mario size?",
+      "clip_transcript": "Hey! Are you ready to Mario size?",
+      "review_reasons": []
+    },
+    {
+      "id": "011_00m35s_okie_dokie_you_do_just_like_mario_ok",
+      "start": 35.049812,
+      "end": 38.110626,
+      "duration": 3.060814,
+      "content_start": 35.169812,
+      "content_end": 37.950626,
+      "transcript": "Okie dokie, you do just like Mario, ok?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/011_00m35s_okie_dokie_you_do_just_like_mario_ok.wav",
+      "ogg": "ogg/011_00m35s_okie_dokie_you_do_just_like_mario_ok.ogg",
+      "context_transcript": "Okie dokie, you do just like Mario, ok?",
+      "clip_transcript": "Okie dokie, you do just like Mario, ok?",
+      "review_reasons": []
+    },
+    {
+      "id": "012_00m38s_one",
+      "start": 38.655813,
+      "end": 40.084251,
+      "duration": 1.428438,
+      "content_start": 38.775813,
+      "content_end": 39.924251000000005,
+      "transcript": "One...",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/012_00m38s_one.wav",
+      "ogg": "ogg/012_00m38s_one.ogg",
+      "context_transcript": "One...",
+      "clip_transcript": "Whaaaaaaat?",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "012_00m38s_one",
+        "wav_sha256": "d1b783d03710ac1b9325f5f4cd858a0ad6b51a1c439c454b8078027698c435cc",
+        "prior_transcript": "One...",
+        "transcript": "One...",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The complete counting scene decodes One, Two and Three. The isolated stretched vowel was misleading.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Waaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "Hey! Are you ready to Mario-cise? Okie-dokie. You do just like Mario, ok? One... Very good. Two... And three! Eeeeee... Oh, sorry. That's hard for you, but easy for me. You know why?",
+            "start": 32,
+            "end": 55
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "013_00m41s_very_good",
+      "start": 41.373813,
+      "end": 42.249313,
+      "duration": 0.8755,
+      "content_start": 41.493813,
+      "content_end": 42.089313000000004,
+      "transcript": "Very good.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/013_00m41s_very_good.wav",
+      "ogg": "ogg/013_00m41s_very_good.ogg",
+      "context_transcript": "Very good.",
+      "clip_transcript": "Very good.",
+      "review_reasons": []
+    },
+    {
+      "id": "014_00m42s_two",
+      "start": 42.54725,
+      "end": 44.054062,
+      "duration": 1.506812,
+      "content_start": 42.66725,
+      "content_end": 43.894062,
+      "transcript": "Two...",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/014_00m42s_two.wav",
+      "ogg": "ogg/014_00m42s_two.ogg",
+      "context_transcript": "Two",
+      "clip_transcript": "Boooo?",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "014_00m42s_two",
+        "wav_sha256": "0481c82d911e9bc89d020c501f7c3863c6b721d8fb5382049903dc877b31ec6f",
+        "prior_transcript": "Two",
+        "transcript": "Two...",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The full counting scene identifies the word; Puuu and Boooo are isolated-clip errors.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Puuu"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "Hey! Are you ready to Mario-cise? Okie-dokie. You do just like Mario, ok? One... Very good. Two... And three! Eeeeee... Oh, sorry. That's hard for you, but easy for me. You know why?",
+            "start": 32,
+            "end": 55
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "015_00m45s_vocalization_needs_review",
+      "start": 45.190437,
+      "end": 48.401375,
+      "duration": 3.210938,
+      "content_start": 45.310437,
+      "content_end": 48.241375000000005,
+      "transcript": "And three! Whee!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/015_00m45s_vocalization_needs_review.wav",
+      "ogg": "ogg/015_00m45s_vocalization_needs_review.ogg",
+      "context_transcript": "three.",
+      "clip_transcript": "and Creee! Eeeeeee!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "015_00m45s_vocalization_needs_review",
+        "wav_sha256": "a213ca3a1dc53ea435b4df57d493c65f19e80f6da05e8d02c371b279a0671ade",
+        "prior_transcript": "three.",
+        "transcript": "And three! Whee!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger model recovers the count and following exclamation, supported by the complete counting scene.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "And three. Whee!"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "Hey! Are you ready to Mario-cise? Okie-dokie. You do just like Mario, ok? One... Very good. Two... And three! Eeeeee... Oh, sorry. That's hard for you, but easy for me. You know why?",
+            "start": 32,
+            "end": 55
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "016_00m49s_oh_sorry_that_s_a_hard_for_you_but_easy_for_me_you_know_why",
+      "start": 49.702625,
+      "end": 54.770937,
+      "duration": 5.068312,
+      "content_start": 49.822625,
+      "content_end": 54.610937,
+      "transcript": "Oh, sorry. That's a hard for you. But easy for me. You know why?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/016_00m49s_oh_sorry_that_s_a_hard_for_you_but_easy_for_me_you_know_why.wav",
+      "ogg": "ogg/016_00m49s_oh_sorry_that_s_a_hard_for_you_but_easy_for_me_you_know_why.ogg",
+      "context_transcript": "Oh, sorry. That's a hard for you. But easy for me. You know why?",
+      "clip_transcript": "Oh, sorry. That's a hard for you. But easy for me. You know why?",
+      "review_reasons": []
+    },
+    {
+      "id": "017_00m55s_i_ain_t_got_nobody",
+      "start": 55.203,
+      "end": 58.848875,
+      "duration": 3.645875,
+      "content_start": 55.323,
+      "content_end": 58.688875,
+      "transcript": "I ain't got nobody",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/017_00m55s_i_ain_t_got_nobody.wav",
+      "ogg": "ogg/017_00m55s_i_ain_t_got_nobody.ogg",
+      "context_transcript": "I ain't got nobody!",
+      "clip_transcript": "I ain't got nobody",
+      "review_reasons": []
+    },
+    {
+      "id": "018_00m59s_get_it_nobody_hehehehehehehehehehehehehehehehehehehehehe",
+      "start": 59.391125,
+      "end": 64.04075,
+      "duration": 4.649625,
+      "content_start": 59.511125,
+      "content_end": 63.880750000000006,
+      "transcript": "Get it? No body? [laughs]",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/018_00m59s_get_it_nobody_hehehehehehehehehehehehehehehehehehehehehe.wav",
+      "ogg": "ogg/018_00m59s_get_it_nobody_hehehehehehehehehehehehehehehehehehehehehe.ogg",
+      "context_transcript": "Get it? Nobody? Hehehehehehehehehehehehehehehehehehehehehe",
+      "clip_transcript": "Get it? Nobody? Hehehehehehehehehehehehehehehehehehehehehe",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "018_00m59s_get_it_nobody_hehehehehehehehehehehehehehehehehehehehehe",
+        "wav_sha256": "abcce879b90f9bacaa2dcc728f5365c204a0f15bab67564b80f9e7bbe05c6daf",
+        "prior_transcript": "Get it? Nobody? Hehehehehehehehehehehehehehehehehehehehehe",
+        "transcript": "Get it? No body? [laughs]",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The words are supported by both model sizes. Laughter is represented descriptively; the spacing preserves the disembodied-head joke.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Get it? Nobody?"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "019_01m05s_oh_no_i_m_a_fallen_and_i_came_to_get_up",
+      "start": 65.131,
+      "end": 69.051626,
+      "duration": 3.920626,
+      "content_start": 65.251,
+      "content_end": 68.891626,
+      "transcript": "Oh no! I'm-a fallen, and I can't get up!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/019_01m05s_oh_no_i_m_a_fallen_and_i_came_to_get_up.wav",
+      "ogg": "ogg/019_01m05s_oh_no_i_m_a_fallen_and_i_came_to_get_up.ogg",
+      "context_transcript": "Oh no! I'm a fallen and I came to get up!",
+      "clip_transcript": "Oh no! I'm a fallen and I came to get up!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "019_01m05s_oh_no_i_m_a_fallen_and_i_came_to_get_up",
+        "wav_sha256": "d10d4f716e28de3d008f42372f77cceebb837c054a021b5bdf6543523f1ce2ec",
+        "prior_transcript": "Oh no! I'm a fallen and I came to get up!",
+        "transcript": "Oh no! I'm-a fallen, and I can't get up!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger model recovers the negative phrase. The documented advertising joke corroborates it; came to get up was incorrect.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Oh no! I'm falling, and I can't get up!"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "020_01m09s_that_is_my_impression_of_american_advertising",
+      "start": 69.778313,
+      "end": 72.83295,
+      "duration": 3.054637,
+      "content_start": 69.898313,
+      "content_end": 72.6757,
+      "transcript": "That is my impression of American advertising.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/020_01m09s_that_is_my_impression_of_american_advertising.wav",
+      "ogg": "ogg/020_01m09s_that_is_my_impression_of_american_advertising.ogg",
+      "context_transcript": "That is my impression of American advertising.",
+      "clip_transcript": "That is my impression of American advertising.",
+      "review_reasons": []
+    },
+    {
+      "id": "021_01m12s_thank_you_very_much_thank_you_thank_you_oh_boy",
+      "start": 72.8702,
+      "end": 76.6148,
+      "duration": 3.7446,
+      "content_start": 72.9902,
+      "content_end": 76.4548,
+      "transcript": "Thank you very much. Thank you. Thank you. Oh boy.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/021_01m12s_thank_you_very_much_thank_you_thank_you_oh_boy.wav",
+      "ogg": "ogg/021_01m12s_thank_you_very_much_thank_you_thank_you_oh_boy.ogg",
+      "context_transcript": "Thank you very much. Thank you. Thank you. Oh boy",
+      "clip_transcript": "Thank you very much. Thank you. Thank you. Oh boy.",
+      "review_reasons": []
+    },
+    {
+      "id": "022_01m16s_finally_i_m_gonna_get_to_move_on_the_ground",
+      "start": 76.6633,
+      "end": 79.2798,
+      "duration": 2.6165,
+      "content_start": 76.7833,
+      "content_end": 79.1198,
+      "transcript": "Finally, I'm going to move on the ground.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/022_01m16s_finally_i_m_gonna_get_to_move_on_the_ground.wav",
+      "ogg": "ogg/022_01m16s_finally_i_m_gonna_get_to_move_on_the_ground.ogg",
+      "context_transcript": "Finally, I'm gonna get to move on the ground.",
+      "clip_transcript": "Finally, I'm going to move on the ground.",
+      "review_reasons": []
+    },
+    {
+      "id": "023_01m19s_here_we_go",
+      "start": 79.3846,
+      "end": 80.229687,
+      "duration": 0.845087,
+      "content_start": 79.5046,
+      "content_end": 80.069687,
+      "transcript": "Here we go!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/023_01m19s_here_we_go.wav",
+      "ogg": "ogg/023_01m19s_here_we_go.ogg",
+      "context_transcript": "Here we go",
+      "clip_transcript": "Here we go!",
+      "review_reasons": []
+    },
+    {
+      "id": "024_01m20s_moving_on_the_ground_moving_on_the_ground",
+      "start": 80.687625,
+      "end": 83.834375,
+      "duration": 3.14675,
+      "content_start": 80.807625,
+      "content_end": 83.674375,
+      "transcript": "Move it on the ground! Move it on the ground! Ehehehe!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/024_01m20s_moving_on_the_ground_moving_on_the_ground.wav",
+      "ogg": "ogg/024_01m20s_moving_on_the_ground_moving_on_the_ground.ogg",
+      "context_transcript": "Moving on the ground moving on the ground.",
+      "clip_transcript": "Move it on the ground! Move it on the ground! Ehehehe!",
+      "review_reasons": []
+    },
+    {
+      "id": "025_01m24s_where_d_everybody_go",
+      "start": 84.438188,
+      "end": 85.953563,
+      "duration": 1.515375,
+      "content_start": 84.558188,
+      "content_end": 85.793563,
+      "transcript": "Hey, where'd everybody go?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/025_01m24s_where_d_everybody_go.wav",
+      "ogg": "ogg/025_01m24s_where_d_everybody_go.ogg",
+      "context_transcript": "where'd everybody go?",
+      "clip_transcript": "Hey, where'd everybody go?",
+      "review_reasons": []
+    },
+    {
+      "id": "026_01m26s_oh_there_you_are",
+      "start": 86.304188,
+      "end": 88.207437,
+      "duration": 1.903249,
+      "content_start": 86.424188,
+      "content_end": 88.047437,
+      "transcript": "Oh, there you are. Ha ha ha!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/026_01m26s_oh_there_you_are.wav",
+      "ogg": "ogg/026_01m26s_oh_there_you_are.ogg",
+      "context_transcript": "Oh, there you are.",
+      "clip_transcript": "Oh, there you are. Ha ha ha!",
+      "review_reasons": []
+    },
+    {
+      "id": "027_01m28s_going_to_fly_for_you",
+      "start": 88.5295,
+      "end": 90.087875,
+      "duration": 1.558375,
+      "content_start": 88.6495,
+      "content_end": 89.927875,
+      "transcript": "I'm going to fly for you.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/027_01m28s_going_to_fly_for_you.wav",
+      "ogg": "ogg/027_01m28s_going_to_fly_for_you.ogg",
+      "context_transcript": "going to fly for you",
+      "clip_transcript": "I'm going to fly for you.",
+      "review_reasons": []
+    },
+    {
+      "id": "028_01m30s_vocalization_needs_review",
+      "start": 90.669,
+      "end": 94.634312,
+      "duration": 3.965312,
+      "content_start": 90.789,
+      "content_end": 94.474312,
+      "transcript": "[flying hum 1]",
+      "kind": "vocalization",
+      "review_status": "classified_nonverbal",
+      "suggested_tags": [],
+      "wav": "wav/028_01m30s_vocalization_needs_review.wav",
+      "ogg": "ogg/028_01m30s_vocalization_needs_review.ogg",
+      "context_transcript": "MMMMMMMMMMMMMMMMMMMMM",
+      "clip_transcript": "MMMMMMMMMMMMMMMMMMMMM",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "028_01m30s_vocalization_needs_review",
+        "wav_sha256": "c1e0a41389816df8850b2de1a7f944b4f269b3f7a67326db7d67920f85d3b358",
+        "prior_transcript": "[humming / sustained vocalization]",
+        "transcript": "[flying hum 1]",
+        "kind": "vocalization",
+        "status": "classified_nonverbal",
+        "note": "Both model sizes return sustained M sounds. This is a flying vocal effect, not missing words.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "029_01m35s_vocalization_needs_review",
+      "start": 95.073625,
+      "end": 97.176812,
+      "duration": 2.103187,
+      "content_start": 95.193625,
+      "content_end": 97.016812,
+      "transcript": "[flying hum 2]",
+      "kind": "vocalization",
+      "review_status": "classified_nonverbal",
+      "suggested_tags": [],
+      "wav": "wav/029_01m35s_vocalization_needs_review.wav",
+      "ogg": "ogg/029_01m35s_vocalization_needs_review.ogg",
+      "context_transcript": "",
+      "clip_transcript": "MMMMMMMMMMMMMMMMMMMMM",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "029_01m35s_vocalization_needs_review",
+        "wav_sha256": "c3c9ef3287df24ab16a9e6915485b9600d895917ab73a340b4dd6566ec79d408",
+        "prior_transcript": "[humming / sustained vocalization]",
+        "transcript": "[flying hum 2]",
+        "kind": "vocalization",
+        "status": "classified_nonverbal",
+        "note": "Both isolated-clip models identify a sustained hum. The earlier full-track omission is not missing dialogue.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Hmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "030_01m38s_vocalization_needs_review",
+      "start": 98.640875,
+      "end": 100.624688,
+      "duration": 1.983813,
+      "content_start": 98.760875,
+      "content_end": 100.46468800000001,
+      "transcript": "[flying hum 3]",
+      "kind": "vocalization",
+      "review_status": "classified_nonverbal",
+      "suggested_tags": [],
+      "wav": "wav/030_01m38s_vocalization_needs_review.wav",
+      "ogg": "ogg/030_01m38s_vocalization_needs_review.ogg",
+      "context_transcript": "",
+      "clip_transcript": "MMMMMMMMMMMMMMMMMMMMM",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "030_01m38s_vocalization_needs_review",
+        "wav_sha256": "91a797f81d63709352d8160438f03bf51625fc54a4b1d515337fb76a7e056151",
+        "prior_transcript": "[humming / sustained vocalization]",
+        "transcript": "[flying hum 3]",
+        "kind": "vocalization",
+        "status": "classified_nonverbal",
+        "note": "Both isolated-clip models identify a sustained hum. Keep it as a distinct sound take.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "031_01m41s_hate_my_notes",
+      "start": 101.490375,
+      "end": 105.860625,
+      "duration": 4.37025,
+      "content_start": 101.610375,
+      "content_end": 105.70062499999999,
+      "transcript": "[impact / pain vocalization] I hit my nose.",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/031_01m41s_hate_my_notes.wav",
+      "ogg": "ogg/031_01m41s_hate_my_notes.ogg",
+      "context_transcript": "hate my notes.",
+      "clip_transcript": "I hate my nose.",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "031_01m41s_hate_my_notes",
+        "wav_sha256": "9ec4c4e7ed53673d39b9d841949e5fd98fb3d0fcc4935b06b4e83f5ab48a8f03",
+        "prior_transcript": "I hate my nose.",
+        "transcript": "[impact / pain vocalization] I hit my nose.",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The published flying-scene dialogue resolves hit versus hate. Both isolated models mishear the accented word; this correction is reference-based, not an acoustic consensus.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "I hate my nose."
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "032_01m47s_can_i_sing_a_song_for_you",
+      "start": 107.531063,
+      "end": 109.232813,
+      "duration": 1.70175,
+      "content_start": 107.651063,
+      "content_end": 109.072813,
+      "transcript": "Can I sing a song for you?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/032_01m47s_can_i_sing_a_song_for_you.wav",
+      "ogg": "ogg/032_01m47s_can_i_sing_a_song_for_you.ogg",
+      "context_transcript": "Can I sing a song for you?",
+      "clip_transcript": "Can I sing a song for you?",
+      "review_reasons": []
+    },
+    {
+      "id": "033_01m50s_when_the_moon_hits_your_eye_like_a_big_pizza_pie_that_s_amore",
+      "start": 110.497063,
+      "end": 116.372375,
+      "duration": 5.875312,
+      "content_start": 110.617063,
+      "content_end": 116.212375,
+      "transcript": "When the moon hits your eye, like a big pizza pie, that's Amore.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/033_01m50s_when_the_moon_hits_your_eye_like_a_big_pizza_pie_that_s_amore.wav",
+      "ogg": "ogg/033_01m50s_when_the_moon_hits_your_eye_like_a_big_pizza_pie_that_s_amore.ogg",
+      "context_transcript": "When the moon hits your eye, like a big pizza pie, that's Amore.",
+      "clip_transcript": "When the moon hits your eye, like a big pizza pie, that's a moray.",
+      "review_reasons": []
+    },
+    {
+      "id": "034_01m56s_when_an_eel_lunges_out_and_it_takes_a_bite_of_your_snout_that_s_am",
+      "start": 116.684063,
+      "end": 122.699812,
+      "duration": 6.015749,
+      "content_start": 116.804063,
+      "content_end": 122.539812,
+      "transcript": "When an E lunges out, and he takes a bite of your snout. That's Amore!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/034_01m56s_when_an_eel_lunges_out_and_it_takes_a_bite_of_your_snout_that_s_am.wav",
+      "ogg": "ogg/034_01m56s_when_an_eel_lunges_out_and_it_takes_a_bite_of_your_snout_that_s_am.ogg",
+      "context_transcript": "When an eel lunges out, and it takes a bite of your snout, that's Amore.",
+      "clip_transcript": "When an E lunges out, and he takes a bite of your snout. That's Amore!",
+      "review_reasons": []
+    },
+    {
+      "id": "035_02m03s_get_it_amore_eel_i_say_the_funny",
+      "start": 123.3,
+      "end": 127.374063,
+      "duration": 4.074063,
+      "content_start": 123.42,
+      "content_end": 127.214063,
+      "transcript": "Get it? A moray eel? [laughs] I said a funny!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/035_02m03s_get_it_amore_eel_i_say_the_funny.wav",
+      "ogg": "ogg/035_02m03s_get_it_amore_eel_i_say_the_funny.ogg",
+      "context_transcript": "Get it, Amore eel? I say the funny.",
+      "clip_transcript": "Tell it, I'm more a eel. Hehehehe, I said it funny.",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "035_02m03s_get_it_amore_eel_i_say_the_funny",
+        "wav_sha256": "7c545fb6a5af25852ce275f8b2e3f4d0e4cec1feab0e4567d4407bb74a83c113",
+        "prior_transcript": "Get it, Amore eel? I say the funny.",
+        "transcript": "Get it? A moray eel? [laughs] I said a funny!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "Use the documented moray-eel punchline to resolve the pun and accented closing remark. Recognition remains inconsistent on this phrase; spelling is editorially normalized from the scene reference, not phoneme-certified.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Terry, I'm more ill. Hehehehe, I say they're funny."
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "When an eel lunges out, and he takes a bite of your snout, that's amore! Get it? Amore eel? I say they're funny.",
+            "start": 116.6,
+            "end": 128
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "036_02m09s_hmm_guess_what_time_it_is_it_s_time_for_you_to_tie",
+      "start": 129.19625,
+      "end": 133.546875,
+      "duration": 4.350625,
+      "content_start": 129.31625,
+      "content_end": 133.386875,
+      "transcript": "Hmm, guess what time it is? It's time for you to type!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/036_02m09s_hmm_guess_what_time_it_is_it_s_time_for_you_to_tie.wav",
+      "ogg": "ogg/036_02m09s_hmm_guess_what_time_it_is_it_s_time_for_you_to_tie.ogg",
+      "context_transcript": "Hmm, guess what time it is. It's time for you to tie.",
+      "clip_transcript": "Hmm, guess what time it is? It's time for you to type!",
+      "review_reasons": []
+    },
+    {
+      "id": "037_02m13s_let_s_do_this",
+      "start": 133.80025,
+      "end": 134.932,
+      "duration": 1.13175,
+      "content_start": 133.92025,
+      "content_end": 134.772,
+      "transcript": "Let's do this!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "charge"
+      ],
+      "wav": "wav/037_02m13s_let_s_do_this.wav",
+      "ogg": "ogg/037_02m13s_let_s_do_this.ogg",
+      "context_transcript": "Let's do this.",
+      "clip_transcript": "Let's do this!",
+      "review_reasons": []
+    },
+    {
+      "id": "038_02m15s_have_you_seen_luigi_hmm",
+      "start": 135.783,
+      "end": 137.904812,
+      "duration": 2.121812,
+      "content_start": 135.903,
+      "content_end": 137.744812,
+      "transcript": "Have you seen Luigi?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/038_02m15s_have_you_seen_luigi_hmm.wav",
+      "ogg": "ogg/038_02m15s_have_you_seen_luigi_hmm.ogg",
+      "context_transcript": "Have you seen Luigi? Hmm.",
+      "clip_transcript": "Have you seen Luigi?",
+      "review_reasons": []
+    },
+    {
+      "id": "039_02m19s_hey_luigi_it_s_time_for_you_to_tie",
+      "start": 139.129625,
+      "end": 142.207437,
+      "duration": 3.077812,
+      "content_start": 139.249625,
+      "content_end": 142.047437,
+      "transcript": "Hey Luigi! It's time for you to type!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/039_02m19s_hey_luigi_it_s_time_for_you_to_tie.wav",
+      "ogg": "ogg/039_02m19s_hey_luigi_it_s_time_for_you_to_tie.ogg",
+      "context_transcript": "Hey Luigi, it's time for you to tie.",
+      "clip_transcript": "Hey Luigi, it's time for you to die!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "039_02m19s_hey_luigi_it_s_time_for_you_to_tie",
+        "wav_sha256": "f35fa7aa990454c5d811c146cfedad0038472784205635e27e021b0a2fa20e52",
+        "prior_transcript": "Hey Luigi, it's time for you to tie.",
+        "transcript": "Hey Luigi! It's time for you to type!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The game-asset transcript identifies MARIOA65 as a typing invitation and explicitly records the die mishearing. A second quote list agrees. The face article instead says try; the asset-specific reading is used.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Hey Luigi! It's time for you to tie!"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "Hmm. Guess what time it is. It's time for you to tie. Let's do this. Have you seen Luigi? Hmm. Hey, Luigi. It's time for you to tie. Have you seen the princess? Princess! Hmm. Okie dokie, princess. It's your turn to tie. When I kiss the princess, I'm get light-headed. Beep. Woo!",
+            "start": 129,
+            "end": 158
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          },
+          {
+            "type": "reference",
+            "label": "Separate Mario quote list",
+            "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "040_02m23s_have_you_seen_the_princess_princess_hmm",
+      "start": 143.372625,
+      "end": 147.507437,
+      "duration": 4.134812,
+      "content_start": 143.492625,
+      "content_end": 147.34743699999999,
+      "transcript": "Have you seen the princess? Princess! Hmm.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/040_02m23s_have_you_seen_the_princess_princess_hmm.wav",
+      "ogg": "ogg/040_02m23s_have_you_seen_the_princess_princess_hmm.ogg",
+      "context_transcript": "Have you seen the princess? Princess! Hmm.",
+      "clip_transcript": "Have you seen the princess? Princess! Hmm.",
+      "review_reasons": []
+    },
+    {
+      "id": "041_02m28s_okie_dokie_princess_it_s_your_turn_to_tie",
+      "start": 148.596875,
+      "end": 151.74775,
+      "duration": 3.150875,
+      "content_start": 148.716875,
+      "content_end": 151.58775,
+      "transcript": "Okie dokie, princess! It's your turn to type!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/041_02m28s_okie_dokie_princess_it_s_your_turn_to_tie.wav",
+      "ogg": "ogg/041_02m28s_okie_dokie_princess_it_s_your_turn_to_tie.ogg",
+      "context_transcript": "Okie dokie princess, it's your turn to tie.",
+      "clip_transcript": "Okidoki Princess, it's your turn to tie.",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "041_02m28s_okie_dokie_princess_it_s_your_turn_to_tie",
+        "wav_sha256": "ef76f369b1b53e3e72d35faabbd4712659e53010442ca15f430b99bdedfa8c80",
+        "prior_transcript": "Okie dokie princess, it's your turn to tie.",
+        "transcript": "Okie dokie, princess! It's your turn to type!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The MARIOA66 transcript and the separate quote list agree on type. Tie is the model omitting the final consonant.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Okie-dokie, princess! It's your turn to tie!"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "Hmm. Guess what time it is. It's time for you to tie. Let's do this. Have you seen Luigi? Hmm. Hey, Luigi. It's time for you to tie. Have you seen the princess? Princess! Hmm. Okie dokie, princess. It's your turn to tie. When I kiss the princess, I'm get light-headed. Beep. Woo!",
+            "start": 129,
+            "end": 158
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          },
+          {
+            "type": "reference",
+            "label": "Separate Mario quote list",
+            "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "042_02m32s_when_i_kiss_the_princess_i_m_gonna_lie_hate_it",
+      "start": 152.606,
+      "end": 157.474125,
+      "duration": 4.868125,
+      "content_start": 152.726,
+      "content_end": 157.31412500000002,
+      "transcript": "When I kiss the princess, I'm-a get lightheaded.",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/042_02m32s_when_i_kiss_the_princess_i_m_gonna_lie_hate_it.wav",
+      "ogg": "ogg/042_02m32s_when_i_kiss_the_princess_i_m_gonna_lie_hate_it.ogg",
+      "context_transcript": "When I kiss the princess, I'm gonna lie, hate it.",
+      "clip_transcript": "When I kiss the princess, I'm gonna lie, hate it!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "042_02m32s_when_i_kiss_the_princess_i_m_gonna_lie_hate_it",
+        "wav_sha256": "494d77a65ddf5b4b53dc57fed0053fbcf228734395dc53545ee107a2d63fb956",
+        "prior_transcript": "When I kiss the princess, I'm gonna lie, hate it!",
+        "transcript": "When I kiss the princess, I'm-a get lightheaded.",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger model and whole-scene recognition recover lightheaded, independently of the provided reference wording.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "When I kiss the princess, I'ma get light-headed."
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "Hmm. Guess what time it is. It's time for you to tie. Let's do this. Have you seen Luigi? Hmm. Hey, Luigi. It's time for you to tie. Have you seen the princess? Princess! Hmm. Okie dokie, princess. It's your turn to tie. When I kiss the princess, I'm get light-headed. Beep. Woo!",
+            "start": 129,
+            "end": 158
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          },
+          {
+            "type": "reference",
+            "label": "Separate Mario quote list",
+            "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "043_02m40s_hey_don_t_leave_me_all_alone",
+      "start": 160.065063,
+      "end": 162.567813,
+      "duration": 2.50275,
+      "content_start": 160.185063,
+      "content_end": 162.407813,
+      "transcript": "Hey, don't leave me all alone!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "departure"
+      ],
+      "wav": "wav/043_02m40s_hey_don_t_leave_me_all_alone.wav",
+      "ogg": "ogg/043_02m40s_hey_don_t_leave_me_all_alone.ogg",
+      "context_transcript": "Hey, don't leave me all alone.",
+      "clip_transcript": "Hey, don't leave me all alone!",
+      "review_reasons": []
+    },
+    {
+      "id": "044_02m43s_hey_where_is_everybody",
+      "start": 163.36775,
+      "end": 165.905062,
+      "duration": 2.537312,
+      "content_start": 163.48775,
+      "content_end": 165.74506200000002,
+      "transcript": "Hey! Where is everybody?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/044_02m43s_hey_where_is_everybody.wav",
+      "ogg": "ogg/044_02m43s_hey_where_is_everybody.ogg",
+      "context_transcript": "Hey, where is everybody?",
+      "clip_transcript": "Hey! Where is everybody?",
+      "review_reasons": []
+    },
+    {
+      "id": "045_02m46s_come",
+      "start": 166.687125,
+      "end": 167.765187,
+      "duration": 1.078062,
+      "content_start": 166.807125,
+      "content_end": 167.605187,
+      "transcript": "Come back!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/045_02m46s_come.wav",
+      "ogg": "ogg/045_02m46s_come.ogg",
+      "context_transcript": "Come",
+      "clip_transcript": "Come back!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "045_02m46s_come",
+        "wav_sha256": "c28951bdbba04c0bf6ca6424af5138eaf9d9db9c727d3ca6aa97684a4d04abb8",
+        "prior_transcript": "Come back!",
+        "transcript": "Come back!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "Both isolated-clip model sizes recover the complete short command; the earlier context pass omitted back.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Come back!"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "046_02m49s_woohoo_i_always_wanted_to_type",
+      "start": 169.034687,
+      "end": 172.13425,
+      "duration": 3.099563,
+      "content_start": 169.154687,
+      "content_end": 171.97425,
+      "transcript": "Woohoo! I always wanted to type!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/046_02m49s_woohoo_i_always_wanted_to_type.wav",
+      "ogg": "ogg/046_02m49s_woohoo_i_always_wanted_to_type.ogg",
+      "context_transcript": "Woohoo! I always wanted to type!",
+      "clip_transcript": "I always wanted to type it.",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "046_02m49s_woohoo_i_always_wanted_to_type",
+        "wav_sha256": "80c1fbfae1c9c11e2a4930f667aad9b44a5d33e21ef1db3f7c1a6f9e2c5e6f6a",
+        "prior_transcript": "I always wanted to type it.",
+        "transcript": "Woohoo! I always wanted to type!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger clip pass recovers the opening exclamation and type. The indexed game-asset transcript corroborates the typing remark.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Woohoo! I always wanted to type!"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "047_02m53s_vocalization_needs_review",
+      "start": 173.467625,
+      "end": 176.307688,
+      "duration": 2.840063,
+      "content_start": 173.587625,
+      "content_end": 176.147688,
+      "transcript": "Look, I don't got no tonsils. Ahhh!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/047_02m53s_vocalization_needs_review.wav",
+      "ogg": "ogg/047_02m53s_vocalization_needs_review.ogg",
+      "context_transcript": "Look, I don't got no tonsils. Aaaaaaaah!",
+      "clip_transcript": "Look I don't got no tantul. Aaaaaaah!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "047_02m53s_vocalization_needs_review",
+        "wav_sha256": "62d46a02f28a840b6ed0abecb020f550af737e83ef37b3bf44f2616325206d2a",
+        "prior_transcript": "Look I don't got no tantul. Aaaaaaah!",
+        "transcript": "Look, I don't got no tonsils. Ahhh!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger model recovers tonsils. The small-model context pass and source dialogue also preserve the following open-mouth vocalization.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Look, I don't got no tonsils."
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "048_02m57s_look_i_m_a_video_game",
+      "start": 177.763938,
+      "end": 179.248188,
+      "duration": 1.48425,
+      "content_start": 177.883938,
+      "content_end": 179.088188,
+      "transcript": "Look, I'm a video game.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/048_02m57s_look_i_m_a_video_game.wav",
+      "ogg": "ogg/048_02m57s_look_i_m_a_video_game.ogg",
+      "context_transcript": "Look, I'm a video game.",
+      "clip_transcript": "Look, I'm a video game.",
+      "review_reasons": []
+    },
+    {
+      "id": "049_02m59s_boom",
+      "start": 179.74525,
+      "end": 180.552501,
+      "duration": 0.807251,
+      "content_start": 179.86525,
+      "content_end": 180.392501,
+      "transcript": "BOOM!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "impact"
+      ],
+      "wav": "wav/049_02m59s_boom.wav",
+      "ogg": "ogg/049_02m59s_boom.ogg",
+      "context_transcript": "Boom!",
+      "clip_transcript": "BOOM!",
+      "review_reasons": []
+    },
+    {
+      "id": "050_03m01s_boom_boom",
+      "start": 181.336938,
+      "end": 182.487,
+      "duration": 1.150062,
+      "content_start": 181.456938,
+      "content_end": 182.327,
+      "transcript": "BOOM BOOM",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "impact"
+      ],
+      "wav": "wav/050_03m01s_boom_boom.wav",
+      "ogg": "ogg/050_03m01s_boom_boom.ogg",
+      "context_transcript": "Boom boom!",
+      "clip_transcript": "BOOM BOOM",
+      "review_reasons": []
+    },
+    {
+      "id": "051_03m02s_boom_boom",
+      "start": 182.803875,
+      "end": 184.758625,
+      "duration": 1.95475,
+      "content_start": 182.923875,
+      "content_end": 184.598625,
+      "transcript": "BOOM BOOM BOOM",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "impact"
+      ],
+      "wav": "wav/051_03m02s_boom_boom.wav",
+      "ogg": "ogg/051_03m02s_boom_boom.ogg",
+      "context_transcript": "Boom boom!",
+      "clip_transcript": "BOOM BOOM BOOM",
+      "review_reasons": []
+    },
+    {
+      "id": "052_03m05s_thank_you_very_much_thank_you_thank_you",
+      "start": 185.392875,
+      "end": 187.640687,
+      "duration": 2.247812,
+      "content_start": 185.512875,
+      "content_end": 187.480687,
+      "transcript": "Thank you very much. Thank you. Thank you.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/052_03m05s_thank_you_very_much_thank_you_thank_you.wav",
+      "ogg": "ogg/052_03m05s_thank_you_very_much_thank_you_thank_you.ogg",
+      "context_transcript": "Thank you very much. Thank you, thank you.",
+      "clip_transcript": "Thank you very much. Thank you. Thank you.",
+      "review_reasons": []
+    },
+    {
+      "id": "053_03m08s_hmm_you_have_a_nice_place_here_hmm",
+      "start": 188.16525,
+      "end": 191.773312,
+      "duration": 3.608062,
+      "content_start": 188.28525,
+      "content_end": 191.61331199999998,
+      "transcript": "Hmm, you have a nice place here. Hmm.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/053_03m08s_hmm_you_have_a_nice_place_here_hmm.wav",
+      "ogg": "ogg/053_03m08s_hmm_you_have_a_nice_place_here_hmm.ogg",
+      "context_transcript": "Hmm, you have a nice place here. Hmm,",
+      "clip_transcript": "Hmm, you have a nice place here. Hmm.",
+      "review_reasons": []
+    },
+    {
+      "id": "054_03m12s_typing_is_fun_try_it",
+      "start": 192.534375,
+      "end": 194.80575,
+      "duration": 2.271375,
+      "content_start": 192.654375,
+      "content_end": 194.64575,
+      "transcript": "Typing is fun. Try it!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/054_03m12s_typing_is_fun_try_it.wav",
+      "ogg": "ogg/054_03m12s_typing_is_fun_try_it.ogg",
+      "context_transcript": "typing is fun. Try it.",
+      "clip_transcript": "Diving is fun! Try!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "054_03m12s_typing_is_fun_try_it",
+        "wav_sha256": "2f7dc67a377c7241826e0f2c144e35a5e071bc9ccb82a4a75ffa8b73947bb4bd",
+        "prior_transcript": "typing is fun. Try it.",
+        "transcript": "Typing is fun. Try it!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The game-asset transcript MARIO013 and both dialogue references identify typing. Diving and dating are recognition errors, not alternative lines.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Dating is fun! Try it!"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          },
+          {
+            "type": "reference",
+            "label": "Separate Mario quote list",
+            "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "055_03m16s_hey_you_got_a_good_joke_for_mario",
+      "start": 195.99825,
+      "end": 198.101687,
+      "duration": 2.103437,
+      "content_start": 196.11825,
+      "content_end": 197.941687,
+      "transcript": "Hey, you got a good joke for Mario?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/055_03m16s_hey_you_got_a_good_joke_for_mario.wav",
+      "ogg": "ogg/055_03m16s_hey_you_got_a_good_joke_for_mario.ogg",
+      "context_transcript": "Hey, you got a good joke for Mario?",
+      "clip_transcript": "Hey, you got a good joke for Mario?",
+      "review_reasons": []
+    },
+    {
+      "id": "056_03m18s_hey_who_s_that_behind_you",
+      "start": 198.806,
+      "end": 200.320501,
+      "duration": 1.514501,
+      "content_start": 198.926,
+      "content_end": 200.160501,
+      "transcript": "Hey, who's that behind you?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "taunt"
+      ],
+      "wav": "wav/056_03m18s_hey_who_s_that_behind_you.wav",
+      "ogg": "ogg/056_03m18s_hey_who_s_that_behind_you.ogg",
+      "context_transcript": "Hey, who's that behind you?",
+      "clip_transcript": "Hey, who's that behind you?",
+      "review_reasons": []
+    },
+    {
+      "id": "057_03m20s_made_you_look_made_you_look",
+      "start": 200.648313,
+      "end": 202.873312,
+      "duration": 2.224999,
+      "content_start": 200.768313,
+      "content_end": 202.71331199999997,
+      "transcript": "Made you look, made you look.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "taunt"
+      ],
+      "wav": "wav/057_03m20s_made_you_look_made_you_look.wav",
+      "ogg": "ogg/057_03m20s_made_you_look_made_you_look.ogg",
+      "context_transcript": "Made you look, made you look.",
+      "clip_transcript": "Made you look, made you look.",
+      "review_reasons": []
+    },
+    {
+      "id": "058_03m23s_nose_feels_funny_against_this_screen",
+      "start": 203.840875,
+      "end": 207.406875,
+      "duration": 3.566,
+      "content_start": 203.960875,
+      "content_end": 207.246875,
+      "transcript": "My nose feels funny against this screen! Hmm!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/058_03m23s_nose_feels_funny_against_this_screen.wav",
+      "ogg": "ogg/058_03m23s_nose_feels_funny_against_this_screen.ogg",
+      "context_transcript": "nose feels funny against this screen.",
+      "clip_transcript": "My nose feels funny against this screen! Hmm!",
+      "review_reasons": []
+    },
+    {
+      "id": "059_03m29s_say_i_m_hungry_have_you_got_any_food",
+      "start": 209.806563,
+      "end": 213.1408,
+      "duration": 3.334237,
+      "content_start": 209.926563,
+      "content_end": 212.9808,
+      "transcript": "Say, I'm hungry. Have you got any food?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/059_03m29s_say_i_m_hungry_have_you_got_any_food.wav",
+      "ogg": "ogg/059_03m29s_say_i_m_hungry_have_you_got_any_food.ogg",
+      "context_transcript": "Say, I'm hungry. Have you got any food?",
+      "clip_transcript": "Say, I'm hungry. Have you got any food?",
+      "review_reasons": []
+    },
+    {
+      "id": "060_03m33s_hey_i_m_thirsty_you_got_something_to_drink",
+      "start": 213.2008,
+      "end": 217.274124,
+      "duration": 4.073324,
+      "content_start": 213.3208,
+      "content_end": 217.114124,
+      "transcript": "Hey, I'm a thirsty. You got something to drinky?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/060_03m33s_hey_i_m_thirsty_you_got_something_to_drink.wav",
+      "ogg": "ogg/060_03m33s_hey_i_m_thirsty_you_got_something_to_drink.ogg",
+      "context_transcript": "Hey, I'm thirsty. You got something to drink?",
+      "clip_transcript": "Hey, I'm a thirsty. You got something to drinky?",
+      "review_reasons": []
+    },
+    {
+      "id": "061_03m39s_i_m_gonna_look_better_when_i_standing_still",
+      "start": 219.862812,
+      "end": 222.372063,
+      "duration": 2.509251,
+      "content_start": 219.982812,
+      "content_end": 222.212063,
+      "transcript": "I'm-a look better when I standing still!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/061_03m39s_i_m_gonna_look_better_when_i_standing_still.wav",
+      "ogg": "ogg/061_03m39s_i_m_gonna_look_better_when_i_standing_still.ogg",
+      "context_transcript": "I'm gonna look better when I standing still.",
+      "clip_transcript": "I'm gonna look better when I standing still.",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "061_03m39s_i_m_gonna_look_better_when_i_standing_still",
+        "wav_sha256": "7ed4f8dc55e3dc070b533fdd5b0c449ea146acee264b92bf280966acd81265aa",
+        "prior_transcript": "I'm gonna look better when I standing still.",
+        "transcript": "I'm-a look better when I standing still!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger clip and context passes agree on the accented wording. Preserve the recorded grammar rather than rewriting it into a different sentence.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "I'ma look better when I standing still!"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "I'm a look better when I standing still oh boy look at that keyboard I bet you're going to learn how to type on it oh boy that makes me so happy I'm a light-headed okie-dokie let's do the next lesson",
+            "start": 219,
+            "end": 240.3
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "062_03m42s_oh_boy_look_at_that_keyboard",
+      "start": 222.763313,
+      "end": 225.043874,
+      "duration": 2.280561,
+      "content_start": 222.883313,
+      "content_end": 224.883874,
+      "transcript": "Oh boy look at that keyboard!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/062_03m42s_oh_boy_look_at_that_keyboard.wav",
+      "ogg": "ogg/062_03m42s_oh_boy_look_at_that_keyboard.ogg",
+      "context_transcript": "Oh boy, look at that keyboard.",
+      "clip_transcript": "Oh boy look at that keyboard!",
+      "review_reasons": []
+    },
+    {
+      "id": "063_03m45s_i_bet_you_re_going_to_learn_how_to_type_on_it_oh",
+      "start": 225.484312,
+      "end": 228.552562,
+      "duration": 3.06825,
+      "content_start": 225.604312,
+      "content_end": 228.42125,
+      "transcript": "I bet you're going to learn how to type on it! [laughs]",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/063_03m45s_i_bet_you_re_going_to_learn_how_to_type_on_it_oh.wav",
+      "ogg": "ogg/063_03m45s_i_bet_you_re_going_to_learn_how_to_type_on_it_oh.ogg",
+      "context_transcript": "I bet you're going to learn how to type on it. Oh",
+      "clip_transcript": "I bet you're going to learn how to tie pony!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "063_03m45s_i_bet_you_re_going_to_learn_how_to_type_on_it_oh",
+        "wav_sha256": "221912e1401e74a67b866020169ef02a6487dea41d055bab51da016c8151b711",
+        "prior_transcript": "I bet you're going to learn how to tie pony!",
+        "transcript": "I bet you're going to learn how to type on it! [laughs]",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger clip and context passes recover type on it. The game-asset transcript also records the trailing laugh; tie pony is incorrect.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "I bet you're going to learn how to type on it!"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "I'm a look better when I standing still oh boy look at that keyboard I bet you're going to learn how to type on it oh boy that makes me so happy I'm a light-headed okie-dokie let's do the next lesson",
+            "start": 219,
+            "end": 240.3
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "064_03m49s_boy_that_makes_me_so_happy_i_m_a_lightheaded",
+      "start": 228.563875,
+      "end": 233.575374,
+      "duration": 5.011499,
+      "content_start": 228.683875,
+      "content_end": 233.41537399999999,
+      "transcript": "Oh boy, this makes me so happy. I'm a lightheaded.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/064_03m49s_boy_that_makes_me_so_happy_i_m_a_lightheaded.wav",
+      "ogg": "ogg/064_03m49s_boy_that_makes_me_so_happy_i_m_a_lightheaded.ogg",
+      "context_transcript": "boy, that makes me so happy. I'm a lightheaded.",
+      "clip_transcript": "Oh boy, this makes me so happy. I'm a lightheaded.",
+      "review_reasons": []
+    },
+    {
+      "id": "065_03m53s_peace",
+      "start": 233.819562,
+      "end": 235.14075,
+      "duration": 1.321188,
+      "content_start": 233.939562,
+      "content_end": 234.98075,
+      "transcript": "Whee!",
+      "kind": "vocalization",
+      "review_status": "classified_nonverbal",
+      "suggested_tags": [],
+      "wav": "wav/065_03m53s_peace.wav",
+      "ogg": "ogg/065_03m53s_peace.ogg",
+      "context_transcript": "Peace.",
+      "clip_transcript": "BEEE",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "065_03m53s_peace",
+        "wav_sha256": "7c52104480e1f91a73b16e913ce1f4588b5a468aabd538b307b935acc6edbad8",
+        "prior_transcript": "BEEE",
+        "transcript": "Whee!",
+        "kind": "vocalization",
+        "status": "classified_nonverbal",
+        "note": "This is the rising vocal effect after the lightheaded remark. The source dialogue identifies it as an exclamation; Peace and BEEE are not reliable spoken words.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "[no words recognized]"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "I'm a look better when I standing still oh boy look at that keyboard I bet you're going to learn how to type on it oh boy that makes me so happy I'm a light-headed okie-dokie let's do the next lesson",
+            "start": 219,
+            "end": 240.3
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "066_03m56s_kukidoki_let_s_do_the_next_lesson",
+      "start": 236.727438,
+      "end": 240.006812,
+      "duration": 3.279374,
+      "content_start": 236.847438,
+      "content_end": 239.846812,
+      "transcript": "...kie dokie! Let's do the next lesson!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [
+        "charge"
+      ],
+      "wav": "wav/066_03m56s_kukidoki_let_s_do_the_next_lesson.wav",
+      "ogg": "ogg/066_03m56s_kukidoki_let_s_do_the_next_lesson.ogg",
+      "context_transcript": "Kukidoki, let's do the next lesson!",
+      "clip_transcript": "Kidoki, let's do the next lesson.",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "066_03m56s_kukidoki_let_s_do_the_next_lesson",
+        "wav_sha256": "b82881b743d03f2985c0ff9ed4725bbc62edd80b69b36504aa0eb4c8a480c25f",
+        "prior_transcript": "Kidoki, let's do the next lesson.",
+        "transcript": "...kie dokie! Let's do the next lesson!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The indexed MARIO040 transcript explicitly notes a shortened opening. Preserve that onset with an ellipsis rather than claiming a missing syllable is present. The rest is corroborated by the larger model.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Okie dokie, let's do the next lesson!"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "I'm a look better when I standing still oh boy look at that keyboard I bet you're going to learn how to type on it oh boy that makes me so happy I'm a light-headed okie-dokie let's do the next lesson",
+            "start": 219,
+            "end": 240.3
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "067_04m01s_hmm_mario_s_smash_and_dash",
+      "start": 241.432562,
+      "end": 244.781062,
+      "duration": 3.3485,
+      "content_start": 241.552562,
+      "content_end": 244.621062,
+      "transcript": "Hmm, Mario's Smash and Dash!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [
+        "charge"
+      ],
+      "wav": "wav/067_04m01s_hmm_mario_s_smash_and_dash.wav",
+      "ogg": "ogg/067_04m01s_hmm_mario_s_smash_and_dash.ogg",
+      "context_transcript": "Hmm, Mario's Smash and Dash!",
+      "clip_transcript": "Hmm, Mario's Smashing the Dash.",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "067_04m01s_hmm_mario_s_smash_and_dash",
+        "wav_sha256": "55e18962fd0b5d09d83e0d926a6f001c5677dbf590498b0dbefbc527c1d9cb55",
+        "prior_transcript": "Hmm, Mario's Smash and Dash!",
+        "transcript": "Hmm, Mario's Smash and Dash!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger clip and context passes agree on the level name. The separate game description corroborates its spelling.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Hmm, Mario's Smash and Dash."
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "Hmm, Mario's Smash and Dash! Welcome to the outside world! You're going to be typing one letter at a time. I know you can do it! Mario's Wet World Challenge!",
+            "start": 240.8,
+            "end": 257
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "068_04m05s_welcome_to_the_outside_world",
+      "start": 245.464125,
+      "end": 247.5699,
+      "duration": 2.105775,
+      "content_start": 245.584125,
+      "content_end": 247.4099,
+      "transcript": "Welcome to the outside world!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/068_04m05s_welcome_to_the_outside_world.wav",
+      "ogg": "ogg/068_04m05s_welcome_to_the_outside_world.ogg",
+      "context_transcript": "Welcome to the outside world!",
+      "clip_transcript": "Welcome to the outside world!",
+      "review_reasons": []
+    },
+    {
+      "id": "069_04m07s_you_re_going_to_be_typing_one_letter_at_a_time",
+      "start": 247.7033,
+      "end": 250.6351,
+      "duration": 2.9318,
+      "content_start": 247.8233,
+      "content_end": 250.4751,
+      "transcript": "you're going to be typing one letter at a time.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/069_04m07s_you_re_going_to_be_typing_one_letter_at_a_time.wav",
+      "ogg": "ogg/069_04m07s_you_re_going_to_be_typing_one_letter_at_a_time.ogg",
+      "context_transcript": "You're going to be typing one letter at a time.",
+      "clip_transcript": "you're going to be typing one letter at a time.",
+      "review_reasons": []
+    },
+    {
+      "id": "070_04m10s_i_know_you_can_do_it",
+      "start": 250.8163,
+      "end": 252.274,
+      "duration": 1.4577,
+      "content_start": 250.9363,
+      "content_end": 252.114,
+      "transcript": "I know you can do it.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/070_04m10s_i_know_you_can_do_it.wav",
+      "ogg": "ogg/070_04m10s_i_know_you_can_do_it.ogg",
+      "context_transcript": "I know you can do it!",
+      "clip_transcript": "I know you can do it.",
+      "review_reasons": []
+    },
+    {
+      "id": "071_04m14s_mario_s_wet_world_challenge",
+      "start": 253.996563,
+      "end": 256.44075,
+      "duration": 2.444187,
+      "content_start": 254.116563,
+      "content_end": 256.28075,
+      "transcript": "Mario's Wet World Challenge!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/071_04m14s_mario_s_wet_world_challenge.wav",
+      "ogg": "ogg/071_04m14s_mario_s_wet_world_challenge.ogg",
+      "context_transcript": "Mario's Wet World Challenge!",
+      "clip_transcript": "Mario's Wit World Challenge",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "071_04m14s_mario_s_wet_world_challenge",
+        "wav_sha256": "8cc95bd8ff189f357465795bf6a989182c827cb5cbc764076fd23fe17471f454",
+        "prior_transcript": "Mario's Wet World Challenge!",
+        "transcript": "Mario's Wet World Challenge!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger clip and context passes agree. Wet is the level name; Wit was a small-model error.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Mario's Wet World Challenge!"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "Hmm, Mario's Smash and Dash! Welcome to the outside world! You're going to be typing one letter at a time. I know you can do it! Mario's Wet World Challenge!",
+            "start": 240.8,
+            "end": 257
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "072_04m18s_welcome_to_the_intermediate_level_you_re_going_to_be_typing_all_wo",
+      "start": 257.930625,
+      "end": 264.64075,
+      "duration": 6.710125,
+      "content_start": 258.050625,
+      "content_end": 264.48075,
+      "transcript": "Welcome to the intermediate level! You're going to be typing all words now! Woohoo!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/072_04m18s_welcome_to_the_intermediate_level_you_re_going_to_be_typing_all_wo.wav",
+      "ogg": "ogg/072_04m18s_welcome_to_the_intermediate_level_you_re_going_to_be_typing_all_wo.ogg",
+      "context_transcript": "Welcome to the intermediate level. You're going to be typing all words now. Woohoo!",
+      "clip_transcript": "Welcome to the intermediate level! You're going to be typing all words now! Woohoo!",
+      "review_reasons": []
+    },
+    {
+      "id": "073_04m25s_ooh_mario_s_tunnel_of_a_doom_very_scary",
+      "start": 265.6645,
+      "end": 270.1405,
+      "duration": 4.476,
+      "content_start": 265.7845,
+      "content_end": 269.9805,
+      "transcript": "Ooh, Mario's tunnel of doom. Very scary.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "warning"
+      ],
+      "wav": "wav/073_04m25s_ooh_mario_s_tunnel_of_a_doom_very_scary.wav",
+      "ogg": "ogg/073_04m25s_ooh_mario_s_tunnel_of_a_doom_very_scary.ogg",
+      "context_transcript": "Ooh, Mario's tunnel of a doom. Very scary.",
+      "clip_transcript": "Ooh, Mario's tunnel of doom. Very scary.",
+      "review_reasons": []
+    },
+    {
+      "id": "074_04m31s_okie_dokie_now_we_go_to_the_advanced_level",
+      "start": 271.530438,
+      "end": 274.768875,
+      "duration": 3.238437,
+      "content_start": 271.650438,
+      "content_end": 274.608875,
+      "transcript": "Okie-tokie, now we go to the advanced level.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/074_04m31s_okie_dokie_now_we_go_to_the_advanced_level.wav",
+      "ogg": "ogg/074_04m31s_okie_dokie_now_we_go_to_the_advanced_level.ogg",
+      "context_transcript": "Okie dokie, now we go to the advanced level.",
+      "clip_transcript": "Okie-tokie, now we go to the advanced level.",
+      "review_reasons": []
+    },
+    {
+      "id": "075_04m35s_watch_out_for_falling_rocks",
+      "start": 275.154,
+      "end": 278.015937,
+      "duration": 2.861937,
+      "content_start": 275.274,
+      "content_end": 277.855937,
+      "transcript": "Watch out for falling rocks!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "warning"
+      ],
+      "wav": "wav/075_04m35s_watch_out_for_falling_rocks.wav",
+      "ogg": "ogg/075_04m35s_watch_out_for_falling_rocks.ogg",
+      "context_transcript": "Watch out for falling rocks.",
+      "clip_transcript": "Watch out for falling rocks!",
+      "review_reasons": []
+    },
+    {
+      "id": "076_04m38s_scary",
+      "start": 278.360687,
+      "end": 279.007125,
+      "duration": 0.646438,
+      "content_start": 278.480687,
+      "content_end": 278.847125,
+      "transcript": "Scary.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "warning"
+      ],
+      "wav": "wav/076_04m38s_scary.wav",
+      "ogg": "ogg/076_04m38s_scary.ogg",
+      "context_transcript": "Scary.",
+      "clip_transcript": "Scary.",
+      "review_reasons": []
+    },
+    {
+      "id": "077_04m39s_oh_look_it_s_a_mario_s_export_express",
+      "start": 279.73025,
+      "end": 284.059063,
+      "duration": 4.328813,
+      "content_start": 279.85025,
+      "content_end": 283.899063,
+      "transcript": "Oh look! It's-a Mario's Expert Express!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/077_04m39s_oh_look_it_s_a_mario_s_export_express.wav",
+      "ogg": "ogg/077_04m39s_oh_look_it_s_a_mario_s_export_express.ogg",
+      "context_transcript": "Oh look, it's a Mario's Export Express!",
+      "clip_transcript": "Oh look! It's a Mario's Export Express!",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "077_04m39s_oh_look_it_s_a_mario_s_export_express",
+        "wav_sha256": "2a42cb558e813a36504f5343c6076d6001ba00101d182383f096470e747a03ad",
+        "prior_transcript": "Oh look! It's a Mario's Export Express!",
+        "transcript": "Oh look! It's-a Mario's Expert Express!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The game level listing and MARIO007 transcript independently identify Expert Express. Export is a repeated model error; this correction uses the documented proper name.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Oh, look! It's a Mario's Export Express!"
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          },
+          {
+            "type": "reference",
+            "label": "Indexed transcript tied to original MARIO audio assets",
+            "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+          },
+          {
+            "type": "reference",
+            "label": "Separate Mario quote list",
+            "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "078_04m45s_hello_there",
+      "start": 285.232125,
+      "end": 286.4212,
+      "duration": 1.189075,
+      "content_start": 285.352125,
+      "content_end": 286.2612,
+      "transcript": "Hello there!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "greeting"
+      ],
+      "wav": "wav/078_04m45s_hello_there.wav",
+      "ogg": "ogg/078_04m45s_hello_there.ogg",
+      "context_transcript": "Hello there!",
+      "clip_transcript": "Hello there!",
+      "review_reasons": []
+    },
+    {
+      "id": "079_04m46s_are_you_ready_to_type_good_then_let_s_go",
+      "start": 286.5506,
+      "end": 290.374063,
+      "duration": 3.823463,
+      "content_start": 286.6706,
+      "content_end": 290.21406299999995,
+      "transcript": "Are you ready to type? Good! Then let's go!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "charge"
+      ],
+      "wav": "wav/079_04m46s_are_you_ready_to_type_good_then_let_s_go.wav",
+      "ogg": "ogg/079_04m46s_are_you_ready_to_type_good_then_let_s_go.ogg",
+      "context_transcript": "Are you ready to type? Good! Then let's go!",
+      "clip_transcript": "Are you ready to type? Good! Then let's go!",
+      "review_reasons": []
+    },
+    {
+      "id": "080_04m52s_if_you_re_ready_go_for_it",
+      "start": 291.930938,
+      "end": 294.14075,
+      "duration": 2.209812,
+      "content_start": 292.050938,
+      "content_end": 293.98075,
+      "transcript": "If you're ready, go for it!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "charge"
+      ],
+      "wav": "wav/080_04m52s_if_you_re_ready_go_for_it.wav",
+      "ogg": "ogg/080_04m52s_if_you_re_ready_go_for_it.ogg",
+      "context_transcript": "If you're ready, go for it!",
+      "clip_transcript": "If you're ready, go for it!",
+      "review_reasons": []
+    },
+    {
+      "id": "081_04m57s_okie_dokie_get_ready_to_move_your_fingers",
+      "start": 297.06375,
+      "end": 300.848376,
+      "duration": 3.784626,
+      "content_start": 297.18375,
+      "content_end": 300.688376,
+      "transcript": "Okidoki, get ready to move your fingers!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/081_04m57s_okie_dokie_get_ready_to_move_your_fingers.wav",
+      "ogg": "ogg/081_04m57s_okie_dokie_get_ready_to_move_your_fingers.ogg",
+      "context_transcript": "Okie dokie, get ready to move your fingers!",
+      "clip_transcript": "Okidoki, get ready to move your fingers!",
+      "review_reasons": []
+    },
+    {
+      "id": "082_05m03s_okie_dokie_i_m_ready_to_run",
+      "start": 303.530688,
+      "end": 305.907438,
+      "duration": 2.37675,
+      "content_start": 303.650688,
+      "content_end": 305.747438,
+      "transcript": "Okie dokie, I'm ready to run!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "charge"
+      ],
+      "wav": "wav/082_05m03s_okie_dokie_i_m_ready_to_run.wav",
+      "ogg": "ogg/082_05m03s_okie_dokie_i_m_ready_to_run.ogg",
+      "context_transcript": "Okie dokie, I'm ready to run!",
+      "clip_transcript": "Okie dokie, I'm ready to run!",
+      "review_reasons": []
+    },
+    {
+      "id": "083_05m06s_okie_dokie_begin_typing_now",
+      "start": 306.563063,
+      "end": 309.806313,
+      "duration": 3.24325,
+      "content_start": 306.683063,
+      "content_end": 309.64631299999996,
+      "transcript": "Okidoki, begin typing now.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/083_05m06s_okie_dokie_begin_typing_now.wav",
+      "ogg": "ogg/083_05m06s_okie_dokie_begin_typing_now.ogg",
+      "context_transcript": "Okie dokie, begin typing now!",
+      "clip_transcript": "Okidoki, begin typing now.",
+      "review_reasons": []
+    },
+    {
+      "id": "084_05m11s_on_your_mark_get_set_go",
+      "start": 311.196875,
+      "end": 314.571625,
+      "duration": 3.37475,
+      "content_start": 311.316875,
+      "content_end": 314.411625,
+      "transcript": "On your mark, get set, go!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "charge"
+      ],
+      "wav": "wav/084_05m11s_on_your_mark_get_set_go.wav",
+      "ogg": "ogg/084_05m11s_on_your_mark_get_set_go.ogg",
+      "context_transcript": "On your mark, get set, go!",
+      "clip_transcript": "On your mark, get set, go!",
+      "review_reasons": []
+    },
+    {
+      "id": "085_05m16s_oh_i_can_swim_very_fast_when_someone_is_chasing_me",
+      "start": 316.764625,
+      "end": 320.140687,
+      "duration": 3.376062,
+      "content_start": 316.884625,
+      "content_end": 319.980687,
+      "transcript": "Oh, I can swim very fast when someone is chasing me.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "taunt"
+      ],
+      "wav": "wav/085_05m16s_oh_i_can_swim_very_fast_when_someone_is_chasing_me.wav",
+      "ogg": "ogg/085_05m16s_oh_i_can_swim_very_fast_when_someone_is_chasing_me.ogg",
+      "context_transcript": "Oh, I can swim very fast when someone is chasing me.",
+      "clip_transcript": "Oh, I can swim very fast when someone is chasing me.",
+      "review_reasons": []
+    },
+    {
+      "id": "086_05m22s_hey_i_wonder_if_there_s_a_hidden_treasure_down_there",
+      "start": 322.001312,
+      "end": 325.307125,
+      "duration": 3.305813,
+      "content_start": 322.121312,
+      "content_end": 325.147125,
+      "transcript": "Hey, I wonder if there's a hidden treasure down there.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/086_05m22s_hey_i_wonder_if_there_s_a_hidden_treasure_down_there.wav",
+      "ogg": "ogg/086_05m22s_hey_i_wonder_if_there_s_a_hidden_treasure_down_there.ogg",
+      "context_transcript": "Hey, I wonder if there's a hidden treasure down there.",
+      "clip_transcript": "Hey, I wonder if there's a hidden treasure down there.",
+      "review_reasons": []
+    },
+    {
+      "id": "087_05m27s_hey_anybody_got_a_diving_board",
+      "start": 327.132187,
+      "end": 329.374188,
+      "duration": 2.242001,
+      "content_start": 327.252187,
+      "content_end": 329.21418800000004,
+      "transcript": "Hey, anybody got a diving board?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/087_05m27s_hey_anybody_got_a_diving_board.wav",
+      "ogg": "ogg/087_05m27s_hey_anybody_got_a_diving_board.ogg",
+      "context_transcript": "Hey, anybody got a diving board?",
+      "clip_transcript": "Hey, anybody got a diving board?",
+      "review_reasons": []
+    },
+    {
+      "id": "088_05m30s_oh_oh_we_slipped_a_little_bit_now_let_s_get_back_in_there_and_try",
+      "start": 330.865313,
+      "end": 337.507375,
+      "duration": 6.642062,
+      "content_start": 330.985313,
+      "content_end": 337.347375,
+      "transcript": "Oh oh, we slipped a little bit. Now let's get back in there and try real hard to get better eh?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/088_05m30s_oh_oh_we_slipped_a_little_bit_now_let_s_get_back_in_there_and_try.wav",
+      "ogg": "ogg/088_05m30s_oh_oh_we_slipped_a_little_bit_now_let_s_get_back_in_there_and_try.ogg",
+      "context_transcript": "Oh, oh, we slipped a little bit. Now let's get back in there and try real hard to get better, eh?",
+      "clip_transcript": "Oh oh, we slipped a little bit. Now let's get back in there and try real hard to get better eh?",
+      "review_reasons": []
+    },
+    {
+      "id": "089_05m39s_oh_oh_that_wasn_t_as_fast_as_last_time_let_s_try_again_okay",
+      "start": 339.164312,
+      "end": 343.607437,
+      "duration": 4.443125,
+      "content_start": 339.284312,
+      "content_end": 343.447437,
+      "transcript": "Uh oh. That wasn't as fast as last time. Let's try again, okay?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/089_05m39s_oh_oh_that_wasn_t_as_fast_as_last_time_let_s_try_again_okay.wav",
+      "ogg": "ogg/089_05m39s_oh_oh_that_wasn_t_as_fast_as_last_time_let_s_try_again_okay.ogg",
+      "context_transcript": "Oh oh, that wasn't as fast as last time. Let's try again, okay?",
+      "clip_transcript": "Uh oh. That wasn't as fast as last time. Let's try again, okay?",
+      "review_reasons": []
+    },
+    {
+      "id": "090_05m45s_oh_oh_that_wasn_t_quite_as_fast_as_the_last_time",
+      "start": 345.29625,
+      "end": 348.936437,
+      "duration": 3.640187,
+      "content_start": 345.41625,
+      "content_end": 348.776437,
+      "transcript": "Oh, oh, that wasn't quite as fast as the last time.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/090_05m45s_oh_oh_that_wasn_t_quite_as_fast_as_the_last_time.wav",
+      "ogg": "ogg/090_05m45s_oh_oh_that_wasn_t_quite_as_fast_as_the_last_time.ogg",
+      "context_transcript": "Oh oh, that wasn't quite as fast as the last time.",
+      "clip_transcript": "Oh, oh, that wasn't quite as fast as the last time.",
+      "review_reasons": []
+    },
+    {
+      "id": "091_05m49s_hmm_are_your_fingers_getting_tired",
+      "start": 349.265312,
+      "end": 352.105688,
+      "duration": 2.840376,
+      "content_start": 349.385312,
+      "content_end": 351.945688,
+      "transcript": "Hmm, are your fingers getting tired?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/091_05m49s_hmm_are_your_fingers_getting_tired.wav",
+      "ogg": "ogg/091_05m49s_hmm_are_your_fingers_getting_tired.ogg",
+      "context_transcript": "Hmm, are your fingers getting tired?",
+      "clip_transcript": "Hmm, are your fingers getting tired?",
+      "review_reasons": []
+    },
+    {
+      "id": "092_05m52s_mine_would_be_by_now",
+      "start": 352.386438,
+      "end": 353.859687,
+      "duration": 1.473249,
+      "content_start": 352.506438,
+      "content_end": 353.699687,
+      "transcript": "Mine would be by now.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/092_05m52s_mine_would_be_by_now.wav",
+      "ogg": "ogg/092_05m52s_mine_would_be_by_now.ogg",
+      "context_transcript": "Mine would be by now.",
+      "clip_transcript": "Mine would be by now.",
+      "review_reasons": []
+    },
+    {
+      "id": "093_05m55s_if_i_had_any_hehehehehehehe",
+      "start": 355.443312,
+      "end": 358.142249,
+      "duration": 2.698937,
+      "content_start": 355.563312,
+      "content_end": 357.98224899999997,
+      "transcript": "If I had any! [laughs]",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [],
+      "wav": "wav/093_05m55s_if_i_had_any_hehehehehehehe.wav",
+      "ogg": "ogg/093_05m55s_if_i_had_any_hehehehehehehe.ogg",
+      "context_transcript": "If I had any, hehehehehehehe.",
+      "clip_transcript": "If I had me, hehehehehehehehehehehehehehehehehehehehehe",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "093_05m55s_if_i_had_any_hehehehehehehe",
+        "wav_sha256": "01567a80d4a32365fee20845a7f7a5cc5878350b23a673b213c1939533451f5e",
+        "prior_transcript": "If I had any, hehehehehehehe.",
+        "transcript": "If I had any! [laughs]",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger model recovers any. The preceding fingers joke and published dialogue corroborate it; laughter is described instead of repeated he tokens.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "If I had any."
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "094_06m00s_oh_boy_that_was_a_tough_lesson_but_i_bet_if_we_do_it_again_it_s_go",
+      "start": 360.229562,
+      "end": 367.84075,
+      "duration": 7.611188,
+      "content_start": 360.349562,
+      "content_end": 367.68075,
+      "transcript": "Oh boy, that was a tough lesson! But I bet if we do it again, it's gonna be easier!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/094_06m00s_oh_boy_that_was_a_tough_lesson_but_i_bet_if_we_do_it_again_it_s_go.wav",
+      "ogg": "ogg/094_06m00s_oh_boy_that_was_a_tough_lesson_but_i_bet_if_we_do_it_again_it_s_go.ogg",
+      "context_transcript": "Oh boy, that was a tough lesson. But I bet if we do it again, it's gonna be easier.",
+      "clip_transcript": "Oh boy, that was a tough lesson! But I bet if we do it again, it's gonna be easier!",
+      "review_reasons": []
+    },
+    {
+      "id": "095_06m10s_hey_that_was_pretty_good_but_i_know_you_can_do_even_better",
+      "start": 370.631188,
+      "end": 375.806187,
+      "duration": 5.174999,
+      "content_start": 370.751188,
+      "content_end": 375.646187,
+      "transcript": "Hey! That was pretty good! But I know you can do even better!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/095_06m10s_hey_that_was_pretty_good_but_i_know_you_can_do_even_better.wav",
+      "ogg": "ogg/095_06m10s_hey_that_was_pretty_good_but_i_know_you_can_do_even_better.ogg",
+      "context_transcript": "Hey, that was pretty good, but I know you can do even better.",
+      "clip_transcript": "Hey! That was pretty good! But I know you can do even better!",
+      "review_reasons": []
+    },
+    {
+      "id": "096_06m17s_hey_that_was_pretty_good_let_s_see_if_we_can_go_even_faster_next_l",
+      "start": 376.896687,
+      "end": 382.940876,
+      "duration": 6.044189,
+      "content_start": 377.016687,
+      "content_end": 382.780876,
+      "transcript": "Hey! That was pretty good! Let's see if we can go even faster next lesson! Hey!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "taunt"
+      ],
+      "wav": "wav/096_06m17s_hey_that_was_pretty_good_let_s_see_if_we_can_go_even_faster_next_l.wav",
+      "ogg": "ogg/096_06m17s_hey_that_was_pretty_good_let_s_see_if_we_can_go_even_faster_next_l.ogg",
+      "context_transcript": "Hey, that was pretty good. Let's see if we can go even faster next lesson. Hey!",
+      "clip_transcript": "Hey! That was pretty good! Let's see if we can go even faster next lesson! Hey!",
+      "review_reasons": []
+    },
+    {
+      "id": "097_06m23s_woohoo_you_re_getting_better_with_each_lesson",
+      "start": 383.464563,
+      "end": 386.673375,
+      "duration": 3.208812,
+      "content_start": 383.584563,
+      "content_end": 386.513375,
+      "transcript": "Woohoo! You're getting better with each lesson!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/097_06m23s_woohoo_you_re_getting_better_with_each_lesson.wav",
+      "ogg": "ogg/097_06m23s_woohoo_you_re_getting_better_with_each_lesson.ogg",
+      "context_transcript": "Woohoo! You're getting better with each lesson.",
+      "clip_transcript": "Woohoo! You're getting better with each lesson!",
+      "review_reasons": []
+    },
+    {
+      "id": "098_06m27s_ooh_you_re_getting_faster_keep_it_up",
+      "start": 386.93275,
+      "end": 390.136437,
+      "duration": 3.203687,
+      "content_start": 387.05275,
+      "content_end": 389.97643700000003,
+      "transcript": "Ooh! You're getting faster! Keep it up!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "taunt"
+      ],
+      "wav": "wav/098_06m27s_ooh_you_re_getting_faster_keep_it_up.wav",
+      "ogg": "ogg/098_06m27s_ooh_you_re_getting_faster_keep_it_up.ogg",
+      "context_transcript": "Ooh, you're getting faster. Keep it up.",
+      "clip_transcript": "Ooh! You're getting faster! Keep it up!",
+      "review_reasons": []
+    },
+    {
+      "id": "099_06m30s_oh_you_re_doing_great",
+      "start": 390.697375,
+      "end": 393.406125,
+      "duration": 2.70875,
+      "content_start": 390.817375,
+      "content_end": 393.246125,
+      "transcript": "Oh, you're doing great!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/099_06m30s_oh_you_re_doing_great.wav",
+      "ogg": "ogg/099_06m30s_oh_you_re_doing_great.ogg",
+      "context_transcript": "Oh, you're doing great!",
+      "clip_transcript": "Oh, you're doing great!",
+      "review_reasons": []
+    },
+    {
+      "id": "100_06m33s_that_was_great",
+      "start": 393.86375,
+      "end": 395.08825,
+      "duration": 1.2245,
+      "content_start": 393.98375,
+      "content_end": 394.92825,
+      "transcript": "That was great!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/100_06m33s_that_was_great.wav",
+      "ogg": "ogg/100_06m33s_that_was_great.ogg",
+      "context_transcript": "That was great!",
+      "clip_transcript": "That was great!",
+      "review_reasons": []
+    },
+    {
+      "id": "101_06m35s_want_to_try_again",
+      "start": 395.398062,
+      "end": 396.640749,
+      "duration": 1.242687,
+      "content_start": 395.518062,
+      "content_end": 396.480749,
+      "transcript": "Want to try again?",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/101_06m35s_want_to_try_again.wav",
+      "ogg": "ogg/101_06m35s_want_to_try_again.ogg",
+      "context_transcript": "Want to try again?",
+      "clip_transcript": "Want to try again?",
+      "review_reasons": []
+    },
+    {
+      "id": "102_06m38s_you_re_fantastic",
+      "start": 398.331437,
+      "end": 399.979375,
+      "duration": 1.647938,
+      "content_start": 398.451437,
+      "content_end": 399.819375,
+      "transcript": "You're fantastic!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/102_06m38s_you_re_fantastic.wav",
+      "ogg": "ogg/102_06m38s_you_re_fantastic.ogg",
+      "context_transcript": "You're fantastic!",
+      "clip_transcript": "You're fantastic!",
+      "review_reasons": []
+    },
+    {
+      "id": "103_06m41s_i_know_you_re_going_to_be_a_great_typist_one_day",
+      "start": 401.222625,
+      "end": 404.107374,
+      "duration": 2.884749,
+      "content_start": 401.342625,
+      "content_end": 403.94737399999997,
+      "transcript": "I know you're going to be a great typist one day.",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/103_06m41s_i_know_you_re_going_to_be_a_great_typist_one_day.wav",
+      "ogg": "ogg/103_06m41s_i_know_you_re_going_to_be_a_great_typist_one_day.ogg",
+      "context_transcript": "I know you're going to be a great typist one day.",
+      "clip_transcript": "I know you're going to be a great typist one day.",
+      "review_reasons": []
+    },
+    {
+      "id": "104_06m45s_that_was_fantastic",
+      "start": 405.496812,
+      "end": 406.8738,
+      "duration": 1.376988,
+      "content_start": 405.616812,
+      "content_end": 406.7138,
+      "transcript": "That was fantastic!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [],
+      "wav": "wav/104_06m45s_that_was_fantastic.wav",
+      "ogg": "ogg/104_06m45s_that_was_fantastic.ogg",
+      "context_transcript": "That was fantastic!",
+      "clip_transcript": "That was fantastic!",
+      "review_reasons": []
+    },
+    {
+      "id": "105_06m47s_see_you_next_time",
+      "start": 407.0149,
+      "end": 408.222438,
+      "duration": 1.207538,
+      "content_start": 407.1349,
+      "content_end": 408.06243800000004,
+      "transcript": "See you next time!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "departure"
+      ],
+      "wav": "wav/105_06m47s_see_you_next_time.wav",
+      "ogg": "ogg/105_06m47s_see_you_next_time.ogg",
+      "context_transcript": "See you next time!",
+      "clip_transcript": "See you next time!",
+      "review_reasons": []
+    },
+    {
+      "id": "106_06m49s_okay_bye_bye",
+      "start": 409.271563,
+      "end": 411.3595,
+      "duration": 2.087937,
+      "content_start": 409.391563,
+      "content_end": 411.1995,
+      "transcript": "Okay, bye bye!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "departure"
+      ],
+      "wav": "wav/106_06m49s_okay_bye_bye.wav",
+      "ogg": "ogg/106_06m49s_okay_bye_bye.ogg",
+      "context_transcript": "Okay, Bye bye!",
+      "clip_transcript": "Okay, bye bye!",
+      "review_reasons": []
+    },
+    {
+      "id": "107_06m56s_peek_a_boo",
+      "start": 416.287688,
+      "end": 417.139563,
+      "duration": 0.851875,
+      "content_start": 416.407688,
+      "content_end": 416.97956300000004,
+      "transcript": "Peek-a-boo!",
+      "kind": "speech",
+      "review_status": "research_reviewed",
+      "suggested_tags": [
+        "greeting"
+      ],
+      "wav": "wav/107_06m56s_peek_a_boo.wav",
+      "ogg": "ogg/107_06m56s_peek_a_boo.ogg",
+      "context_transcript": "Peek-a-boo!",
+      "clip_transcript": "Be cool.",
+      "review_reasons": [],
+      "review_resolution": {
+        "id": "107_06m56s_peek_a_boo",
+        "wav_sha256": "5143771eeceeaf4360593f72d0ca59d239c00ff0f1ab9cae586e2baa1c0946a8",
+        "prior_transcript": "Peek-a-boo!",
+        "transcript": "Peek-a-boo!",
+        "kind": "speech",
+        "status": "research_reviewed",
+        "note": "The larger isolated and full-scene passes agree with the documented farewell gag. Be cool was an isolated small-model error.",
+        "evidence": [
+          {
+            "type": "asr",
+            "label": "Whisper large-v3, isolated clip (unprompted)",
+            "text": "Peek-a-boo!"
+          },
+          {
+            "type": "asr_context",
+            "label": "Whisper large-v3, full scene (unprompted)",
+            "text": "That was fantastic. See you next time. Okay. Bye-bye. Peekaboo. Hello. It's me, Mario. Thank you for starting me up.",
+            "start": 405,
+            "end": 424
+          },
+          {
+            "type": "reference",
+            "label": "Published scene dialogue: Super Mario Wiki",
+            "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+          }
+        ],
+        "human_listening_verified": false
+      }
+    },
+    {
+      "id": "108_06m59s_hello_it_s_me_mario",
+      "start": 418.930063,
+      "end": 421.6976,
+      "duration": 2.767537,
+      "content_start": 419.050063,
+      "content_end": 421.5376,
+      "transcript": "Hello! It's me, Mario!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "greeting"
+      ],
+      "wav": "wav/108_06m59s_hello_it_s_me_mario.wav",
+      "ogg": "ogg/108_06m59s_hello_it_s_me_mario.ogg",
+      "context_transcript": "Hello! It's me, Mario!",
+      "clip_transcript": "Hello! It's me, Mario!",
+      "review_reasons": []
+    },
+    {
+      "id": "109_07m01s_thank_you_for_starting_me_up",
+      "start": 421.7955,
+      "end": 423.84075,
+      "duration": 2.04525,
+      "content_start": 421.9155,
+      "content_end": 423.68075,
+      "transcript": "Thank you for starting me up!",
+      "kind": "speech",
+      "review_status": "machine_transcribed_not_listening_verified",
+      "suggested_tags": [
+        "greeting"
+      ],
+      "wav": "wav/109_07m01s_thank_you_for_starting_me_up.wav",
+      "ogg": "ogg/109_07m01s_thank_you_for_starting_me_up.ogg",
+      "context_transcript": "Thank you for starting me up!",
+      "clip_transcript": "Thank you for starting me up!",
+      "review_reasons": []
+    },
+    {
+      "id": "110_07m06s_video_outro_not_a_voice_cue",
+      "start": 425.93375,
+      "end": 435.961,
+      "duration": 10.02725,
+      "content_start": 426.05375,
+      "content_end": 435.961,
+      "transcript": "[video outro; not a voice cue]",
+      "kind": "video_outro",
+      "review_status": "needs_listening",
+      "suggested_tags": [],
+      "wav": "extras/110_07m06s_video_outro_not_a_voice_cue.wav",
+      "ogg": null
+    }
+  ],
+  "filename_note": "Filenames are stable extraction identifiers with first-pass label hints. Use transcript fields for the latest text; labels are provisional.",
+  "review_summary": {
+    "research_reviewed": 23,
+    "classified_nonverbal": 6,
+    "needs_listening": 0
+  }
+}

@@ -1,0 +1,837 @@
+{
+  "source_sha256": "2dbb3f892b2a44c23d4d81da496768d13cad4c5247df48b49e2fdc7bcba19cab",
+  "method": "Unprompted Whisper large-v3 clip and scene decoding, comparison with preserved small-model outputs, and published scene/game-asset references. Reference-based corrections are explicitly identified; no human-listening claim.",
+  "entries": [
+    {
+      "id": "007_00m21s_vocalization_needs_review",
+      "wav_sha256": "0838e9eddc116eaf42ab256f4c434129e1c9ddca05f29f752136efc52f22cf29",
+      "prior_transcript": "Weeeeeee!",
+      "transcript": "Whee!",
+      "kind": "vocalization",
+      "status": "classified_nonverbal",
+      "note": "An elongated exclamation, not failed dialogue. Both model sizes identify the same vowel sound.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Weeeeee!"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "008_00m23s_vocalization_needs_review",
+      "wav_sha256": "6c539bf5988c556e1e9f16867c16d51892272ef159f0b68fbbdeb54cca4a8f88",
+      "prior_transcript": "Ah, ah, ah, ah.",
+      "transcript": "[laughter]",
+      "kind": "vocalization",
+      "status": "classified_nonverbal",
+      "note": "The larger model identifies repeated laughter. Use a sound description rather than an invented sentence.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Ha ha ha ha ha"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "009_00m25s_vocalization_needs_review",
+      "wav_sha256": "fd348a2c4b4c0e75f5219910ce96ed909d8f3446c13a20ea7770326193c62c18",
+      "prior_transcript": "Hey, I got something in my eye. Can you help me get it out?",
+      "transcript": "Hey, I got something in my eye. Can you help me get it out?",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "Both isolated-clip models agree. The source dialogue catalog also identifies this eye-related line.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Hey, I got something in my eye. Can you help me get it out?"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "012_00m38s_one",
+      "wav_sha256": "d1b783d03710ac1b9325f5f4cd858a0ad6b51a1c439c454b8078027698c435cc",
+      "prior_transcript": "One...",
+      "transcript": "One...",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The complete counting scene decodes One, Two and Three. The isolated stretched vowel was misleading.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Waaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "Hey! Are you ready to Mario-cise? Okie-dokie. You do just like Mario, ok? One... Very good. Two... And three! Eeeeee... Oh, sorry. That's hard for you, but easy for me. You know why?",
+          "start": 32,
+          "end": 55
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "014_00m42s_two",
+      "wav_sha256": "0481c82d911e9bc89d020c501f7c3863c6b721d8fb5382049903dc877b31ec6f",
+      "prior_transcript": "Two",
+      "transcript": "Two...",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The full counting scene identifies the word; Puuu and Boooo are isolated-clip errors.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Puuu"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "Hey! Are you ready to Mario-cise? Okie-dokie. You do just like Mario, ok? One... Very good. Two... And three! Eeeeee... Oh, sorry. That's hard for you, but easy for me. You know why?",
+          "start": 32,
+          "end": 55
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "015_00m45s_vocalization_needs_review",
+      "wav_sha256": "a213ca3a1dc53ea435b4df57d493c65f19e80f6da05e8d02c371b279a0671ade",
+      "prior_transcript": "three.",
+      "transcript": "And three! Whee!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger model recovers the count and following exclamation, supported by the complete counting scene.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "And three. Whee!"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "Hey! Are you ready to Mario-cise? Okie-dokie. You do just like Mario, ok? One... Very good. Two... And three! Eeeeee... Oh, sorry. That's hard for you, but easy for me. You know why?",
+          "start": 32,
+          "end": 55
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "018_00m59s_get_it_nobody_hehehehehehehehehehehehehehehehehehehehehe",
+      "wav_sha256": "abcce879b90f9bacaa2dcc728f5365c204a0f15bab67564b80f9e7bbe05c6daf",
+      "prior_transcript": "Get it? Nobody? Hehehehehehehehehehehehehehehehehehehehehe",
+      "transcript": "Get it? No body? [laughs]",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The words are supported by both model sizes. Laughter is represented descriptively; the spacing preserves the disembodied-head joke.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Get it? Nobody?"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "019_01m05s_oh_no_i_m_a_fallen_and_i_came_to_get_up",
+      "wav_sha256": "d10d4f716e28de3d008f42372f77cceebb837c054a021b5bdf6543523f1ce2ec",
+      "prior_transcript": "Oh no! I'm a fallen and I came to get up!",
+      "transcript": "Oh no! I'm-a fallen, and I can't get up!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger model recovers the negative phrase. The documented advertising joke corroborates it; came to get up was incorrect.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Oh no! I'm falling, and I can't get up!"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "028_01m30s_vocalization_needs_review",
+      "wav_sha256": "c1e0a41389816df8850b2de1a7f944b4f269b3f7a67326db7d67920f85d3b358",
+      "prior_transcript": "[humming / sustained vocalization]",
+      "transcript": "[flying hum 1]",
+      "kind": "vocalization",
+      "status": "classified_nonverbal",
+      "note": "Both model sizes return sustained M sounds. This is a flying vocal effect, not missing words.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "029_01m35s_vocalization_needs_review",
+      "wav_sha256": "c3c9ef3287df24ab16a9e6915485b9600d895917ab73a340b4dd6566ec79d408",
+      "prior_transcript": "[humming / sustained vocalization]",
+      "transcript": "[flying hum 2]",
+      "kind": "vocalization",
+      "status": "classified_nonverbal",
+      "note": "Both isolated-clip models identify a sustained hum. The earlier full-track omission is not missing dialogue.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Hmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "030_01m38s_vocalization_needs_review",
+      "wav_sha256": "91a797f81d63709352d8160438f03bf51625fc54a4b1d515337fb76a7e056151",
+      "prior_transcript": "[humming / sustained vocalization]",
+      "transcript": "[flying hum 3]",
+      "kind": "vocalization",
+      "status": "classified_nonverbal",
+      "note": "Both isolated-clip models identify a sustained hum. Keep it as a distinct sound take.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "031_01m41s_hate_my_notes",
+      "wav_sha256": "9ec4c4e7ed53673d39b9d841949e5fd98fb3d0fcc4935b06b4e83f5ab48a8f03",
+      "prior_transcript": "I hate my nose.",
+      "transcript": "[impact / pain vocalization] I hit my nose.",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The published flying-scene dialogue resolves hit versus hate. Both isolated models mishear the accented word; this correction is reference-based, not an acoustic consensus.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "I hate my nose."
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "035_02m03s_get_it_amore_eel_i_say_the_funny",
+      "wav_sha256": "7c545fb6a5af25852ce275f8b2e3f4d0e4cec1feab0e4567d4407bb74a83c113",
+      "prior_transcript": "Get it, Amore eel? I say the funny.",
+      "transcript": "Get it? A moray eel? [laughs] I said a funny!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "Use the documented moray-eel punchline to resolve the pun and accented closing remark. Recognition remains inconsistent on this phrase; spelling is editorially normalized from the scene reference, not phoneme-certified.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Terry, I'm more ill. Hehehehe, I say they're funny."
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "When an eel lunges out, and he takes a bite of your snout, that's amore! Get it? Amore eel? I say they're funny.",
+          "start": 116.6,
+          "end": 128
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "039_02m19s_hey_luigi_it_s_time_for_you_to_tie",
+      "wav_sha256": "f35fa7aa990454c5d811c146cfedad0038472784205635e27e021b0a2fa20e52",
+      "prior_transcript": "Hey Luigi, it's time for you to tie.",
+      "transcript": "Hey Luigi! It's time for you to type!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The game-asset transcript identifies MARIOA65 as a typing invitation and explicitly records the die mishearing. A second quote list agrees. The face article instead says try; the asset-specific reading is used.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Hey Luigi! It's time for you to tie!"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "Hmm. Guess what time it is. It's time for you to tie. Let's do this. Have you seen Luigi? Hmm. Hey, Luigi. It's time for you to tie. Have you seen the princess? Princess! Hmm. Okie dokie, princess. It's your turn to tie. When I kiss the princess, I'm get light-headed. Beep. Woo!",
+          "start": 129,
+          "end": 158
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        },
+        {
+          "type": "reference",
+          "label": "Separate Mario quote list",
+          "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "041_02m28s_okie_dokie_princess_it_s_your_turn_to_tie",
+      "wav_sha256": "ef76f369b1b53e3e72d35faabbd4712659e53010442ca15f430b99bdedfa8c80",
+      "prior_transcript": "Okie dokie princess, it's your turn to tie.",
+      "transcript": "Okie dokie, princess! It's your turn to type!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The MARIOA66 transcript and the separate quote list agree on type. Tie is the model omitting the final consonant.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Okie-dokie, princess! It's your turn to tie!"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "Hmm. Guess what time it is. It's time for you to tie. Let's do this. Have you seen Luigi? Hmm. Hey, Luigi. It's time for you to tie. Have you seen the princess? Princess! Hmm. Okie dokie, princess. It's your turn to tie. When I kiss the princess, I'm get light-headed. Beep. Woo!",
+          "start": 129,
+          "end": 158
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        },
+        {
+          "type": "reference",
+          "label": "Separate Mario quote list",
+          "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "042_02m32s_when_i_kiss_the_princess_i_m_gonna_lie_hate_it",
+      "wav_sha256": "494d77a65ddf5b4b53dc57fed0053fbcf228734395dc53545ee107a2d63fb956",
+      "prior_transcript": "When I kiss the princess, I'm gonna lie, hate it!",
+      "transcript": "When I kiss the princess, I'm-a get lightheaded.",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger model and whole-scene recognition recover lightheaded, independently of the provided reference wording.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "When I kiss the princess, I'ma get light-headed."
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "Hmm. Guess what time it is. It's time for you to tie. Let's do this. Have you seen Luigi? Hmm. Hey, Luigi. It's time for you to tie. Have you seen the princess? Princess! Hmm. Okie dokie, princess. It's your turn to tie. When I kiss the princess, I'm get light-headed. Beep. Woo!",
+          "start": 129,
+          "end": 158
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        },
+        {
+          "type": "reference",
+          "label": "Separate Mario quote list",
+          "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "045_02m46s_come",
+      "wav_sha256": "c28951bdbba04c0bf6ca6424af5138eaf9d9db9c727d3ca6aa97684a4d04abb8",
+      "prior_transcript": "Come back!",
+      "transcript": "Come back!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "Both isolated-clip model sizes recover the complete short command; the earlier context pass omitted back.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Come back!"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "046_02m49s_woohoo_i_always_wanted_to_type",
+      "wav_sha256": "80c1fbfae1c9c11e2a4930f667aad9b44a5d33e21ef1db3f7c1a6f9e2c5e6f6a",
+      "prior_transcript": "I always wanted to type it.",
+      "transcript": "Woohoo! I always wanted to type!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger clip pass recovers the opening exclamation and type. The indexed game-asset transcript corroborates the typing remark.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Woohoo! I always wanted to type!"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "047_02m53s_vocalization_needs_review",
+      "wav_sha256": "62d46a02f28a840b6ed0abecb020f550af737e83ef37b3bf44f2616325206d2a",
+      "prior_transcript": "Look I don't got no tantul. Aaaaaaah!",
+      "transcript": "Look, I don't got no tonsils. Ahhh!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger model recovers tonsils. The small-model context pass and source dialogue also preserve the following open-mouth vocalization.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Look, I don't got no tonsils."
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "054_03m12s_typing_is_fun_try_it",
+      "wav_sha256": "2f7dc67a377c7241826e0f2c144e35a5e071bc9ccb82a4a75ffa8b73947bb4bd",
+      "prior_transcript": "typing is fun. Try it.",
+      "transcript": "Typing is fun. Try it!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The game-asset transcript MARIO013 and both dialogue references identify typing. Diving and dating are recognition errors, not alternative lines.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Dating is fun! Try it!"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        },
+        {
+          "type": "reference",
+          "label": "Separate Mario quote list",
+          "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "061_03m39s_i_m_gonna_look_better_when_i_standing_still",
+      "wav_sha256": "7ed4f8dc55e3dc070b533fdd5b0c449ea146acee264b92bf280966acd81265aa",
+      "prior_transcript": "I'm gonna look better when I standing still.",
+      "transcript": "I'm-a look better when I standing still!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger clip and context passes agree on the accented wording. Preserve the recorded grammar rather than rewriting it into a different sentence.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "I'ma look better when I standing still!"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "I'm a look better when I standing still oh boy look at that keyboard I bet you're going to learn how to type on it oh boy that makes me so happy I'm a light-headed okie-dokie let's do the next lesson",
+          "start": 219,
+          "end": 240.3
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "063_03m45s_i_bet_you_re_going_to_learn_how_to_type_on_it_oh",
+      "wav_sha256": "221912e1401e74a67b866020169ef02a6487dea41d055bab51da016c8151b711",
+      "prior_transcript": "I bet you're going to learn how to tie pony!",
+      "transcript": "I bet you're going to learn how to type on it! [laughs]",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger clip and context passes recover type on it. The game-asset transcript also records the trailing laugh; tie pony is incorrect.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "I bet you're going to learn how to type on it!"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "I'm a look better when I standing still oh boy look at that keyboard I bet you're going to learn how to type on it oh boy that makes me so happy I'm a light-headed okie-dokie let's do the next lesson",
+          "start": 219,
+          "end": 240.3
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "065_03m53s_peace",
+      "wav_sha256": "7c52104480e1f91a73b16e913ce1f4588b5a468aabd538b307b935acc6edbad8",
+      "prior_transcript": "BEEE",
+      "transcript": "Whee!",
+      "kind": "vocalization",
+      "status": "classified_nonverbal",
+      "note": "This is the rising vocal effect after the lightheaded remark. The source dialogue identifies it as an exclamation; Peace and BEEE are not reliable spoken words.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "[no words recognized]"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "I'm a look better when I standing still oh boy look at that keyboard I bet you're going to learn how to type on it oh boy that makes me so happy I'm a light-headed okie-dokie let's do the next lesson",
+          "start": 219,
+          "end": 240.3
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "066_03m56s_kukidoki_let_s_do_the_next_lesson",
+      "wav_sha256": "b82881b743d03f2985c0ff9ed4725bbc62edd80b69b36504aa0eb4c8a480c25f",
+      "prior_transcript": "Kidoki, let's do the next lesson.",
+      "transcript": "...kie dokie! Let's do the next lesson!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The indexed MARIO040 transcript explicitly notes a shortened opening. Preserve that onset with an ellipsis rather than claiming a missing syllable is present. The rest is corroborated by the larger model.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Okie dokie, let's do the next lesson!"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "I'm a look better when I standing still oh boy look at that keyboard I bet you're going to learn how to type on it oh boy that makes me so happy I'm a light-headed okie-dokie let's do the next lesson",
+          "start": 219,
+          "end": 240.3
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "067_04m01s_hmm_mario_s_smash_and_dash",
+      "wav_sha256": "55e18962fd0b5d09d83e0d926a6f001c5677dbf590498b0dbefbc527c1d9cb55",
+      "prior_transcript": "Hmm, Mario's Smash and Dash!",
+      "transcript": "Hmm, Mario's Smash and Dash!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger clip and context passes agree on the level name. The separate game description corroborates its spelling.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Hmm, Mario's Smash and Dash."
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "Hmm, Mario's Smash and Dash! Welcome to the outside world! You're going to be typing one letter at a time. I know you can do it! Mario's Wet World Challenge!",
+          "start": 240.8,
+          "end": 257
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "071_04m14s_mario_s_wet_world_challenge",
+      "wav_sha256": "8cc95bd8ff189f357465795bf6a989182c827cb5cbc764076fd23fe17471f454",
+      "prior_transcript": "Mario's Wet World Challenge!",
+      "transcript": "Mario's Wet World Challenge!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger clip and context passes agree. Wet is the level name; Wit was a small-model error.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Mario's Wet World Challenge!"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "Hmm, Mario's Smash and Dash! Welcome to the outside world! You're going to be typing one letter at a time. I know you can do it! Mario's Wet World Challenge!",
+          "start": 240.8,
+          "end": 257
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "077_04m39s_oh_look_it_s_a_mario_s_export_express",
+      "wav_sha256": "2a42cb558e813a36504f5343c6076d6001ba00101d182383f096470e747a03ad",
+      "prior_transcript": "Oh look! It's a Mario's Export Express!",
+      "transcript": "Oh look! It's-a Mario's Expert Express!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The game level listing and MARIO007 transcript independently identify Expert Express. Export is a repeated model error; this correction uses the documented proper name.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Oh, look! It's a Mario's Export Express!"
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        },
+        {
+          "type": "reference",
+          "label": "Indexed transcript tied to original MARIO audio assets",
+          "url": "https://voicelines.fandom.com/wiki/Mario_%28Mario_Teaches_Typing_2%29"
+        },
+        {
+          "type": "reference",
+          "label": "Separate Mario quote list",
+          "url": "https://www.mariowiki.com/List_of_Mario_quotes#Mario_Teaches_Typing_2"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "093_05m55s_if_i_had_any_hehehehehehehe",
+      "wav_sha256": "01567a80d4a32365fee20845a7f7a5cc5878350b23a673b213c1939533451f5e",
+      "prior_transcript": "If I had any, hehehehehehehe.",
+      "transcript": "If I had any! [laughs]",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger model recovers any. The preceding fingers joke and published dialogue corroborate it; laughter is described instead of repeated he tokens.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "If I had any."
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    },
+    {
+      "id": "107_06m56s_peek_a_boo",
+      "wav_sha256": "5143771eeceeaf4360593f72d0ca59d239c00ff0f1ab9cae586e2baa1c0946a8",
+      "prior_transcript": "Peek-a-boo!",
+      "transcript": "Peek-a-boo!",
+      "kind": "speech",
+      "status": "research_reviewed",
+      "note": "The larger isolated and full-scene passes agree with the documented farewell gag. Be cool was an isolated small-model error.",
+      "evidence": [
+        {
+          "type": "asr",
+          "label": "Whisper large-v3, isolated clip (unprompted)",
+          "text": "Peek-a-boo!"
+        },
+        {
+          "type": "asr_context",
+          "label": "Whisper large-v3, full scene (unprompted)",
+          "text": "That was fantastic. See you next time. Okay. Bye-bye. Peekaboo. Hello. It's me, Mario. Thank you for starting me up.",
+          "start": 405,
+          "end": 424
+        },
+        {
+          "type": "reference",
+          "label": "Published scene dialogue: Super Mario Wiki",
+          "url": "https://www.mariowiki.com/Mario%27s_face#Quotes"
+        }
+      ],
+      "human_listening_verified": false
+    }
+  ]
+}
