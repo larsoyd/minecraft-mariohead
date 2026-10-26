@@ -37,9 +37,9 @@ The command needs operator rights (permission level 2).
 
 ---
 
-## Building from source
+### Building from source
 
-### Windows (WSL with Ubuntu)
+#### Windows (WSL with Ubuntu)
 
 Install Ubuntu through [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install).
 In PowerShell as administrator, run:
@@ -66,7 +66,7 @@ folder in Windows, then copy the jar to your Windows Minecraft instance's `mods`
 For the standard launcher, that is `%APPDATA%\.minecraft\mods`.
 Install Fabric Loader and Fabric API on Windows as described above, then launch Minecraft on Windows.
 
-### Ubuntu
+#### Ubuntu
 
 On Ubuntu 24.04 LTS or newer, open a terminal and run:
 
