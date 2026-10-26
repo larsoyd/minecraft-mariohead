@@ -59,9 +59,6 @@ cd minecraft-mariohead
 ./build.sh
 ```
 
-This repository is private. When Git asks for credentials, use your GitHub username and a personal
-access token with access to this repository as the password, or use your configured Git credential manager.
-
 The jar is `build/libs/mariohead-0.1.0.jar`. Run `cd build/libs && explorer.exe .` from Ubuntu to open the output
 folder in Windows, then copy the jar to your Windows Minecraft instance's `mods` folder.
 For the standard launcher, that is `%APPDATA%\.minecraft\mods`.
