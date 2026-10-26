@@ -40,6 +40,23 @@ final class HeadContact {
 		return sweeps(centre, centre, yaw, pitch, roll, scale, player, reach);
 	}
 
+	static Vec3 firstContact(Vec3 from, Vec3 to, float yaw, float pitch, float roll, float scale, AABB player, double reach) {
+		AABB box = player.inflate(reach);
+		Matrix3f pose = new Matrix3f().rotateY((float) Math.toRadians(-yaw)).rotateX((float) Math.toRadians(pitch))
+			.rotateZ((float) Math.toRadians(roll)).scale(scale);
+		Vector3f p = new Vector3f();
+		double length = from.distanceTo(to);
+		double nearest = Double.POSITIVE_INFINITY;
+		for (int i = 0; i < POINTS.length; i += 3) {
+			pose.transform(POINTS[i], POINTS[i + 1], POINTS[i + 2], p);
+			Vec3 start = from.add(p.x, p.y, p.z);
+			if (box.contains(start)) return from;
+			var hit = box.clip(start, to.add(p.x, p.y, p.z));
+			if (hit.isPresent()) nearest = Math.min(nearest, start.distanceTo(hit.get()));
+		}
+		return Double.isFinite(nearest) && length > 0 ? from.lerp(to, nearest / length) : null;
+	}
+
 	// the coarse level of detail, every part, so an open or shut mouth both count
 	private static float[] load() {
 		try (InputStream in = HeadContact.class.getResourceAsStream(MESH)) {

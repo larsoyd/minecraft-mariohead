@@ -1,6 +1,9 @@
 package com.larsoyd.mariohead.entity;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.minecraft.world.phys.AABB;
@@ -39,6 +42,20 @@ class HeadContactTest {
 			assertTrue(HeadContact.sweeps(from, to, 0, 0, 0, 1, player, 0.05));
 			assertFalse(HeadContact.sweeps(from.add(5, 0, 0), to.add(5, 0, 0), 0, 0, 0, 1, player, 0.05));
 		}
+	}
+
+	@Test
+	void firstContactStopsBeforeTheDashOvershootsThePlayer() {
+		AABB player = new AABB(-0.3, -1.6, -0.3, 0.3, 0.2, 0.3);
+		Vec3 from = new Vec3(0, 0, -10);
+		Vec3 to = new Vec3(0, 0, 10);
+		Vec3 hit = HeadContact.firstContact(from, to, 0, 0, 0, 1, player, 0.05);
+		assertNotNull(hit);
+		assertTrue(hit.z < -1 && hit.z > -2);
+		assertFalse(HeadContact.sweeps(from, hit.add(0, 0, -0.001), 0, 0, 0, 1, player, 0.05));
+		assertTrue(HeadContact.sweeps(from, hit.add(0, 0, 0.001), 0, 0, 0, 1, player, 0.05));
+		assertEquals(Vec3.ZERO, HeadContact.firstContact(Vec3.ZERO, to, 0, 0, 0, 1, player, 0.05));
+		assertNull(HeadContact.firstContact(from.add(5, 0, 0), to.add(5, 0, 0), 0, 0, 0, 1, player, 0.05));
 	}
 
 	@Test
