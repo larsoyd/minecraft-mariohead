@@ -8,14 +8,20 @@ public final class StallGrace {
 	private long withdrawAt;
 	private double personality;
 	private boolean retreat;
+	private int starts;
+	private boolean completed;
 
 	public Stage stage() { return this.stage; }
+	public boolean completed() { return this.completed; }
+	public long duration() { return this.until - this.began; }
 
 	public void start(long now, double personality, double stalkChance, double delay) {
 		this.stage = Stage.FOLLOW;
 		this.began = now;
-		this.until = now + 1800;
-		this.withdrawAt = stalkChance < 0.1 ? now + 400 + (int) (delay * 901) : Long.MAX_VALUE;
+		this.starts = Math.min(3, this.starts + 1);
+		int duration = this.starts == 1 ? 1800 : this.starts == 2 ? 1200 : 900;
+		this.until = now + duration;
+		this.withdrawAt = stalkChance < 0.1 ? now + 400 + (int) (delay * (duration - 899)) : Long.MAX_VALUE;
 		this.personality = personality;
 		this.retreat = false;
 	}
@@ -39,6 +45,7 @@ public final class StallGrace {
 	public void stalk() { this.stage = Stage.STALK; }
 
 	public void finish() {
+		this.completed |= this.stage != Stage.NONE;
 		this.stage = Stage.NONE;
 		this.retreat = false;
 	}

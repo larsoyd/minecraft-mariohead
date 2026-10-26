@@ -1029,6 +1029,7 @@ public class HeadGameTests {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, y, 9.5), -90);
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(6, y, 9.5));
 		head.chase(target);
+		if (!house && !fromGrace) disableEarlyStalls(helper, head, target);
 		var field = TheHead.class.getDeclaredField("prank");
 		field.setAccessible(true);
 		var prank = (com.larsoyd.mariohead.entity.BehindPrank) field.get(head);
@@ -1131,6 +1132,7 @@ public class HeadGameTests {
 		TheHead head = helper.spawn(HeadEntities.THE_HEAD, new Vec3(12.5, 100, 4.5));
 		head.chase(target);
 		head.setNoAi(true);
+		if (!tnt) disableEarlyStalls(helper, head, target);
 		if (tnt) {
 			var digging = TheHead.class.getDeclaredMethod("setDigging", boolean.class);
 			digging.setAccessible(true);
@@ -4166,8 +4168,59 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 40)
+	public void earlyStallDistantRunnerKeepsGuaranteeThroughJumpArc(GameTestHelper helper) throws ReflectiveOperationException {
+		fill(helper, 0, 179, 5, 120, 179, 15, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(100.5, 180, 10.5), -90);
+		target.setNoGravity(true);
+		var update = TheHead.class.getDeclaredMethod("updateStalls", net.minecraft.world.entity.player.Player.class); update.setAccessible(true);
+		var state = TheHead.class.getDeclaredField("stalls"); state.setAccessible(true);
+		for (double height : new double[] {0, 0.42, 0.7532, 1.0013, 1.2522, 0.7967, 0.1213, 2.2522}) {
+			target.getInventory().clearContent();
+			target.setPos(helper.absoluteVec(new Vec3(100.5, 180 + height, 10.5)));
+			target.setOnGround(height == 0);
+			TheHead head = head(helper, new Vec3(10.5, 180.5, 10.5), target);
+			head.setNoAi(true);
+			update.invoke(head, target);
+			var stalls = (com.larsoyd.mariohead.entity.EarlyStall) state.get(head);
+			helper.assertTrue(stalls.active(100) && stalls.guaranteed(100), "distance cancelled ordinary runner at jump height=" + height);
+			target.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE));
+			update.invoke(head, target);
+			helper.assertFalse(stalls.active(100), "runner exemption bypassed equipment cancellation");
+			head.discard();
+		}
+		helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
+	public void earlyStallDistanceStillDisablesPassengersAndSwimmers(GameTestHelper helper) throws ReflectiveOperationException {
+		fill(helper, 0, 179, 5, 120, 179, 15, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(100.5, 180, 10.5), -90);
+		var update = TheHead.class.getDeclaredMethod("updateStalls", net.minecraft.world.entity.player.Player.class); update.setAccessible(true);
+		var state = TheHead.class.getDeclaredField("stalls"); state.setAccessible(true);
+		var boat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(100.5, 180, 10.5));
+		helper.assertTrue(target.startRiding(boat, true, true), "distance fixture failed to board");
+		for (int mode = 0; mode < 2; mode++) {
+			if (mode == 1) {
+				target.stopRiding();
+				fill(helper, 99, 180, 9, 101, 182, 11, Blocks.WATER.defaultBlockState());
+				target.setPos(helper.absoluteVec(new Vec3(100.5, 180, 10.5)));
+				var fluid = net.minecraft.world.entity.Entity.class.getDeclaredMethod("updateFluidInteraction"); fluid.setAccessible(true);
+				fluid.invoke(target);
+				helper.assertTrue(target.isInWater(), "distance fixture failed to enter water");
+			}
+			TheHead head = head(helper, new Vec3(10.5, 180.5, 10.5), target);
+			head.setNoAi(true);
+			update.invoke(head, target);
+			helper.assertFalse(((com.larsoyd.mariohead.entity.EarlyStall) state.get(head)).active(100), "non-foot distance lost cancellation mode=" + mode);
+			head.discard();
+		}
+		boat.discard(); helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 40)
 	public void earlyStallEscalationCancelsMockAndFollowing(GameTestHelper helper) throws ReflectiveOperationException {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		var boat = helper.spawn(net.minecraft.world.entity.EntityTypes.OAK_BOAT, new Vec3(3.5, 0, 10.5));
 		var update = TheHead.class.getDeclaredMethod("updateStalls", net.minecraft.world.entity.player.Player.class);
 		var until = TheHead.class.getDeclaredField("stallUntil");
 		var following = TheHead.class.getDeclaredField("stallFollowing");
@@ -4185,17 +4238,23 @@ public class HeadGameTests {
 			following.setBoolean(head, true); pending.setBoolean(head, true);
 			((com.larsoyd.mariohead.entity.ChaseVoices) voices.get(head)).follow(1, 0);
 			if (mode % 3 == 0) target.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ENDER_PEARL));
-			if (mode % 3 == 1) target.setPos(head.position().add(65, 0, 0));
+			if (mode % 3 == 1) {
+				boat.setPos(head.position().add(65, 0, 0));
+				target.setPos(boat.position());
+				helper.assertTrue(target.startRiding(boat, true, true), "distance escalation fixture failed to board");
+			}
 			if (mode % 3 == 2) digging.invoke(head, true);
 			update.invoke(head, target);
 			helper.assertTrue(until.getLong(head) < 0 && !following.getBoolean(head), "escalation retained mock/follow: " + mode);
 			helper.assertFalse(pending.getBoolean(head) || ((com.larsoyd.mariohead.entity.ChaseVoices) voices.get(head)).waiting(), "escalation retained queued speech: " + mode);
+			target.stopRiding();
 			target.getInventory().setItem(0, net.minecraft.world.item.ItemStack.EMPTY);
 			target.setPos(helper.absoluteVec(new Vec3(3.5, 0, 10.5)));
 			digging.invoke(head, false); update.invoke(head, target);
 			helper.assertFalse(((com.larsoyd.mariohead.entity.EarlyStall) state.get(head)).active(1), "escalation was not permanent: " + mode);
 			head.discard();
 		}
+		boat.discard();
 		helper.succeed();
 	}
 
@@ -4319,12 +4378,26 @@ public class HeadGameTests {
 		liveStall(helper, false);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 1800)
+	public void earlyStallLiveSecondGraceLastsSixtySeconds(GameTestHelper helper) throws ReflectiveOperationException {
+		liveStall(helper, false, 1);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 1500)
+	public void earlyStallLiveThirdGraceLastsFortyFiveSeconds(GameTestHelper helper) throws ReflectiveOperationException {
+		liveStall(helper, false, 2);
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 200)
 	public void earlyStallContactDuringMockIsFatal(GameTestHelper helper) throws ReflectiveOperationException {
 		liveStall(helper, true);
 	}
 
 	private void liveStall(GameTestHelper helper, boolean contact) throws ReflectiveOperationException {
+		liveStall(helper, contact, 0);
+	}
+
+	private void liveStall(GameTestHelper helper, boolean contact, int previousGraces) throws ReflectiveOperationException {
 		fill(helper, contact ? -100 : -650, 179, 5, 24, 179, 15, Blocks.STONE.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 180, 10.5), 90);
 		target.setNoGravity(true);
@@ -4347,8 +4420,15 @@ public class HeadGameTests {
 		long[] began = { -1 };
 		long[] graceBegan = { -1 };
 		long[] graceEnded = { -1 };
+		var cadenceField = TheHead.class.getDeclaredField("cadence"); cadenceField.setAccessible(true);
+		var cadence = (com.larsoyd.mariohead.entity.DashCadence) cadenceField.get(head);
 		var graceField = TheHead.class.getDeclaredField("grace"); graceField.setAccessible(true);
 		var grace = (com.larsoyd.mariohead.entity.StallGrace) graceField.get(head);
+		for (int i = 0; i < previousGraces; i++) {
+			grace.start(0, 0.5, 1, 0);
+			grace.tick(grace.duration());
+		}
+		int expectedGrace = previousGraces == 0 ? 1800 : previousGraces == 1 ? 1200 : 900;
 		helper.onEachTick(() -> {
 			if (began[0] >= 0) return;
 			helper.getLevel().getChunkSource().addTicketWithRadius(HeadEntities.CHASE_TICKET, head.chunkPosition(), 4);
@@ -4407,9 +4487,12 @@ public class HeadGameTests {
 				}
 				if (completed[0] && grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.NONE && graceEnded[0] < 0) {
 					graceEnded[0] = helper.getTick();
-					helper.assertTrue(graceEnded[0] - graceBegan[0] == 1800, "live grace duration " + (graceEnded[0] - graceBegan[0]));
+					helper.assertTrue(graceEnded[0] - graceBegan[0] == expectedGrace, "live grace duration " + (graceEnded[0] - graceBegan[0]));
 					helper.assertTrue(head.revs() >= 4 && head.revs() <= 5, "grace exit inherited hidden acceleration");
 					helper.assertTrue(head.chargeSpeed() > 0.28, "grace exit slowed below runner pace");
+				}
+				if (graceEnded[0] >= 0 && cadence.beat() >= 0) {
+					helper.assertTrue(cadence.grows() && head.revs() == 5 + cadence.beat(), "post-grace chase skipped dash growth");
 				}
 				if (graceEnded[0] >= 0 && head.revs() >= 6) {
 					helper.assertTrue(head.chargeSpeed() > 0.28, "normal per-dash acceleration never resumed");

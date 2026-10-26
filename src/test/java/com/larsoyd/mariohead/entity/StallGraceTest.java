@@ -6,6 +6,45 @@ import static com.larsoyd.mariohead.entity.StallGrace.Stage.*;
 
 class StallGraceTest {
 	@Test
+	void finishingFirstGracePermanentlyEndsIntroductoryGrowth() {
+		StallGrace grace = new StallGrace();
+		grace.finish();
+		assertFalse(grace.completed());
+		grace.start(0, 0.4, 1, 0);
+		assertFalse(grace.completed());
+		grace.tick(1800);
+		assertTrue(grace.completed());
+		grace.start(2000, 0.4, 1, 0);
+		assertTrue(grace.completed());
+		grace.end(true);
+		grace.finish();
+		assertTrue(grace.completed());
+	}
+
+	@Test
+	void laterGraceShrinksToSixtyThenFortyFiveSecondsWithoutResetting() {
+		StallGrace grace = new StallGrace();
+		long now = 100;
+		for (int duration : new int[] {1800, 1200, 900, 900, 900}) {
+			grace.start(now, 0.4, 1, 0);
+			assertFalse(grace.tick(now + duration - 1));
+			assertTrue(grace.tick(now + duration), "wrong repeated grace duration " + duration);
+			now += duration + 200;
+		}
+	}
+
+	@Test
+	void laterWithdrawalStillStartsWithTimeToLeaveEarshot() {
+		StallGrace grace = new StallGrace();
+		for (int duration : new int[] {1800, 1200, 900, 900}) {
+			grace.start(0, 0.4, 0, 0.999999);
+			grace.tick(duration - 500);
+			assertEquals(WITHDRAW, grace.stage(), "withdrawal missed shorter grace window");
+			assertTrue(grace.tick(duration));
+		}
+	}
+
+	@Test
 	void followsForExactlyNinetySecondsAfterStarting() {
 		StallGrace grace = new StallGrace();
 		grace.start(500, 0.4, 0.1, 0);

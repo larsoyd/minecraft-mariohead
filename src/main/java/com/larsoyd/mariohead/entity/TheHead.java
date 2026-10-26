@@ -341,10 +341,10 @@ public class TheHead extends Monster {
 		this.cueTicks++;
 		Player target = this.validTarget(level);
 		if (target != null) {
-			boolean onFoot = !target.isPassenger() && !target.isInWater() && !target.isFallFlying()
+			boolean grounded = this.onFoot(target)
 				&& (target.onGround() || !Double.isNaN(HeadRoom.surface(this, target.position().add(0, 0.05, 0), -1.55)));
 			this.tempo.observe(target.getRootVehicle() instanceof net.minecraft.world.entity.vehicle.boat.AbstractBoat,
-				target.isFallFlying(), onFoot, target.position().subtract(this.tempoLast).horizontalDistance());
+				target.isFallFlying(), grounded, target.position().subtract(this.tempoLast).horizontalDistance());
 			this.tempoLast = target.position();
 		}
 		HeadPhase phase = this.phase();
@@ -513,7 +513,8 @@ public class TheHead extends Monster {
 	}
 
 	private void advanceDash() {
-		boolean alternate = this.stalls != null && this.stalls.active(this.phaseTicks) && this.grace.stage() != StallGrace.Stage.STALK;
+		boolean alternate = this.stalls != null && this.stalls.active(this.phaseTicks) && !this.grace.completed()
+			&& this.grace.stage() != StallGrace.Stage.STALK;
 		this.revs = this.cadence.advance(this.revs, alternate);
 		if (this.cadence.grows() && !this.graceFollowing()) this.tempo.dash();
 		MarioHead.LOG.debug("[head] dash id={} age={} beat={} rev={} growth={} eligible={}",
@@ -1232,16 +1233,21 @@ public class TheHead extends Monster {
 		this.stalls.finished(this.phaseTicks);
 		if (this.stalls.active(this.phaseTicks)) {
 			this.grace.start(now, this.random.nextDouble(), this.random.nextDouble(), this.random.nextDouble());
-			MarioHead.LOG.debug("[head] grace id={} age={} until={}", this.getId(), this.phaseTicks, now + 1800);
+			MarioHead.LOG.debug("[head] grace id={} age={} until={} duration={}", this.getId(), this.phaseTicks,
+				now + this.grace.duration(), this.grace.duration());
 		}
 		return false;
+	}
+
+	private boolean onFoot(Player target) {
+		return !target.isPassenger() && !target.isInWater() && !target.isFallFlying();
 	}
 
 	private void updateStalls(Player target) {
 		if (this.stalls == null) this.stalls = new EarlyStall(this.random.nextDouble());
 		boolean wasActive = this.stalls.active(this.phaseTicks - 1);
 		this.stallEscalated |= this.digging || this.burrowing || this.prankDigging || this.prankBurrowing
-			|| target.isFallFlying() || this.centre().distanceTo(target.getEyePosition()) > 64;
+			|| target.isFallFlying() || this.centre().distanceTo(target.getEyePosition()) > 64 && !this.onFoot(target);
 		var inventory = target.getInventory();
 		for (int slot = 0; !this.stallEscalated && slot < inventory.getContainerSize(); slot++) {
 			var item = inventory.getItem(slot);
