@@ -38,11 +38,15 @@ Install Fabric Loader for Minecraft 26.3, then put the mod jar and
 [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3 in your instance's `mods` folder.
 Use Java 25 in your Minecraft launcher.
 
+### Updating
+
+If you need to update to a new version, download the latest version and remove the one you already have. This mod does not support two versions of the same mod in the mods directory!
+
 ---
 
 ### Building from source (i.e Manual Install)
 
-These are the instructions to manually build the mod yourself from the source. Unless you know you want to do this, it is not recommended. The supported paths to do so is Ubuntu on WSL (Windows) or Ubuntu LTS if you are on Linux.
+These are the instructions to manually build the mod yourself from the source. Unless you know you want to do this, it is not recommended. The supported paths to do so is Ubuntu on WSL (Windows) or Ubuntu LTS if you are on Linux. **Remove any other version of the mod from your mods directory before you do this!**
 
 Please note that the developer version might have bugs and it is recommended that you use the release *.jar instead (See previous "Install" category if you missed it)
 
@@ -113,7 +117,16 @@ Copy `build/libs/mariohead-x.x.x-dev.jar` into your Minecraft instance's `mods` 
 ### Credits & Notes
 
 - Head model: the high quality Mario head Blender model (`mario_head.blend`) with its cap, iris
-  and swatch textures is based on the Floating Mario Head from Mario Teaches Typing. The original creator is unknown since I cannot find the site where I originally found it. If it's you, please come forward.
+  and swatch textures is based on the original Floating Mario Head model from Mario Teaches Typing by Surreal Bot on Donut Team.
+- The Floating Mario Head Spawn Egg item graphic drawn by me.
 - Voice: clips of the Floating Mario Head from Mario Teaches Typing.
 - His arrival sound is Minecraft's own illusioner mirror move sound, lowered in pitch.
-- LLMs were used during development & documentation with a human in the loop.
+
+#### LLM/AI Policy & Disclosure
+
+- LLMs were exclusively used in an assistive capacity with a human in the loop for testing, development & documentation.  
+- No LLMs was and ever will be used for the generation of art assets like textures, models and/or voice clips.
+
+## License
+
+All code is licensed under the MIT, see [LICENSE](LICENSE). 
