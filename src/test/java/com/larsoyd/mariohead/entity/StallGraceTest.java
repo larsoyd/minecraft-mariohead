@@ -247,4 +247,16 @@ class StallGraceTest {
 		assertEquals(WITHDRAW, grace.stage());
 		for (int tick = 0; tick < 200; tick++) assertFalse(grace.standing(15, 0, 64, 0));
 	}
+
+	@Test
+	void listeningClearsTheStandingAndClosingCounts() {
+		StallGrace grace = new StallGrace();
+		grace.start(0, 0.5, 1, 0);
+		for (int i = 0; i < 39; i++) assertFalse(grace.standing(10, 0, 0, 0));
+		assertTrue(grace.standing(10, 0, 0, 0));
+		grace.approached(10, 3.9);
+		grace.listened();
+		for (int i = 0; i < 39; i++) assertFalse(grace.standing(10, 0, 0, 0));
+		assertFalse(grace.approached(10, 0.3));
+	}
 }

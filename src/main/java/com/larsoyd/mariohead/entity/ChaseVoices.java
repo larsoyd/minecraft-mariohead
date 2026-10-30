@@ -7,7 +7,8 @@ public final class ChaseVoices {
 		HeadCue.VARIETY_043, HeadCue.VARIETY_045, HeadCue.TAUNT_100, HeadCue.VARIETY_102,
 		HeadCue.TAUNT_099, HeadCue.VARIETY_101, HeadCue.TAUNT_107, HeadCue.TAUNT_078,
 		HeadCue.VARIETY_017, HeadCue.VARIETY_065, HeadCue.VARIETY_WEEE2, HeadCue.TAUNT_098,
-		HeadCue.TAUNT_091, HeadCue.VARIETY_049, HeadCue.VARIETY_050, HeadCue.VARIETY_051
+		HeadCue.TAUNT_091, HeadCue.VARIETY_049, HeadCue.VARIETY_050, HeadCue.VARIETY_051,
+		HeadCue.TAUNT_YOHOOO, HeadCue.TAUNT_TOOSLOW
 	};
 	public static final HeadCue[] CUTOFF = {
 		HeadCue.TAUNT_082, HeadCue.VARIETY_084, HeadCue.VARIETY_037, HeadCue.TAUNT_010,

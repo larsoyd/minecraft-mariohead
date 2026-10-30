@@ -1,0 +1,46 @@
+[
+  {
+    "id": "ask",
+    "source": "ogg/032_01m47s_can_i_sing_a_song_for_you.ogg",
+    "source_sha256": "319215390035c39f652cc5753758c01d55527a2fa02c4d325a2e5f8deeb36f55",
+    "sha256": "319215390035c39f652cc5753758c01d55527a2fa02c4d325a2e5f8deeb36f55",
+    "millis": 1702,
+    "text": "Can I sing a song for you?"
+  },
+  {
+    "id": "verse1",
+    "source": "ogg/033_01m50s_when_the_moon_hits_your_eye_like_a_big_pizza_pie_that_s_amore.ogg",
+    "source_sha256": "08143ef042e16161e14c2efdf46d1f68b5846bfe4ba5bd5d6f0d306ab26df0c2",
+    "sha256": "08143ef042e16161e14c2efdf46d1f68b5846bfe4ba5bd5d6f0d306ab26df0c2",
+    "millis": 5875,
+    "text": "When the moon hits your eye like a big pizza pie, that's amore!"
+  },
+  {
+    "id": "verse2",
+    "source": "ogg/034_01m56s_when_an_eel_lunges_out_and_it_takes_a_bite_of_your_snout_that_s_am.ogg",
+    "source_sha256": "7b1a0a76fd4cc3fff244458b75e2210198f354df92e76012caaaf8673d0bf1b7",
+    "sha256": "7b1a0a76fd4cc3fff244458b75e2210198f354df92e76012caaaf8673d0bf1b7",
+    "millis": 6016,
+    "text": "When an eel lunges out and it takes a bite of your snout, that's amore!"
+  },
+  {
+    "id": "outro",
+    "source": "wav/song_outro.wav",
+    "source_sha256": "ba193989e75548b54dd750ca02d25869c06cf67875b3f669507503adac9cc889",
+    "sha256": "25088db7840e3b9c60c31fa9a940c2d11f1fa6ca7729841176736c3e6c4ec317",
+    "millis": 2483,
+    "text": "Tape applause, thank you very much, thank you, thank you!",
+    "mouth_source": "ogg/052_03m05s_thank_you_very_much_thank_you_thank_you.ogg",
+    "mouth_delay_millis": 180,
+    "mix": {
+      "voice_at": 0.3,
+      "voice_end": 2.27,
+      "stop_at": 2.17,
+      "inputs": {
+        "sfx/tape_play.wav": "4eb6d7f6416b5ca98dec3a06b1ca0159b13c221efa6ac617e1e138dcea675d38",
+        "sfx/tape_stop.wav": "1760254b40364ea986e60d1eb033214ebb79ed204956aede642260bbe9e3d8b6",
+        "sfx/applause.ogg": "53bc35438a12a3de74eb3ded626042327fc279275b96d6ca8f6d6df583799caf"
+      }
+    }
+  }
+]

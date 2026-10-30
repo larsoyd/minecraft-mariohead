@@ -93,5 +93,21 @@
     "id": "107_06m56s_peek_a_boo",
     "sha256": "65668d3ca6d1d8e6a7671a4c572fbaf39f9977f21b90a808b384189567d4f8ff",
     "millis": 852
+  },
+  {
+    "id": "yohooo",
+    "source": "wav/yohooo.wav",
+    "source_sha256": "8f1007ec302ba44bf7171fb8302085c66300345a546efd07cbb51c859842a47c",
+    "gain_db": -3.5,
+    "sha256": "ba592a28dd346f5dea9fd619f54e2dfc279a1e6b8aea132f8eafbc091cf61f50",
+    "millis": 670
+  },
+  {
+    "id": "tooslow",
+    "source": "wav/tooslow.wav",
+    "source_sha256": "9818acda02469414e3f8363e87d31176b025631bc7111a51080debcc84410320",
+    "gain_db": -3.5,
+    "sha256": "5137bf103d7284b9786f13fe3de8ff501bd23c19e6b9920dc06ff3b3c0d63e61",
+    "millis": 1194
   }
 ]

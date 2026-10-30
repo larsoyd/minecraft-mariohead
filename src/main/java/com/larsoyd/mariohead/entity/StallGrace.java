@@ -75,6 +75,12 @@ public final class StallGrace {
 		return this.stage == Stage.FOLLOW && this.stood >= 40;
 	}
 
+	// he was singing, nobody gets judged on how they listened
+	public void listened() {
+		this.stood = 0;
+		this.closed = 0;
+	}
+
 	public double gap(long now) {
 		return 15 + this.personality * 3 + Math.sin((now - this.began) / 180.0 + this.personality * Math.PI * 2) * 3;
 	}

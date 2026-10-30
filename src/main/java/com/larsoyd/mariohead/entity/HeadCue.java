@@ -30,6 +30,8 @@ public enum HeadCue {
 	TAUNT_105,
 	TAUNT_106,
 	TAUNT_107,
+	TAUNT_YOHOOO,
+	TAUNT_TOOSLOW,
 	DASH_067,
 	DASH_073,
 	DASH_086,
@@ -58,6 +60,10 @@ public enum HeadCue {
 	CAPPILINI,
 	CAPPILINI2,
 	HOSSILI,
+	SONG_ASK,
+	SONG_VERSE1,
+	SONG_VERSE2,
+	SONG_OUTRO,
 	VARIETY_017,
 	VARIETY_036,
 	VARIETY_037,
@@ -96,6 +102,7 @@ public enum HeadCue {
 		return switch (this) {
 			case FALL_019 -> FallVoice.CLIPS[0];
 			case GULP, YUMMY, LASAGNA, YUMMY2, SPAGHETTI, RAVIOLI, MACCARONI, VERMACHELLI, BOLOGNA, FETTICINI, CAPPILINI, CAPPILINI2, HOSSILI -> MealVoice.CLIPS[this.ordinal() - GULP.ordinal()];
+			case SONG_ASK, SONG_VERSE1, SONG_VERSE2, SONG_OUTRO -> SongVoice.CLIPS[this.ordinal() - SONG_ASK.ordinal()];
 			case PRANK_WARNING, PRANK_RESPONSE -> PrankVoice.CLIPS[this.ordinal() - PRANK_WARNING.ordinal()];
 			case HOME_NICE, HOME_ASK, HOME_HUNGRY, HOME_THIRSTY, HOME_RETURN -> HomeVoice.CLIPS[this.ordinal() - HOME_NICE.ordinal()];
 			case HELLO -> HeadVoice.HELLO;
@@ -111,7 +118,7 @@ public enum HeadCue {
 
 	// words move his mouth, a hum keeps it shut
 	public boolean spoken() {
-		return this == HELLO || this == UNDERGROUND || this.taunt() || this.chatter() || this.home() || this.prank() || this.variety() || this.meal();
+		return this == HELLO || this == UNDERGROUND || this.taunt() || this.chatter() || this.home() || this.prank() || this.variety() || this.meal() || this.song();
 	}
 
 	public boolean variety() {
@@ -124,7 +131,7 @@ public enum HeadCue {
 
 	public boolean taunt() {
 		return this == HOME_RETURN || this == FALL_019 || this == VARIETY_071 || this == VARIETY_085 || this == VARIETY_DROWNING
-			|| this.ordinal() >= TAUNT_006.ordinal() && this.ordinal() <= TAUNT_107.ordinal();
+			|| this.ordinal() >= TAUNT_006.ordinal() && this.ordinal() <= TAUNT_TOOSLOW.ordinal();
 	}
 
 	public boolean chatter() {
@@ -141,6 +148,10 @@ public enum HeadCue {
 
 	public boolean meal() {
 		return this.ordinal() >= GULP.ordinal() && this.ordinal() <= HOSSILI.ordinal();
+	}
+
+	public boolean song() {
+		return this.ordinal() >= SONG_ASK.ordinal() && this.ordinal() <= SONG_OUTRO.ordinal();
 	}
 
 	public boolean digHum() {

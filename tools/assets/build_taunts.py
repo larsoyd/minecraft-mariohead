@@ -8,8 +8,19 @@ from pathlib import Path
 import shutil
 import sys
 
+import numpy as np
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_head
+
+
+def dry_mouth(entry, frames):
+    """A mixed clip moves his mouth with its dry voice line, so the bed under it stays out."""
+    root = Path(__file__).resolve().parents[2]
+    dry = build_head.decode_mono(str(root / "voice-lines" / entry["mouth_source"]), 0, entry["millis"] / 1000, build_head.MOUTH_RATE)
+    delay = entry["mouth_delay_millis"] * build_head.MOUTH_RATE // 1000
+    audio = np.concatenate([np.zeros(delay), dry])[:entry["millis"] * build_head.MOUTH_RATE // 1000]
+    return (build_head.mouth_envelope(audio, build_head.MOUTH_RATE) + [0] * frames)[:frames]
 
 
 def build(source, manifest="taunts.json", prefix="taunt", class_name="TauntVoice"):
@@ -27,6 +38,8 @@ def build(source, manifest="taunts.json", prefix="taunt", class_name="TauntVoice
         name = prefix + "_" + entry["id"].split("_")[0]
         audio = build_head.decode_mono(str(path), 0, entry["millis"] / 1000, build_head.MOUTH_RATE)
         mouth = build_head.mouth_envelope(audio, build_head.MOUTH_RATE)
+        if "mouth_source" in entry:
+            mouth = dry_mouth(entry, len(mouth))
         if "mouth_end_millis" in entry:
             end = entry["mouth_end_millis"] * build_head.MOUTH_FPS // 1000
             mouth[end:] = [0] * (len(mouth) - end)

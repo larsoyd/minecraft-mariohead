@@ -107,6 +107,7 @@ public class TheHead extends Monster {
 	private long mealUntil;
 	private long mealReadyAt;
 	private long afterMealAt = -1;
+	private final HeadSong song = new HeadSong();
 	private final HeadAlarm alarm = new HeadAlarm();
 	private final DiveTaunt diveTaunt = new DiveTaunt();
 	private @Nullable BlockPos waterEntry;
@@ -440,9 +441,13 @@ public class TheHead extends Monster {
 		Vec3 playerStep = target.position().subtract(this.chasedLast).multiply(1, 0, 1);
 		double toward = playerStep.length() < PACE_TELEPORT
 			? playerStep.dot(this.centre().subtract(target.position()).multiply(1, 0, 1).normalize()) : 0;
-		if (this.grace.approached(this.centre().distanceTo(target.getEyePosition()), toward)) this.endGrace(true);
-		if (this.grace.standing(this.centre().distanceTo(target.getEyePosition()), target.getX(), target.getY(), target.getZ())) this.endGrace(false);
-		if (this.grace.tick(now)) this.resumeAfterGrace();
+		boolean singing = this.song.singing();
+		if (this.grace.approached(this.centre().distanceTo(target.getEyePosition()), toward)) {
+			if (singing) this.song.cameFor();
+			else this.endGrace(true);
+		}
+		if (this.grace.standing(this.centre().distanceTo(target.getEyePosition()), target.getX(), target.getY(), target.getZ()) && !singing) this.endGrace(false);
+		if (!singing && this.grace.tick(now)) this.resumeAfterGrace();
 		this.updateDive(target);
 		boolean mock = this.tickStall(level.getGameTime());
 		if (this.grace.stage() == StallGrace.Stage.WITHDRAW && this.homeStage == HomeStage.NONE
@@ -474,6 +479,8 @@ public class TheHead extends Monster {
 		boolean undergroundRhythm = this.digging || this.burrowing || cue.chatter() || this.dashLine != HeadCue.NONE;
 		boolean digDash = false;
 		if (mock || water) {
+			this.nextDigDash = -1;
+		} else if (this.tickSong(target, now)) {
 			this.nextDigDash = -1;
 		} else if (!this.waterSpeaking && this.tickCutoff(target) || this.tickLaugh(level.getGameTime())) {
 			this.nextDigDash = -1;
@@ -516,10 +523,12 @@ public class TheHead extends Monster {
 			double pursuit = Math.max(0.5, Math.max(this.chargeSpeed, this.pace * 1.15));
 			this.chargeSpeed = Math.min(pursuit, Math.max(0, this.pace * 0.98 + (gap - 6) * 0.08));
 		}
+		if (this.song.busy()) this.chargeSpeed = HeadSong.speed(this.centre().distanceTo(target.getEyePosition()), this.pace);
 		if (this.homeStage == HomeStage.RETURN && !this.teasing) this.chargeSpeed *= 1.25;
 		if (this.grace.stage() == StallGrace.Stage.WITHDRAW
 			|| this.grace.stage() == StallGrace.Stage.ENDING && this.grace.retreating() && toward >= -0.02
-				&& this.centre().distanceTo(target.getEyePosition()) <= 12.5) {
+				&& this.centre().distanceTo(target.getEyePosition()) <= 12.5
+			|| this.song.backing() && toward >= -0.02 && this.centre().distanceTo(target.getEyePosition()) <= 12.5) {
 			double retreatSpeed = Math.clamp(12 - this.centre().distanceTo(target.getEyePosition()), 0, 0.45);
 			this.moveAway(target, this.grace.stage() == StallGrace.Stage.WITHDRAW ? 0.18 : retreatSpeed);
 			if (this.touching(target, before)) this.caught(level, target);
@@ -533,7 +542,7 @@ public class TheHead extends Monster {
 	}
 
 	private boolean canEat(double gap) {
-		return this.grace.stage() == StallGrace.Stage.FOLLOW && this.homeStage == HomeStage.NONE
+		return this.grace.stage() == StallGrace.Stage.FOLLOW && this.homeStage == HomeStage.NONE && !this.song.busy()
 			&& VoiceCurve.volume(gap) > 0 && HeadMeal.clearOfPlayer(gap);
 	}
 
@@ -621,6 +630,33 @@ public class TheHead extends Monster {
 		if (onTime && this.grace.stage() == StallGrace.Stage.FOLLOW && this.homeStage == HomeStage.NONE) {
 			this.setCue(this.voices.afterMeal(this.random.nextDouble()));
 		}
+	}
+
+	// the words keep their own clock, and the stall waits out whatever would have ended it
+	private boolean tickSong(Player target, long now) {
+		if (this.song.singing()) {
+			HeadCue line = this.song.next(now);
+			if (line != HeadCue.NONE) this.setCue(line);
+			if (!this.song.singing()) this.endSong(now);
+			return true;
+		}
+		double gap = this.centre().distanceTo(target.getEyePosition());
+		boolean open = this.grace.stage() == StallGrace.Stage.FOLLOW && this.homeStage == HomeStage.NONE && VoiceCurve.volume(gap) > 0;
+		if (!this.song.approaching(now, open) || gap > HeadSong.REACH || !this.clearLine(this.centre(), target.getEyePosition())
+			|| this.pendingVoice != HeadCue.NONE || this.voices.waiting() || this.afterMealAt >= 0) return false;
+		if (!this.speech.canStart(HeadCue.VARIETY_037, now)) return true;
+		this.song.begin(now);
+		this.setCue(HeadCue.SONG_ASK);
+		MarioHead.LOG.debug("[head] song id={} age={} gap={}", this.getId(), this.phaseTicks, gap);
+		return true;
+	}
+
+	private void endSong(long now) {
+		this.grace.listened();
+		this.voices.follow(0.4, this.random.nextDouble());
+		this.tauntReadyAt = now + HeadClock.LATE_VOICE_TICKS + 600;
+		MarioHead.LOG.debug("[head] song_over id={} approached={} grace={}", this.getId(), this.song.approachedDuring(), this.grace.stage());
+		if (this.song.approachedDuring()) this.endGrace(true);
 	}
 
 	private void advanceDash() {
@@ -890,7 +926,7 @@ public class TheHead extends Monster {
 			this.replanIn = 0;
 			return false;
 		}
-		if (this.homeStage == HomeStage.NONE && (!this.homeUsed || !this.raidUsed) && now >= this.homeScanAt) {
+		if (this.homeStage == HomeStage.NONE && (!this.homeUsed || !this.raidUsed) && now >= this.homeScanAt && !this.song.busy()) {
 			this.homeScanAt = now + 20;
 			if (ownerGap <= HOUSE_REACH && this.underRoof(target) && this.pendingVoice == HeadCue.NONE) {
 				HeadShelter room = HeadShelter.inspect(level, target.blockPosition(), BlockPos.containing(this.centre()));
@@ -1344,6 +1380,7 @@ public class TheHead extends Monster {
 		this.stalls.finished(this.phaseTicks);
 		if (this.stalls.active(this.phaseTicks)) {
 			this.grace.start(now, this.random.nextDouble(), this.random.nextDouble(), this.random.nextDouble());
+			this.song.stallStarted(now, this.random.nextDouble(), this.random.nextDouble());
 			MarioHead.LOG.debug("[head] grace id={} age={} until={} duration={}", this.getId(), this.phaseTicks,
 				now + this.grace.duration(), this.grace.duration());
 		}
@@ -1380,6 +1417,8 @@ public class TheHead extends Monster {
 				this.stallEscalated |= this.level().getBlockState(pos).is(net.minecraft.tags.BlockTags.ICE);
 			}
 		}
+		// everything that would end the stall lands on the first tick after the song
+		if (this.song.singing()) return;
 		this.cutoffPending |= this.stalls.expire(this.phaseTicks, this.stallEscalated,
 			VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) > 0);
 		if (wasActive && !this.stalls.active(this.phaseTicks)) {
@@ -1432,6 +1471,7 @@ public class TheHead extends Monster {
 
 	// sealed in or under rock with no way in at his size, he says so once and makes his own way
 	private void watchForSeal(ServerLevel level) {
+		if (this.song.singing()) return;
 		long now = level.getGameTime();
 		boolean stuck = this.sealed || this.roofed && !this.fitsWay;
 		if (!stuck) {

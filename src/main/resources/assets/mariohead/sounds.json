@@ -318,5 +318,29 @@
 	"entity.the_head.meal_hossili": {
 		"subtitle": "subtitles.mariohead.the_head.meal_hossili",
 		"sounds": ["mariohead:the_head/meal_hossili"]
+	},
+	"entity.the_head.taunt_yohooo": {
+		"subtitle": "subtitles.mariohead.the_head.taunt_yohooo",
+		"sounds": ["mariohead:the_head/taunt_yohooo"]
+	},
+	"entity.the_head.taunt_tooslow": {
+		"subtitle": "subtitles.mariohead.the_head.taunt_tooslow",
+		"sounds": ["mariohead:the_head/taunt_tooslow"]
+	},
+	"entity.the_head.song_ask": {
+		"subtitle": "subtitles.mariohead.the_head.song_ask",
+		"sounds": ["mariohead:the_head/song_ask"]
+	},
+	"entity.the_head.song_verse1": {
+		"subtitle": "subtitles.mariohead.the_head.song_verse1",
+		"sounds": ["mariohead:the_head/song_verse1"]
+	},
+	"entity.the_head.song_verse2": {
+		"subtitle": "subtitles.mariohead.the_head.song_verse2",
+		"sounds": ["mariohead:the_head/song_verse2"]
+	},
+	"entity.the_head.song_outro": {
+		"subtitle": "subtitles.mariohead.the_head.song_outro",
+		"sounds": ["mariohead:the_head/song_outro"]
 	}
 }

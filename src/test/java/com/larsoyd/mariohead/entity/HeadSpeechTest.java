@@ -89,4 +89,12 @@ class HeadSpeechTest {
 		assertFalse(speech.canStart(HeadCue.MMM2, 84));
 		assertTrue(speech.canStart(HeadCue.MMM2, 85));
 	}
+
+	@Test
+	void theSongKeepsItsOwnTimeWhileOtherLinesWait() {
+		HeadSpeech speech = new HeadSpeech();
+		speech.started(HeadCue.SONG_ASK, 100);
+		assertTrue(speech.canStart(HeadCue.SONG_VERSE1, 101));
+		assertFalse(speech.canStart(HeadCue.VARIETY_037, 101));
+	}
 }

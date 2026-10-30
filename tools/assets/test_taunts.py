@@ -14,10 +14,26 @@ ENTRIES = json.loads(Path(__file__).with_name("taunts.json").read_text())
 
 class TauntTests(unittest.TestCase):
     def test_requested_clips_are_present_once(self):
-        requested = {6, 8, 9, 10, 16, 23, 26, 78, 82, 88, 89, 90, 91, 98, 99, 100, 105, 106, 107}
-        ids = [int(entry["id"].split("_")[0]) for entry in ENTRIES]
+        requested = {"006", "008", "009", "010", "016", "023", "026", "078", "082", "088", "089", "090",
+                     "091", "098", "099", "100", "105", "106", "107", "yohooo", "tooslow"}
+        ids = [entry["id"].split("_")[0] for entry in ENTRIES]
         self.assertEqual(set(ids), requested)
         self.assertEqual(len(ids), len(requested))
+
+    def test_added_lines_keep_their_masters_pinned_and_stay_under_full_scale(self):
+        added = [entry for entry in ENTRIES if "source" in entry]
+        self.assertEqual([entry["id"] for entry in added], ["yohooo", "tooslow"])
+        for entry in added:
+            with self.subTest(clip=entry["id"]):
+                source = ROOT / "voice-lines" / entry["source"]
+                self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), entry["source_sha256"])
+                self.assertEqual(hashlib.sha256((ROOT / "voice-lines/ogg" / (entry["id"] + ".ogg")).read_bytes()).hexdigest(), entry["sha256"])
+                detect = subprocess.run(["ffmpeg", "-nostats", "-i", str(ASSETS / "sounds/the_head" / ("taunt_" + entry["id"] + ".ogg")),
+                                         "-af", "volumedetect", "-f", "null", "-"],
+                                        check=True, capture_output=True, text=True, timeout=10).stderr
+                peak = float(detect.split("max_volume: ")[1].split(" dB")[0])
+                self.assertLess(peak, -1.5)
+                self.assertGreater(peak, -6)
 
     def test_bundled_audio_matches_pinned_sources_and_is_positional(self):
         for entry in ENTRIES:

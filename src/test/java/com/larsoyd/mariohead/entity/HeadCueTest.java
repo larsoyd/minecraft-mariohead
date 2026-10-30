@@ -1,6 +1,7 @@
 package com.larsoyd.mariohead.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,6 +31,27 @@ class HeadCueTest {
 			}
 		}
 		assertEquals(23, count);
+	}
+
+	@Test
+	void songAndNewTauntCuesAreSpeechWithTheirOwnClips() {
+		String[] clips = { "song_ask", "song_verse1", "song_verse2", "song_outro" };
+		HeadCue[] cues = { HeadCue.SONG_ASK, HeadCue.SONG_VERSE1, HeadCue.SONG_VERSE2, HeadCue.SONG_OUTRO };
+		for (int i = 0; i < cues.length; i++) {
+			assertTrue(cues[i].song());
+			assertTrue(cues[i].spoken());
+			assertFalse(cues[i].taunt());
+			assertFalse(cues[i].meal());
+			assertFalse(cues[i].variety());
+			assertEquals(clips[i], cues[i].clip().name());
+		}
+		assertFalse(HeadCue.HOSSILI.song());
+		assertFalse(HeadCue.VARIETY_017.song());
+		assertTrue(HeadCue.TAUNT_YOHOOO.taunt());
+		assertTrue(HeadCue.TAUNT_TOOSLOW.taunt());
+		assertEquals("taunt_yohooo", HeadCue.TAUNT_YOHOOO.clip().name());
+		assertEquals("taunt_tooslow", HeadCue.TAUNT_TOOSLOW.clip().name());
+		assertTrue(HeadCue.values().length <= 128, "cue ids no longer fit their bits");
 	}
 
 	@Test

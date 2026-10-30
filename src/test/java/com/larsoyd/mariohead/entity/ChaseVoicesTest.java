@@ -46,9 +46,11 @@ class ChaseVoicesTest {
 
 	@Test
 	void poolsContainEveryRequestedLineOnce() {
-		assertEquals(16, java.util.Set.of(ChaseVoices.STALLS).size());
+		assertEquals(18, java.util.Set.of(ChaseVoices.STALLS).size());
+		assertTrue(java.util.List.of(ChaseVoices.STALLS).containsAll(java.util.List.of(HeadCue.TAUNT_YOHOOO, HeadCue.TAUNT_TOOSLOW)));
+		assertTrue(java.util.List.of(ChaseVoices.TAUNTS).containsAll(java.util.List.of(HeadCue.TAUNT_YOHOOO, HeadCue.TAUNT_TOOSLOW)));
 		assertEquals(9, java.util.Set.of(ChaseVoices.CUTOFF).size());
-		assertEquals(19, java.util.Set.of(ChaseVoices.TAUNTS).size());
+		assertEquals(21, java.util.Set.of(ChaseVoices.TAUNTS).size());
 		assertEquals(java.util.Set.of(HeadCue.VARIETY_071, HeadCue.VARIETY_085), java.util.Set.of(ChaseVoices.WATER));
 	}
 

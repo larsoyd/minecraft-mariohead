@@ -6,7 +6,7 @@ public final class HeadSpeech {
 	private boolean homeGap;
 
 	public boolean canStart(HeadCue cue, long tick) {
-		return cue.meal() || tick >= (this.homeGap ? this.ready : Math.max(this.ready, this.end + (breathes(cue) ? 10 : 0)));
+		return cue.meal() || cue.song() || tick >= (this.homeGap ? this.ready : Math.max(this.ready, this.end + (breathes(cue) ? 10 : 0)));
 	}
 
 	public void started(HeadCue cue, long tick) {

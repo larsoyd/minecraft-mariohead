@@ -5771,6 +5771,7 @@ public class HeadGameTests {
 					double line = random.nextDouble();
 					if (chance < 0.15 && line >= 0.5 && line < 0.5625) { head.getRandom().setSeed(seed); break; }
 				}
+				songOf(head).stallStarted(0, 1, 0);
 				head.setNoAi(false);
 			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
 		});
@@ -6610,5 +6611,514 @@ public class HeadGameTests {
 			leave(helper, target);
 			helper.succeed();
 		});
+	}
+
+	private static com.larsoyd.mariohead.entity.HeadSong songOf(TheHead head) throws ReflectiveOperationException {
+		var field = TheHead.class.getDeclaredField("song"); field.setAccessible(true);
+		return (com.larsoyd.mariohead.entity.HeadSong) field.get(head);
+	}
+
+	private static boolean sang(com.larsoyd.mariohead.entity.HeadSong song) {
+		return song.singing() || song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.OVER;
+	}
+
+	private static void reflectSet(TheHead head, String name, Object value) {
+		try {
+			var field = TheHead.class.getDeclaredField(name); field.setAccessible(true);
+			field.set(head, value);
+		} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+	}
+
+	private TheHead songHead(GameTestHelper helper, ServerPlayer target) throws ReflectiveOperationException {
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		fixRoll(head, 0.9);
+		return head;
+	}
+
+	private void beginSongStall(GameTestHelper helper, TheHead head) throws ReflectiveOperationException {
+		beginLiveGrace(helper, head, HeadCue.MMM3);
+		songOf(head).stallStarted(helper.getLevel().getGameTime(), 0, 0);
+	}
+
+	private static final com.larsoyd.mariohead.entity.StallGrace.Stage FOLLOW = com.larsoyd.mariohead.entity.StallGrace.Stage.FOLLOW;
+	private static final com.larsoyd.mariohead.entity.StallGrace.Stage ENDING = com.larsoyd.mariohead.entity.StallGrace.Stage.ENDING;
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songLinesFallOnTheirTicksWithNoHumAndTheStallRunsOn(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var grace = graceOf(head);
+		var song = songOf(head);
+		java.util.Map<HeadCue, Long> at = new java.util.EnumMap<>(HeadCue.class);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try { if (helper.getTick() == 100) beginSongStall(helper, head); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			long now = helper.getLevel().getGameTime();
+			runAway(target);
+			double gap = head.centre().distanceTo(target.getEyePosition());
+			if (head.cue().song()) at.putIfAbsent(head.cue(), now);
+			if (head.cue() == HeadCue.SONG_ASK && at.get(HeadCue.SONG_ASK) == now) helper.assertTrue(gap <= 9.6, "asked from " + gap);
+			if (song.singing()) {
+				helper.assertFalse(hums(head), "hummed during the song cue=" + head.cue());
+				helper.assertTrue(grace.stage() == FOLLOW, "stall left during the song stage=" + grace.stage());
+				helper.assertTrue(gap <= 12, "fell behind the song gap=" + gap);
+			}
+			if (song.stage() != com.larsoyd.mariohead.entity.HeadSong.Stage.OVER || !hums(head)) return;
+			helper.assertTrue(at.size() == 4, "lines heard " + at);
+			long first = at.get(HeadCue.SONG_VERSE1) - at.get(HeadCue.SONG_ASK);
+			long second = at.get(HeadCue.SONG_VERSE2) - at.get(HeadCue.SONG_VERSE1);
+			long third = at.get(HeadCue.SONG_OUTRO) - at.get(HeadCue.SONG_VERSE2);
+			helper.assertTrue(first == com.larsoyd.mariohead.entity.HeadSong.VERSE1_TICKS && second == com.larsoyd.mariohead.entity.HeadSong.VERSE2_TICKS
+				&& third == com.larsoyd.mariohead.entity.HeadSong.OUTRO_TICKS, "spacing " + first + " " + second + " " + third);
+			helper.assertTrue(grace.stage() == FOLLOW, "song ended the stall stage=" + grace.stage());
+			head.discard(); leave(helper, target); helper.succeed();
+		});
+	}
+
+	private void songHoldsTheStall(GameTestHelper helper, String clock) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var grace = graceOf(head);
+		var song = songOf(head);
+		var field = com.larsoyd.mariohead.entity.StallGrace.class.getDeclaredField(clock); field.setAccessible(true);
+		boolean[] armed = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try {
+				if (helper.getTick() == 100) beginSongStall(helper, head);
+				if (head.cue() == HeadCue.SONG_ASK && !armed[0]) { armed[0] = true; field.setLong(grace, helper.getLevel().getGameTime() + 5); }
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			runAway(target);
+			if (song.singing()) helper.assertTrue(grace.stage() == FOLLOW, clock + " cut the song stage=" + grace.stage());
+			if (song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.OVER && grace.stage() != FOLLOW) {
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songHoldsTheStallPastItsTimer(GameTestHelper helper) throws ReflectiveOperationException {
+		songHoldsTheStall(helper, "until");
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songHoldsOffTheWithdraw(GameTestHelper helper) throws ReflectiveOperationException {
+		songHoldsTheStall(helper, "withdrawAt");
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songStandingStillOnlyEndsTheStallAfterwards(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var grace = graceOf(head);
+		var song = songOf(head);
+		long[] over = { -1 };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try { if (helper.getTick() == 100) beginSongStall(helper, head); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			if (!sang(song)) runAway(target);
+			if (song.singing()) helper.assertTrue(grace.stage() == FOLLOW, "standing ended the song stage=" + grace.stage());
+			if (over[0] < 0 && song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.OVER) over[0] = helper.getTick();
+			if (over[0] < 0) return;
+			if (helper.getTick() < over[0] + 35) helper.assertTrue(grace.stage() == FOLLOW, "no breath after the song tick=" + (helper.getTick() - over[0]));
+			if (helper.getTick() == over[0] + 45) {
+				helper.assertTrue(grace.stage() == ENDING && !grace.retreating(), "standing still never ended the stall stage=" + grace.stage());
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songPlayerRunningAtHimBacksHimUpAndEndsTheStallOnlyAfterTheSong(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var grace = graceOf(head);
+		var song = songOf(head);
+		long[] ask = { -1 };
+		double[] closest = { 99 };
+		boolean[] outro = { false };
+		double[] was = { 0 };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try { if (helper.getTick() == 100) beginSongStall(helper, head); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			if (ask[0] < 0 && head.cue() == HeadCue.SONG_ASK) { ask[0] = helper.getTick(); was[0] = head.getX(); }
+			if (ask[0] < 0) { runAway(target); return; }
+			long since = helper.getTick() - ask[0];
+			if (since >= 10 && since < 70) target.setPos(target.position().add(0.28, 0, 0));
+			double gap = head.centre().distanceTo(target.getEyePosition());
+			closest[0] = Math.min(closest[0], gap);
+			outro[0] |= head.cue() == HeadCue.SONG_OUTRO;
+			helper.assertFalse(head.isRemoved(), "caught during the song closest=" + closest[0]);
+			if (song.singing()) helper.assertTrue(grace.stage() == FOLLOW, "approach ended the song stage=" + grace.stage() + " since=" + since);
+			if (since == 70) helper.assertTrue(head.getX() > was[0] + 8, "did not back up from " + was[0] + " to " + head.getX());
+			if (song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.OVER && grace.stage() != FOLLOW) {
+				helper.assertTrue(outro[0], "the song was cut short");
+				helper.assertTrue(grace.stage() == ENDING && grace.retreating(), "approach was forgotten stage=" + grace.stage());
+				helper.assertTrue(closest[0] > 3, "let the player reach him " + closest[0]);
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	private void songOutlastsEscalation(GameTestHelper helper, java.util.function.BiConsumer<TheHead, ServerPlayer> escalate) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var grace = graceOf(head);
+		var song = songOf(head);
+		var stallsField = TheHead.class.getDeclaredField("stalls"); stallsField.setAccessible(true);
+		var phaseField = TheHead.class.getDeclaredField("phaseTicks"); phaseField.setAccessible(true);
+		boolean[] done = { false };
+		boolean[] outro = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try {
+				if (helper.getTick() == 100) beginSongStall(helper, head);
+				if (head.cue() == HeadCue.SONG_ASK && !done[0]) { done[0] = true; escalate.accept(head, target); }
+				outro[0] |= head.cue() == HeadCue.SONG_OUTRO;
+				runAway(target);
+				if (song.singing()) helper.assertTrue(grace.stage() == FOLLOW, "stall ended mid song stage=" + grace.stage() + " cue=" + head.cue());
+				if (song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.OVER && grace.stage() != FOLLOW) {
+					helper.assertTrue(outro[0], "song cut short");
+					helper.assertFalse(((com.larsoyd.mariohead.entity.EarlyStall) stallsField.get(head)).active(phaseField.getInt(head)), "stalls survived the deferred end");
+					head.discard(); leave(helper, target); helper.succeed();
+				}
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songOutlastsPickedUpGear(GameTestHelper helper) throws ReflectiveOperationException {
+		songOutlastsEscalation(helper, (head, target) -> target.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE)));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songOutlastsLostSprint(GameTestHelper helper) throws ReflectiveOperationException {
+		songOutlastsEscalation(helper, (head, target) -> target.getFoodData().setFoodLevel(6));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songOutlastsThePearlFarAway(GameTestHelper helper) throws ReflectiveOperationException {
+		songOutlastsEscalation(helper, (head, target) -> {
+			Vec3 before = target.position();
+			target.setPos(before.add(-70, 0, 0));
+			head.pearlTeleported(target, before);
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songOutlastsTheStallCutoff(GameTestHelper helper) throws ReflectiveOperationException {
+		songOutlastsEscalation(helper, (head, target) -> {
+			try {
+				var phase = TheHead.class.getDeclaredField("phaseTicks"); phase.setAccessible(true);
+				phase.setInt(head, 30000);
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songNeverEats(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var song = songOf(head);
+		var chicken = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 20.5, 220, 10.5);
+		var mealField = TheHead.class.getDeclaredField("meal"); mealField.setAccessible(true);
+		boolean[] held = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try {
+				if (helper.getTick() == 100) beginSongStall(helper, head);
+				if (song.busy() && !held[0]) {
+					held[0] = true;
+					mealField.set(head, chicken);
+					reflectSet(head, "mealUntil", helper.getLevel().getGameTime() + 100);
+				} else if (held[0]) {
+					helper.assertTrue(mealField.get(head) == null, "kept a dash on a meal during the song");
+				}
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			chicken.setPos(head.centre().add(-5, -1.7, 0));
+			runAway(target);
+			helper.assertFalse(head.cue() == HeadCue.GULP || chicken.isRemoved(), "ate during the song");
+			if (song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.OVER) {
+				head.discard(); chicken.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	private void songNeverStarts(GameTestHelper helper, java.util.function.BiConsumer<TheHead, ServerPlayer> over) throws ReflectiveOperationException {
+		songNeverStarts(helper, over, false);
+	}
+
+	private void songNeverStarts(GameTestHelper helper, java.util.function.BiConsumer<TheHead, ServerPlayer> over, boolean every) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var song = songOf(head);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try { if (helper.getTick() == 100) beginSongStall(helper, head); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			if (helper.getTick() == 190 || every && helper.getTick() > 190) over.accept(head, target);
+			if (helper.getTick() > 190 && head.isRemoved()) { leave(helper, target); helper.succeed(); return; }
+			runAway(target);
+			helper.assertFalse(sang(song) || head.cue().song(), "sang outside the stall cue=" + head.cue() + " stage=" + song.stage());
+			if (helper.getTick() == 340) { head.discard(); leave(helper, target); helper.succeed(); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void songNeverAfterTheStallFinished(GameTestHelper helper) throws ReflectiveOperationException {
+		songNeverStarts(helper, (head, target) -> { try { graceOf(head).finish(); } catch (ReflectiveOperationException e) { throw new AssertionError(e); } });
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void songNeverDuringTheCutoffEnding(GameTestHelper helper) throws ReflectiveOperationException {
+		songNeverStarts(helper, (head, target) -> { try { graceOf(head).end(false); } catch (ReflectiveOperationException e) { throw new AssertionError(e); } });
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void songNeverWhileWithdrawing(GameTestHelper helper) throws ReflectiveOperationException {
+		songNeverStarts(helper, (head, target) -> {
+			try {
+				var field = com.larsoyd.mariohead.entity.StallGrace.class.getDeclaredField("withdrawAt"); field.setAccessible(true);
+				field.setLong(graceOf(head), helper.getLevel().getGameTime());
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void songNeverOnceStallsAreOverForGood(GameTestHelper helper) throws ReflectiveOperationException {
+		songNeverStarts(helper, (head, target) -> target.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ELYTRA)));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void songNeverOutOfEarshot(GameTestHelper helper) throws ReflectiveOperationException {
+		songNeverStarts(helper, (head, target) -> target.setPos(target.position().add(-200, 0, 0)));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void songNeverDuringAHouseScene(GameTestHelper helper) throws ReflectiveOperationException {
+		var stage = TheHead.class.getDeclaredField("homeStage"); stage.setAccessible(true);
+		@SuppressWarnings({ "unchecked", "rawtypes" }) Object nice = Enum.valueOf((Class) stage.getType(), "APPROACH");
+		songNeverStarts(helper, (head, target) -> {
+			reflectSet(head, "homeStage", nice);
+			reflectSet(head, "homeApproach", List.of(head.centre().add(100, 0, 0)));
+			reflectSet(head, "homeApproachUntil", Long.MAX_VALUE);
+		}, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 900)
+	public void songDroppedWithItsStallComesBackInTheNext(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var grace = graceOf(head);
+		var song = songOf(head);
+		boolean[] dropped = { false };
+		boolean[] again = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try {
+				if (helper.getTick() == 100) beginSongStall(helper, head);
+				runAway(target);
+				if (!dropped[0] && song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.APPROACH) {
+					dropped[0] = true;
+					target.setPos(target.position().add(-1, 0, 0));
+					grace.finish();
+				} else if (dropped[0] && !again[0] && song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.WAITING) {
+					again[0] = true;
+					grace.start(helper.getLevel().getGameTime(), 0.5, 1, 0);
+					song.stallStarted(helper.getLevel().getGameTime(), 0.9, 0);
+				}
+				if (head.cue() == HeadCue.SONG_ASK) {
+					helper.assertTrue(again[0], "sang through the dropped stall");
+					head.discard(); leave(helper, target); helper.succeed();
+				}
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songIsNotCutByTheSealedAnnouncement(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var song = songOf(head);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try { if (helper.getTick() == 100) beginSongStall(helper, head); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			runAway(target);
+			if (song.singing()) {
+				reflectSet(head, "sealed", true);
+				reflectSet(head, "sealedSince", 0L);
+				helper.assertFalse(head.cue() == HeadCue.UNDERGROUND || head.digging() || head.burrowing(), "went underground mid song cue=" + head.cue());
+			}
+			if (song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.OVER) { head.discard(); leave(helper, target); helper.succeed(); }
+		});
+	}
+
+	private static BlockPos[] songHouse(GameTestHelper helper) {
+		fill(helper, 0, 0, 0, 23, 20, 23, Blocks.AIR.defaultBlockState());
+		fill(helper, 0, -1, 0, 23, -1, 23, Blocks.STONE.defaultBlockState());
+		var level = helper.getLevel();
+		var template = level.getStructureTemplateManager().get(net.minecraft.resources.Identifier.withDefaultNamespace("village/plains/houses/plains_small_house_1")).orElseThrow();
+		BlockPos origin = helper.absolutePos(new BlockPos(5, 0, 3));
+		template.placeInWorld(level, origin, origin, new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings().setIgnoreEntities(true)
+			.addProcessor(net.minecraft.world.level.levelgen.structure.templatesystem.JigsawReplacementProcessor.INSTANCE)
+			.addProcessor(net.minecraft.world.level.levelgen.structure.templatesystem.BlockIgnoreProcessor.STRUCTURE_BLOCK), net.minecraft.util.RandomSource.create(4321), 3);
+		BlockPos inside = null;
+		for (BlockPos pos : BlockPos.betweenClosed(origin, origin.offset(template.getSize()))) {
+			if (level.getBlockState(pos).isAir() && level.getBlockState(pos.above()).isAir()
+				&& !level.getBlockState(pos.below()).getCollisionShape(level, pos.below()).isEmpty()
+				&& com.larsoyd.mariohead.entity.HeadShelter.inspect(level, pos, origin.offset(-4, 2, 0)).sheltered()) inside = pos.immutable();
+		}
+		helper.assertTrue(inside != null, "house has no sheltered floor");
+		return new BlockPos[] { inside, origin };
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void songHoldsOffTheHouseScene(GameTestHelper helper) throws ReflectiveOperationException {
+		var stage = TheHead.class.getDeclaredField("homeStage"); stage.setAccessible(true);
+		BlockPos[] house = songHouse(helper);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, helper.relativeVec(Vec3.atBottomCenterOf(house[0])), 90);
+		TheHead head = graceHead(helper, target);
+		head.setPos(house[1].getX() - 3.5, house[0].getY() + 0.1, house[0].getZ() + 0.5);
+		var song = songOf(head);
+		boolean[] started = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 20) return;
+			try {
+				if (!started[0]) {
+					started[0] = true;
+					beginLiveGrace(helper, head, HeadCue.MMM3);
+					song.stallStarted(helper.getLevel().getGameTime(), 0, 0);
+					song.approaching(helper.getLevel().getGameTime() + 100, true);
+					song.begin(helper.getLevel().getGameTime());
+				}
+				if (song.singing()) helper.assertTrue(stage.get(head).toString().equals("NONE"), "house scene during the song " + stage.get(head));
+				else if (!stage.get(head).toString().equals("NONE")) { head.discard(); leave(helper, target); helper.succeed(); }
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+	}
+
+	private void songOutroLaugh(GameTestHelper helper, double roll, boolean laughs) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var song = songOf(head);
+		long[] over = { -1 };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try {
+				if (helper.getTick() == 100) beginSongStall(helper, head);
+				if (head.cue() == HeadCue.SONG_OUTRO) fixRoll(head, roll);
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			runAway(target);
+			if (over[0] < 0 && song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.OVER) over[0] = helper.getTick();
+			if (over[0] < 0) return;
+			if (head.cue().laugh()) {
+				helper.assertTrue(laughs, "laughed on a failed roll");
+				head.discard(); leave(helper, target); helper.succeed();
+			} else if (helper.getTick() == over[0] + 60) {
+				helper.assertFalse(laughs, "no laugh after the outro");
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songOutroMayEndInALaugh(GameTestHelper helper) throws ReflectiveOperationException {
+		songOutroLaugh(helper, 0.399, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songOutroUsuallyEndsWithoutALaugh(GameTestHelper helper) throws ReflectiveOperationException {
+		songOutroLaugh(helper, 0.4, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 800)
+	public void songEndsWithTheHeadWhenThePlayerDies(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try { if (helper.getTick() == 100) beginSongStall(helper, head); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			runAway(target);
+			if (head.cue() == HeadCue.SONG_VERSE1) target.setHealth(0);
+			if (head.isRemoved()) { leave(helper, target); helper.succeed(); }
+		});
+	}
+
+	private void songRoll(GameTestHelper helper, double roll, boolean chosen) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(3.5, 0, 10.5), -90);
+		TheHead head = head(helper, new Vec3(10.5, 0.5, 10.5), target);
+		head.setNoAi(true);
+		var state = TheHead.class.getDeclaredField("stalls"); state.setAccessible(true);
+		state.set(head, new com.larsoyd.mariohead.entity.EarlyStall(0.5));
+		fixRoll(head, roll);
+		var until = TheHead.class.getDeclaredField("stallUntil"); until.setAccessible(true);
+		var tick = TheHead.class.getDeclaredMethod("tickStall", long.class); tick.setAccessible(true);
+		long end = helper.getLevel().getGameTime() + 10;
+		until.setLong(head, end);
+		tick.invoke(head, end);
+		helper.assertTrue(graceOf(head).stage() == FOLLOW, "no stall started");
+		helper.assertTrue(songOf(head).approaching(end + 1000, true) == chosen, "roll " + roll + " chose wrongly");
+		head.discard(); helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void songRollChoosesOnALowRoll(GameTestHelper helper) throws ReflectiveOperationException {
+		songRoll(helper, 0.249, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 30)
+	public void songRollSkipsOnAHighRoll(GameTestHelper helper) throws ReflectiveOperationException {
+		songRoll(helper, 0.25, false);
+	}
+
+	private void songWaitsForAQueuedLine(GameTestHelper helper, java.util.function.Predicate<HeadCue> line, java.util.function.Consumer<TheHead> queue) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		var song = songOf(head);
+		boolean[] queued = { false };
+		boolean[] heard = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try { if (helper.getTick() == 100) beginSongStall(helper, head); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			runAway(target);
+			if (!queued[0] && song.busy() && head.centre().distanceTo(target.getEyePosition()) < 9.6) { queued[0] = true; queue.accept(head); }
+			heard[0] |= line.test(head.cue());
+			if (head.cue() == HeadCue.SONG_ASK) {
+				helper.assertTrue(heard[0], "the song cut a queued line");
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 500)
+	public void songWaitsForTheLineAfterAMeal(GameTestHelper helper) throws ReflectiveOperationException {
+		songWaitsForAQueuedLine(helper, HeadCue::meal, head -> reflectSet(head, "afterMealAt", helper.getLevel().getGameTime() + 2));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 500)
+	public void songWaitsForAQueuedLaugh(GameTestHelper helper) throws ReflectiveOperationException {
+		songWaitsForAQueuedLine(helper, HeadCue::laugh, head -> {
+			try {
+				var field = TheHead.class.getDeclaredField("voices"); field.setAccessible(true);
+				((com.larsoyd.mariohead.entity.ChaseVoices) field.get(head)).follow(1, 0);
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 500)
+	public void songWaitsForAPendingVoice(GameTestHelper helper) throws ReflectiveOperationException {
+		songWaitsForAQueuedLine(helper, cue -> cue == HeadCue.VARIETY_037, head -> reflectSet(head, "pendingVoice", HeadCue.VARIETY_037));
 	}
 }
