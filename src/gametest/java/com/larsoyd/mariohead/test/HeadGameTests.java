@@ -4311,6 +4311,8 @@ public class HeadGameTests {
 		var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, new Vec3(13.5, DREAD_FLOOR, 5.5));
 		var piglin = helper.spawn(net.minecraft.world.entity.EntityTypes.PIGLIN, new Vec3(12.5, DREAD_FLOOR, 6.5));
 		var wolf = helper.spawn(net.minecraft.world.entity.EntityTypes.WOLF, new Vec3(13.5, DREAD_FLOOR, 7.5));
+		Vec3 home = head.position();
+		head.setPos(home.add(0, 40, 0));
 		helper.onEachTick(() -> {
 			keepLoaded(helper, head);
 			if (helper.getTick() == 5) {
@@ -4320,11 +4322,16 @@ public class HeadGameTests {
 				wolf.setPersistentAngerTarget(net.minecraft.world.entity.EntityReference.of(target));
 				wolf.setTimeToRemainAngry(400);
 				wolf.setTarget(target);
+				helper.assertTrue(zombie.getTarget() == target, "zombie out of reach refused a target");
+				head.setPos(home);
 			}
-			if (helper.getTick() == 6) {
+			if (helper.getTick() == 6) helper.assertTrue(!piglin.getBrain().hasMemoryValue(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET), "piglin kept the player");
+			if (helper.getTick() == 8) {
 				helper.assertTrue(zombie.getTarget() == null, "zombie kept the player");
-				helper.assertTrue(piglin.getTarget() == null && !piglin.getBrain().hasMemoryValue(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET), "piglin kept the player");
+				helper.assertTrue(piglin.getTarget() == null, "piglin kept the player");
 				helper.assertTrue(wolf.getTarget() == null && wolf.getPersistentAngerTarget() == null, "wolf kept its anger");
+				zombie.setTarget(target);
+				helper.assertTrue(zombie.getTarget() == null, "zombie took a new target beside him");
 				head.discard(); zombie.discard(); piglin.discard(); wolf.discard(); leave(helper, target); helper.succeed();
 			}
 		});
@@ -4406,17 +4413,18 @@ public class HeadGameTests {
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 300)
-	public void aWorkingVillagerStillRuns(GameTestHelper helper) {
+	public void aBrainMobOnAnErrandStillRuns(GameTestHelper helper) {
 		TheHead head = dreadedHead(helper, 240);
-		var villager = helper.spawn(net.minecraft.world.entity.EntityTypes.VILLAGER, new Vec3(13.5, 240, 5.5));
+		head.setPos(helper.absoluteVec(new Vec3(40.5, 240, 5.5)));
+		var piglin = helper.spawn(net.minecraft.world.entity.EntityTypes.PIGLIN, new Vec3(48.5, 240, 5.5));
 		helper.onEachTick(() -> {
 			keepLoaded(helper, head);
-			if (helper.getTick() == 1) villager.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET,
+			if (helper.getTick() % 30 == 1) piglin.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET,
 				new net.minecraft.world.entity.ai.memory.WalkTarget(head.position().add(-20, 0, 0), 0.5f, 0));
 			if (helper.getTick() == 120) {
-				double away = villager.getX() - head.getX();
-				helper.assertTrue(away >= 12, "villager kept to its errand, " + away + " out");
-				head.discard(); villager.discard(); helper.succeed();
+				double away = piglin.getX() - head.getX();
+				helper.assertTrue(away >= 12, "piglin kept to its errand, " + away + " out");
+				head.discard(); piglin.discard(); helper.succeed();
 			}
 		});
 	}
@@ -4773,7 +4781,7 @@ public class HeadGameTests {
 		Vec3 home = helper.absoluteVec(Vec3.atCenterOf(bed));
 		helper.onEachTick(() -> {
 			keepLoaded(helper, head);
-			if (villager.position().distanceTo(home) <= 3.5) { head.discard(); villager.discard(); helper.succeed(); }
+			if (helper.getTick() >= 150 && villager.position().distanceTo(home) <= 3.5) { head.discard(); villager.discard(); helper.succeed(); }
 			if (helper.getTick() == 300) helper.fail("villager never reached its bed, at " + helper.relativeVec(villager.position()));
 		});
 	}

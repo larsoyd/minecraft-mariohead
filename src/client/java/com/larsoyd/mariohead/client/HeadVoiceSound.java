@@ -24,6 +24,7 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 	private static final float ANNOUNCE_FLOOR = 0.6f;
 	private static final AtomicInteger STARTED = new AtomicInteger();
 	private static final AtomicInteger LOUD = new AtomicInteger();
+	private static final AtomicInteger CUT = new AtomicInteger();
 	private static final Map<TheHead, WeakReference<HeadVoiceSound>> VOICES = new WeakHashMap<>();
 	private final TheHead head;
 	private final float gain;
@@ -47,6 +48,7 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 		WeakReference<HeadVoiceSound> previous = VOICES.put(head, new WeakReference<>(next));
 		HeadVoiceSound old = previous == null ? null : previous.get();
 		if (old != null) {
+			if (minecraft.getSoundManager().isActive(old)) CUT.incrementAndGet();
 			old.stop();
 			minecraft.getSoundManager().stop(old);
 		}
@@ -59,6 +61,10 @@ public final class HeadVoiceSound extends AbstractTickableSoundInstance {
 
 	public static int started() {
 		return STARTED.get();
+	}
+
+	public static int cut() {
+		return CUT.get();
 	}
 
 	public static int loudStarted() {

@@ -10,7 +10,8 @@
 		"ChunkMapAccess",
 		"TrackedEntityAccess",
 		"CubeMoveAccess",
-		"CubeDirectionMixin"
+		"CubeDirectionMixin",
+		"MobTargetMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

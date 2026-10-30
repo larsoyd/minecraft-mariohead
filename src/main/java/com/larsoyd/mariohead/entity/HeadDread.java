@@ -9,8 +9,6 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.ai.memory.MemoryStatus;
-import net.minecraft.world.entity.ai.memory.WalkTarget;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.entity.animal.golem.IronGolem;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
@@ -29,7 +27,6 @@ public final class HeadDread {
 	private static final int RETHINK_TICKS = 10;
 	private static final int REPLAN_TICKS = 40;
 	private static final float FLEE_SPEED = 1.4f;
-	private static final float BRAIN_FLEE_SPEED = 1.0f;
 
 	private HeadDread() {
 	}
@@ -82,8 +79,6 @@ public final class HeadDread {
 		if (mob.getMoveControl() instanceof CubeMoveAccess cube) {
 			cube.mariohead$setDirection((float) Math.toDegrees(Math.atan2(flat.z, flat.x)) - 90.0f, false);
 			cube.mariohead$setWantedMovement(FLEE_SPEED);
-		} else if (mob.getBrain().checkMemory(MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED)) {
-			mob.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(away, BRAIN_FLEE_SPEED, 0));
 		} else if (mob instanceof PathfinderMob) {
 			mob.getNavigation().moveTo(away.x, away.y, away.z, FLEE_SPEED);
 		} else {

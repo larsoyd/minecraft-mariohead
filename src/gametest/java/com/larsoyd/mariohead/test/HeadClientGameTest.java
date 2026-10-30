@@ -41,6 +41,7 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 			this.heardBeyondRenderDistance(context, world);
 			this.lateObserver(context, world);
 			this.announcementIsHeard(context, world);
+			this.gulpCutsTheHum(context, world);
 			this.spokenIsSeenAndHeard(context, world, HeadCue.TAUNT_098, "the-head-taunt");
 			for (int index = 0; index < com.larsoyd.mariohead.entity.DashVoice.CLIPS.length; index++) {
 				this.spokenIsSeenAndHeard(context, world, HeadCue.chatter(index), "the-head-dash-" + index);
@@ -59,6 +60,43 @@ public final class HeadClientGameTest implements FabricClientGameTest {
 	private static List<TheHead> clientHeads() {
 		var level = Minecraft.getInstance().level;
 		return level.getEntities(HeadEntities.THE_HEAD, new AABB(-400, -100, -400, 400, 100, 400), h -> true);
+	}
+
+	private void gulpCutsTheHum(ClientGameTestContext context, TestSingleplayerContext world) {
+		var server = world.getServer();
+		server.runCommand("tp @p 20.5 -60 0.5 -90 0");
+		context.waitFor(mc -> clientHeads().isEmpty(), 40);
+		server.runOnServer(s -> {
+			TheHead head = HeadEntities.THE_HEAD.create(s.overworld(), EntitySpawnReason.COMMAND);
+			head.setNoAi(true);
+			head.snapTo(26.5, -59, 0.5, 90, 0);
+			head.chase(s.getPlayerList().getPlayers().getFirst());
+			s.overworld().addFreshEntity(head);
+		});
+		context.waitFor(mc -> !clientHeads().isEmpty(), 80);
+		int started = HeadVoiceSound.started();
+		int cut = HeadVoiceSound.cut();
+		for (HeadCue next : new HeadCue[] { HeadCue.MMM1, HeadCue.GULP }) {
+			server.runOnServer(s -> {
+				try {
+					var phase = TheHead.class.getDeclaredMethod("setPhase", HeadPhase.class);
+					var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class);
+					phase.setAccessible(true);
+					cue.setAccessible(true);
+					phase.invoke(serverHead(s), HeadPhase.CHARGE);
+					cue.invoke(serverHead(s), next);
+				} catch (ReflectiveOperationException e) {
+					throw new IllegalStateException(e);
+				}
+			});
+			context.waitFor(mc -> clientHeads().getFirst().cue() == next, 80);
+			context.waitTicks(10);
+		}
+		LOG.info("[client-test] gulp voices={} cut={}", HeadVoiceSound.started() - started, HeadVoiceSound.cut() - cut);
+		check(HeadVoiceSound.started() == started + 2, "gulp and hum did not both start");
+		check(HeadVoiceSound.cut() == cut + 1, "gulp left the hum running");
+		server.runCommand("kill @e[type=mariohead:the_head]");
+		context.waitFor(mc -> clientHeads().isEmpty(), 40);
 	}
 
 	private void spokenIsSeenAndHeard(ClientGameTestContext context, TestSingleplayerContext world, HeadCue spoken, String image) {
