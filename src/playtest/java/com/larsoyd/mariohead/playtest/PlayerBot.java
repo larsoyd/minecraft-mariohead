@@ -36,6 +36,16 @@ public final class PlayerBot implements ClientModInitializer {
 	private int planAfter;
 	private volatile String status = "mode=STOP";
 
+	private static void chooseSong(TheHead head) {
+		try {
+			var field = TheHead.class.getDeclaredField("song");
+			field.setAccessible(true);
+			((com.larsoyd.mariohead.entity.HeadSong) field.get(head)).stallStarted(0, 0, 0);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
 	@Override
 	public void onInitializeClient() {
 		ClientTickEvents.START_CLIENT_TICK.register(this::tick);
@@ -52,6 +62,16 @@ public final class PlayerBot implements ClientModInitializer {
 					Minecraft.getInstance().execute(() -> this.stop(Minecraft.getInstance(), "command"));
 					return 1;
 				}));
+			root.then(Commands.literal("sing").executes(c -> {
+				int chosen = 0;
+				for (var entity : c.getSource().getLevel().getAllEntities()) {
+					if (entity instanceof TheHead head) {
+						chooseSong(head);
+						chosen++;
+					}
+				}
+				return chosen;
+			}));
 			for (Mode choice : List.of(Mode.FLEE, Mode.APPROACH, Mode.HOLD)) {
 				root.then(Commands.literal(choice.name().toLowerCase(Locale.ROOT))
 					.then(Commands.argument("seconds", IntegerArgumentType.integer(1, 1200)).executes(c -> {

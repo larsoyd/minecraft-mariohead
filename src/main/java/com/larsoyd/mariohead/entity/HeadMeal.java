@@ -7,6 +7,8 @@ public final class HeadMeal {
 	public static final double REACH = 16.0;
 	public static final double BITE = 0.4;
 	public static final int COOLDOWN_TICKS = 60;
+	// he eats at the stall gap, past a normal cry's 16 blocks
+	public static final float DEATH_VOLUME = 3.0f;
 	private static final double NEAREST = 3.0;
 	private static final double CONE_COSINE = Math.cos(Math.toRadians(30.0));
 	private static final double RISE = 3.0;

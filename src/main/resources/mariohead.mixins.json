@@ -10,6 +10,7 @@
 		"ChunkMapAccess",
 		"TrackedEntityAccess",
 		"CubeMoveAccess",
+		"LivingSoundAccess",
 		"CubeDirectionMixin",
 		"MobTargetMixin"
 	],

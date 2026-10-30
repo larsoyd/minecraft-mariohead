@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.GameTestListener;
@@ -4308,6 +4309,8 @@ public class HeadGameTests {
 	public void hostileMobsNearHimDropThePlayer(GameTestHelper helper) {
 		TheHead head = dreadedHead(helper);
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(20.5, DREAD_FLOOR, 5.5), 90);
+		// gold keeps the piglin's own sensor from picking the player again between his ticks
+		target.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_HELMET));
 		var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, new Vec3(13.5, DREAD_FLOOR, 5.5));
 		var piglin = helper.spawn(net.minecraft.world.entity.EntityTypes.PIGLIN, new Vec3(12.5, DREAD_FLOOR, 6.5));
 		var wolf = helper.spawn(net.minecraft.world.entity.EntityTypes.WOLF, new Vec3(13.5, DREAD_FLOOR, 7.5));
@@ -6897,18 +6900,20 @@ public class HeadGameTests {
 
 	@GameTest(structure = ARENA, maxTicks = 400)
 	public void songNeverOutOfEarshot(GameTestHelper helper) throws ReflectiveOperationException {
-		songNeverStarts(helper, (head, target) -> target.setPos(target.position().add(-200, 0, 0)));
+		songNeverStarts(helper, (head, target) -> {
+			target.setPos(target.position().add(-200, 0, 0));
+			helper.onEachTick(() -> {
+				try { if (helper.getTick() == 339) helper.assertFalse(songOf(head).busy(), "came in for a song nobody could hear"); }
+				catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			});
+		});
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 400)
 	public void songNeverDuringAHouseScene(GameTestHelper helper) throws ReflectiveOperationException {
 		var stage = TheHead.class.getDeclaredField("homeStage"); stage.setAccessible(true);
-		@SuppressWarnings({ "unchecked", "rawtypes" }) Object nice = Enum.valueOf((Class) stage.getType(), "APPROACH");
-		songNeverStarts(helper, (head, target) -> {
-			reflectSet(head, "homeStage", nice);
-			reflectSet(head, "homeApproach", List.of(head.centre().add(100, 0, 0)));
-			reflectSet(head, "homeApproachUntil", Long.MAX_VALUE);
-		}, true);
+		@SuppressWarnings({ "unchecked", "rawtypes" }) Object returning = Enum.valueOf((Class) stage.getType(), "RETURN");
+		songNeverStarts(helper, (head, target) -> reflectSet(head, "homeStage", returning), true);
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 900)
@@ -6947,16 +6952,21 @@ public class HeadGameTests {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
 		TheHead head = songHead(helper, target);
 		var song = songOf(head);
+		boolean[] boxed = { false };
 		helper.onEachTick(() -> {
 			keepLoaded(helper, head);
 			if (helper.getTick() < 100) return;
 			try { if (helper.getTick() == 100) beginSongStall(helper, head); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
-			runAway(target);
-			if (song.singing()) {
-				reflectSet(head, "sealed", true);
-				reflectSet(head, "sealedSince", 0L);
-				helper.assertFalse(head.cue() == HeadCue.UNDERGROUND || head.digging() || head.burrowing(), "went underground mid song cue=" + head.cue());
+			if (!song.singing() && !boxed[0]) { runAway(target); return; }
+			if (!boxed[0]) {
+				boxed[0] = true;
+				BlockPos at = target.blockPosition();
+				for (BlockPos pos : BlockPos.betweenClosed(at.offset(-3, -1, -3), at.offset(3, 3, 3))) {
+					boolean wall = Math.abs(pos.getX() - at.getX()) == 3 || Math.abs(pos.getZ() - at.getZ()) == 3 || pos.getY() == at.getY() - 1 || pos.getY() == at.getY() + 3;
+					helper.getLevel().setBlock(pos, wall ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState(), 2);
+				}
 			}
+			if (song.singing()) helper.assertFalse(head.cue() == HeadCue.UNDERGROUND || head.digging() || head.burrowing(), "went underground mid song cue=" + head.cue());
 			if (song.stage() == com.larsoyd.mariohead.entity.HeadSong.Stage.OVER) { head.discard(); leave(helper, target); helper.succeed(); }
 		});
 	}
@@ -6977,14 +6987,20 @@ public class HeadGameTests {
 				&& com.larsoyd.mariohead.entity.HeadShelter.inspect(level, pos, origin.offset(-4, 2, 0)).sheltered()) inside = pos.immutable();
 		}
 		helper.assertTrue(inside != null, "house has no sheltered floor");
+		for (Direction side : Direction.Plane.HORIZONTAL) {
+			if (!level.getBlockState(inside.relative(side)).isAir()) continue;
+			level.setBlock(inside.relative(side), Blocks.CHEST.defaultBlockState(), 3);
+			break;
+		}
 		return new BlockPos[] { inside, origin };
 	}
 
 	@GameTest(structure = ARENA, maxTicks = 700)
 	public void songHoldsOffTheHouseScene(GameTestHelper helper) throws ReflectiveOperationException {
-		var stage = TheHead.class.getDeclaredField("homeStage"); stage.setAccessible(true);
+		var scan = TheHead.class.getDeclaredField("homeScanAt"); scan.setAccessible(true);
 		BlockPos[] house = songHouse(helper);
 		ServerPlayer target = player(helper, GameType.SURVIVAL, helper.relativeVec(Vec3.atBottomCenterOf(house[0])), 90);
+		for (int up = 3; up < 8; up++) if (helper.getLevel().getBlockState(house[0].above(up)).isAir()) { helper.getLevel().setBlock(house[0].above(up), Blocks.STONE.defaultBlockState(), 2); break; }
 		TheHead head = graceHead(helper, target);
 		head.setPos(house[1].getX() - 3.5, house[0].getY() + 0.1, house[0].getZ() + 0.5);
 		var song = songOf(head);
@@ -7000,8 +7016,8 @@ public class HeadGameTests {
 					song.approaching(helper.getLevel().getGameTime() + 100, true);
 					song.begin(helper.getLevel().getGameTime());
 				}
-				if (song.singing()) helper.assertTrue(stage.get(head).toString().equals("NONE"), "house scene during the song " + stage.get(head));
-				else if (!stage.get(head).toString().equals("NONE")) { head.discard(); leave(helper, target); helper.succeed(); }
+				if (song.singing()) helper.assertTrue(scan.getLong(head) == 0, "looked for a house scene during the song");
+				else if (scan.getLong(head) > 0) { head.discard(); leave(helper, target); helper.succeed(); }
 			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
 		});
 	}
@@ -7120,5 +7136,45 @@ public class HeadGameTests {
 	@GameTest(structure = ARENA, maxTicks = 500)
 	public void songWaitsForAPendingVoice(GameTestHelper helper) throws ReflectiveOperationException {
 		songWaitsForAQueuedLine(helper, cue -> cue == HeadCue.VARIETY_037, head -> reflectSet(head, "pendingVoice", HeadCue.VARIETY_037));
+	}
+
+	private void eatenMobSound(GameTestHelper helper, boolean silent) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		mob.setSilent(silent);
+		List<net.minecraft.network.protocol.game.ClientboundSoundPacket> deaths = new ArrayList<>();
+		long[] eaten = { -1 };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			for (Object packet; (packet = CHANNELS.get(target).readOutbound()) != null;) {
+				// tests of a batch share the level, so only a cry from this mob counts
+				if (packet instanceof net.minecraft.network.protocol.game.ClientboundSoundPacket sound && sound.getSound().value().location().getPath().endsWith(".death")
+					&& new Vec3(sound.getX(), sound.getY(), sound.getZ()).distanceTo(mob.position()) < 3) deaths.add(sound);
+			}
+			if (!mob.isRemoved()) return;
+			if (eaten[0] < 0) eaten[0] = helper.getTick();
+			if (helper.getTick() < eaten[0] + 5) return;
+			if (silent) helper.assertTrue(deaths.isEmpty(), "a silent mob cried out");
+			else {
+				helper.assertTrue(deaths.size() == 1, "death sounds heard " + deaths.size());
+				helper.assertTrue(deaths.getFirst().getVolume() >= 3, "death sound stays near the mob volume=" + deaths.getFirst().getVolume());
+				helper.assertTrue(deaths.getFirst().getSource() == mob.getSoundSource(), "death sound in the wrong channel");
+			}
+			head.discard(); leave(helper, target); helper.succeed();
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealCarriesTheDeathCryToThePlayer(GameTestHelper helper) throws ReflectiveOperationException {
+		eatenMobSound(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealLeavesASilentMobSilent(GameTestHelper helper) throws ReflectiveOperationException {
+		eatenMobSound(helper, true);
 	}
 }

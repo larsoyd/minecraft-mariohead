@@ -89,14 +89,18 @@ class SongVoiceTests(unittest.TestCase):
     def test_outro_layers_and_abrupt_tape_stop(self):
         recipe = entry('outro')['mix']
         outro = decode('song_outro')
-        voice_at, stop_at = recipe['voice_at'], recipe['stop_at']
-        self.assertAlmostEqual(voice_at, 0.3, delta=0.005)
+        applause_at, voice_at, stop_at = recipe['applause_at'], recipe['voice_at'], recipe['stop_at']
+        self.assertGreaterEqual(voice_at - applause_at, 0.5, 'he speaks before the applause registers')
         self.assertAlmostEqual(stop_at, recipe['voice_end'] - 0.1, delta=0.005)
         self.assertLessEqual(np.abs(outro).max(), 0.98)
-        tape_bed = rms_db(window(outro, 0.2, voice_at))
+        tape_bed = rms_db(window(outro, applause_at + 0.3, voice_at))
+        late_bed = rms_db(window(outro, applause_at + 0.4, voice_at))
         voice = rms_db(window(outro, voice_at + 0.1, stop_at - 0.1))
-        self.assertGreater(tape_bed, -40, 'tape bed inaudible')
-        self.assertGreater(voice, tape_bed + 6, 'thank you is not on top')
+        self.assertGreater(tape_bed, -34, 'applause not up before he speaks')
+        self.assertLess(abs(late_bed - tape_bed), 3, 'applause still swelling when he speaks')
+        self.assertLess(rms_db(window(outro, applause_at, applause_at + 0.08)), tape_bed - 3, 'applause has no build up')
+        self.assertLess(tape_bed, -24, 'applause too loud')
+        self.assertGreater(voice, tape_bed + 9, 'thank you is not on top')
         before = rms_db(window(outro, stop_at - 0.02, stop_at))
         self.assertGreater(before, -40, 'nothing left to cut at the stop')
         tail = rms_db(window(outro, stop_at + 0.15, stop_at + 0.25))

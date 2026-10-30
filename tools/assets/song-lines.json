@@ -26,21 +26,22 @@
   {
     "id": "outro",
     "source": "wav/song_outro.wav",
-    "source_sha256": "ba193989e75548b54dd750ca02d25869c06cf67875b3f669507503adac9cc889",
-    "sha256": "25088db7840e3b9c60c31fa9a940c2d11f1fa6ca7729841176736c3e6c4ec317",
-    "millis": 2483,
+    "source_sha256": "e9001b569569318956f12f3fd9556de14903d87d9bc05d047e6f00f2f34f8536",
+    "sha256": "b1b5a666c4953e04199dc180d31e4d99bbea2d98167f658e8b782df896bea646",
+    "millis": 2963,
     "text": "Tape applause, thank you very much, thank you, thank you!",
     "mouth_source": "ogg/052_03m05s_thank_you_very_much_thank_you_thank_you.ogg",
-    "mouth_delay_millis": 180,
+    "mouth_delay_millis": 660,
     "mix": {
-      "voice_at": 0.3,
-      "voice_end": 2.27,
-      "stop_at": 2.17,
+      "voice_at": 0.78,
+      "voice_end": 2.75,
+      "stop_at": 2.65,
       "inputs": {
         "sfx/tape_play.wav": "4eb6d7f6416b5ca98dec3a06b1ca0159b13c221efa6ac617e1e138dcea675d38",
         "sfx/tape_stop.wav": "1760254b40364ea986e60d1eb033214ebb79ed204956aede642260bbe9e3d8b6",
-        "sfx/applause.ogg": "53bc35438a12a3de74eb3ded626042327fc279275b96d6ca8f6d6df583799caf"
-      }
+        "sfx/applause.wav": "7fc49680a2a1b51c776f897ae525776e34655dad155ca12517c94ccdd13c042f"
+      },
+      "applause_at": 0.2
     }
   }
 ]

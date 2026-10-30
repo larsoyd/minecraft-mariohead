@@ -60,33 +60,6 @@ if (providers.gradleProperty('playtest').isPresent()) {
 	apply from: 'playtest.gradle'
 }
 
-if (providers.gradleProperty('showcase').isPresent()) {
-	sourceSets {
-		showcase {
-			compileClasspath += sourceSets.main.output + sourceSets.client.output + sourceSets.client.compileClasspath
-			runtimeClasspath += sourceSets.main.output + sourceSets.client.output + sourceSets.client.runtimeClasspath
-		}
-		showcaseTest {
-			compileClasspath += sourceSets.showcase.output + sourceSets.test.compileClasspath
-			runtimeClasspath += sourceSets.showcase.output + sourceSets.test.runtimeClasspath
-		}
-	}
-	loom {
-		mods {
-			'mariohead-showcase' { sourceSet sourceSets.showcase }
-		}
-		runs {
-			showcase {
-				inherit client
-				sourceSet = sourceSets.showcase.name
-				runDirectory = file('run')
-			}
-		}
-	}
-	tasks.register('showcaseTest', Test) {
-		testClassesDirs = sourceSets.showcaseTest.output.classesDirs
-		classpath = sourceSets.showcaseTest.runtimeClasspath
-		useJUnitPlatform()
-		maxParallelForks = 2
-	}
+if (providers.gradleProperty('extraBuild').isPresent()) {
+	apply from: providers.gradleProperty('extraBuild').get()
 }

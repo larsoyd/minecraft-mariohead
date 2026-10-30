@@ -71,7 +71,7 @@ class HomeVoiceTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(data).hexdigest(), THREAT_HASH)
 
     def test_unapproved_threat_is_refused_before_writing(self):
-        original = next((ROOT / 'voice-lines/ogg').glob('036_*.ogg'))
+        original = next((ROOT / 'voice-lines/ogg').glob('036_02m*.ogg'))
         for builder, source in [(build_home_voice, 'voice-lines/ogg'),
                                 (build_variety_voice, 'voice-lines')]:
             with self.subTest(builder=builder.__name__), tempfile.TemporaryDirectory() as directory:

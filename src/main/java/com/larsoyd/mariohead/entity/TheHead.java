@@ -11,6 +11,7 @@ import java.util.function.BiConsumer;
 import java.util.HashSet;
 import java.util.Set;
 import com.larsoyd.mariohead.mixin.ChunkMapAccess;
+import com.larsoyd.mariohead.mixin.LivingSoundAccess;
 import com.larsoyd.mariohead.mixin.TrackedEntityAccess;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Explosion;
@@ -607,6 +608,8 @@ public class TheHead extends Monster {
 		Vec3 at = mob.getBoundingBox().getCenter();
 		this.endMeal(level);
 		boolean silent = mob.isSilent();
+		SoundEvent cry = ((LivingSoundAccess) mob).mariohead$deathSound();
+		float pitch = mob.getVoicePitch();
 		mob.setSilent(true);
 		// a cube this size leaves nothing to split into
 		if (mob instanceof AbstractCubeMob cube) cube.setSize(1, false);
@@ -615,6 +618,7 @@ public class TheHead extends Monster {
 		// a squid reports a killing blow as a miss, so only the mob itself can say
 		if (!mob.isDeadOrDying()) return;
 		mob.discard();
+		if (cry != null && !silent) level.playSound(null, at.x, at.y, at.z, cry, mob.getSoundSource(), HeadMeal.DEATH_VOLUME, pitch);
 		level.sendParticles(ParticleTypes.POOF, at.x, at.y, at.z, 8, 0.3, 0.3, 0.3, 0.02);
 		long now = level.getGameTime();
 		this.setCue(HeadCue.GULP);
@@ -641,9 +645,9 @@ public class TheHead extends Monster {
 			return true;
 		}
 		double gap = this.centre().distanceTo(target.getEyePosition());
-		boolean open = this.grace.stage() == StallGrace.Stage.FOLLOW && this.homeStage == HomeStage.NONE && VoiceCurve.volume(gap) > 0;
+		boolean open = this.grace.stage() == StallGrace.Stage.FOLLOW && VoiceCurve.volume(gap) > 0;
 		if (!this.song.approaching(now, open) || gap > HeadSong.REACH || !this.clearLine(this.centre(), target.getEyePosition())
-			|| this.pendingVoice != HeadCue.NONE || this.voices.waiting() || this.afterMealAt >= 0) return false;
+			|| this.pendingVoice != HeadCue.NONE || this.voices.waiting()) return false;
 		if (!this.speech.canStart(HeadCue.VARIETY_037, now)) return true;
 		this.song.begin(now);
 		this.setCue(HeadCue.SONG_ASK);
