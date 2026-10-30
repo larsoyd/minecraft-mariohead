@@ -45,6 +45,9 @@ public enum HeadCue {
 	PRANK_WARNING,
 	PRANK_RESPONSE,
 	FALL_019,
+	GULP,
+	YUMMY,
+	LASAGNA,
 	VARIETY_017,
 	VARIETY_036,
 	VARIETY_037,
@@ -82,6 +85,7 @@ public enum HeadCue {
 		if (this.variety()) return VarietyVoice.CLIPS[this.ordinal() - VARIETY_017.ordinal()];
 		return switch (this) {
 			case FALL_019 -> FallVoice.CLIPS[0];
+			case GULP, YUMMY, LASAGNA -> MealVoice.CLIPS[this.ordinal() - GULP.ordinal()];
 			case PRANK_WARNING, PRANK_RESPONSE -> PrankVoice.CLIPS[this.ordinal() - PRANK_WARNING.ordinal()];
 			case HOME_NICE, HOME_ASK, HOME_HUNGRY, HOME_THIRSTY, HOME_RETURN -> HomeVoice.CLIPS[this.ordinal() - HOME_NICE.ordinal()];
 			case HELLO -> HeadVoice.HELLO;
@@ -97,7 +101,7 @@ public enum HeadCue {
 
 	// words move his mouth, a hum keeps it shut
 	public boolean spoken() {
-		return this == HELLO || this == UNDERGROUND || this.taunt() || this.chatter() || this.home() || this.prank() || this.variety();
+		return this == HELLO || this == UNDERGROUND || this.taunt() || this.chatter() || this.home() || this.prank() || this.variety() || this.meal();
 	}
 
 	public boolean variety() {
@@ -123,6 +127,10 @@ public enum HeadCue {
 
 	public boolean prank() {
 		return this == PRANK_WARNING || this == PRANK_RESPONSE;
+	}
+
+	public boolean meal() {
+		return this == GULP || this == YUMMY || this == LASAGNA;
 	}
 
 	public boolean digHum() {

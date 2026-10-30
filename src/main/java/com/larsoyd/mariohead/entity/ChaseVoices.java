@@ -14,14 +14,20 @@ public final class ChaseVoices {
 		HeadCue.VARIETY_036, HeadCue.TAUNT_106, HeadCue.TAUNT_105, HeadCue.VARIETY_081, HeadCue.VARIETY_074
 	};
 	public static final HeadCue[] WATER = { HeadCue.VARIETY_071, HeadCue.VARIETY_085 };
+	private static final HeadCue[] AFTER_MEAL = { HeadCue.YUMMY, HeadCue.LASAGNA };
 	private static final HeadCue[] CUES = HeadCue.values();
 	private final VoiceSelection lines = new VoiceSelection(CUES.length);
 	private final VoiceSelection laughs = new VoiceSelection(5);
 	private boolean waiting;
+	private boolean yummySaid;
 
 	public HeadCue choose(HeadCue[] pool, double random) {
 		int id = this.lines.choose(java.util.Arrays.stream(pool).mapToInt(HeadCue::ordinal).toArray(), random);
 		return id < 0 ? HeadCue.NONE : CUES[id];
+	}
+
+	public HeadCue afterMeal(double random) {
+		return this.yummySaid ? this.choose(AFTER_MEAL, random) : HeadCue.YUMMY;
 	}
 
 	public void follow(double chance, double roll) {
@@ -41,6 +47,7 @@ public final class ChaseVoices {
 	}
 
 	public void played(HeadCue cue) {
+		this.yummySaid |= cue == HeadCue.YUMMY;
 		if (cue.laugh()) {
 			this.laughs.played(cue.ordinal() - HeadCue.VARIETY_LAUGH1.ordinal());
 			this.waiting = false;

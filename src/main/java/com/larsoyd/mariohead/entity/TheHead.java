@@ -38,6 +38,8 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -45,6 +47,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.LookControl;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.monster.cubemob.AbstractCubeMob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ClipContext;
@@ -100,6 +103,10 @@ public class TheHead extends Monster {
 	private boolean stallEscalated;
 	private boolean cutoffPending;
 	private boolean graceCutoffSpoken;
+	private @Nullable Mob meal;
+	private long mealUntil;
+	private long mealReadyAt;
+	private long afterMealAt = -1;
 	private final DiveTaunt diveTaunt = new DiveTaunt();
 	private @Nullable BlockPos waterEntry;
 	private boolean wasInWater;
@@ -456,6 +463,7 @@ public class TheHead extends Monster {
 			}
 		}
 		if (!mock && !water && !this.cutoffPending && this.homeStage != HomeStage.RETURN) this.tryTaunt(target, this.random.nextDouble());
+		this.tickAfterMeal(now);
 		HeadCue cue = this.cue();
 		boolean undergroundRhythm = this.digging || this.burrowing || cue.chatter() || this.dashLine != HeadCue.NONE;
 		boolean digDash = false;
@@ -478,6 +486,7 @@ public class TheHead extends Monster {
 				this.revs = Math.floorMod(this.revs, 3);
 				this.tempo.stall();
 			}
+			this.chooseMeal(level, target);
 		} else if (cue != HeadCue.INHALE && this.cueTicks >= ticks(this.dashSeconds(cue))) {
 			if (!this.teasing && !cue.spoken()) {
 				this.tauntRolled = false;
@@ -510,7 +519,93 @@ public class TheHead extends Monster {
 			if (this.touching(target, before)) this.caught(level, target);
 			return;
 		}
+		if (this.tickMeal(level, target)) {
+			if (this.touching(target, before)) this.caught(level, target);
+			return;
+		}
 		this.moveChase(level, target, cue, digDash);
+	}
+
+	private boolean canEat(double gap) {
+		return this.grace.stage() == StallGrace.Stage.FOLLOW && this.homeStage == HomeStage.NONE
+			&& VoiceCurve.volume(gap) > 0 && HeadMeal.clearOfPlayer(gap);
+	}
+
+	// his box rests on the floor the mob stands on, the hover height would carry him over a chicken
+	private Vec3 mealAim(Mob mob) {
+		return new Vec3(mob.getX(), mob.getY() + this.getBbHeight() / 2.0 + 0.05, mob.getZ());
+	}
+
+	private boolean edible(Mob mob, Player target) {
+		if (mob instanceof TheHead || mob.isInvulnerable() || mob.getBbWidth() > this.getBbWidth() || mob.getBbHeight() > this.getBbHeight()
+			|| !HeadMeal.inLine(this.centre(), target.position(), mob.position())) return false;
+		Vec3 c = this.centre();
+		Vec3 contact = HeadContact.firstContact(c, this.mealAim(mob), this.getYRot(), this.getXRot(), this.roll, this.squeeze(), mob.getBoundingBox(), HeadMeal.BITE);
+		return contact != null && HeadRoom.sweep(this, c, contact, this.squeeze());
+	}
+
+	private void chooseMeal(ServerLevel level, Player target) {
+		if (level.getGameTime() < this.mealReadyAt || !this.canEat(this.centre().distanceTo(target.getEyePosition()))) return;
+		Vec3 c = this.centre();
+		this.meal = level.getEntitiesOfClass(Mob.class, this.getBoundingBox().inflate(HeadMeal.REACH), mob -> this.edible(mob, target)).stream()
+			.min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(c))).orElse(null);
+		if (this.meal == null) return;
+		this.mealUntil = level.getGameTime() + this.cue().clip().millis() / 50;
+		this.path = null;
+		this.replanIn = 0;
+		MarioHead.LOG.debug("[head] meal id={} mob={} reach={} gap={}", this.getId(), this.meal.getType().toShortString(),
+			this.meal.position().distanceTo(c), c.distanceTo(target.getEyePosition()));
+	}
+
+	// the stall still decides every tick, so he drops the meal the moment it ends
+	private boolean tickMeal(ServerLevel level, Player target) {
+		Mob mob = this.meal;
+		if (mob == null) return false;
+		Vec3 before = this.centre();
+		if (!mob.isAlive() || level.getGameTime() >= this.mealUntil || !this.canEat(before.distanceTo(target.getEyePosition()))
+			|| !HeadMeal.closes(before, target.position(), mob.position())) {
+			MarioHead.LOG.debug("[head] meal_dropped id={} alive={} gap={} grace={} late={}", this.getId(), mob.isAlive(),
+				before.distanceTo(target.getEyePosition()), this.grace.stage(), level.getGameTime() >= this.mealUntil);
+			this.meal = null;
+			this.mealReadyAt = level.getGameTime() + HeadMeal.COOLDOWN_TICKS;
+			return false;
+		}
+		Vec3 way = this.mealAim(mob).subtract(before);
+		this.moveYaw = Mth.approachDegrees(this.moveYaw, yawTo(before, mob.position()), GRAB_TURN_DEGREES);
+		this.moveSpeed = HeadMeal.dashSpeed(this.moveSpeed);
+		this.faceTowards(this.moveYaw, target);
+		Vec3 step = way.normalize().scale(Math.min(way.length(), this.moveSpeed));
+		this.body(step.x, step.y, step.z);
+		if (HeadContact.sweeps(before, this.centre(), this.getYRot(), this.getXRot(), this.roll, this.squeeze(), mob.getBoundingBox(), HeadMeal.BITE)) {
+			this.eat(level, mob);
+		}
+		return true;
+	}
+
+	private void eat(ServerLevel level, Mob mob) {
+		Vec3 at = mob.getBoundingBox().getCenter();
+		this.meal = null;
+		this.mealReadyAt = level.getGameTime() + HeadMeal.COOLDOWN_TICKS;
+		mob.setSilent(true);
+		// a cube this size leaves nothing to split into
+		if (mob instanceof AbstractCubeMob cube) cube.setSize(1, false);
+		boolean killed = mob.hurtServer(level, this.damageSources().source(HeadEntities.CAUGHT, this), Float.MAX_VALUE);
+		mob.setSilent(false);
+		if (!killed) return;
+		mob.discard();
+		level.sendParticles(ParticleTypes.POOF, at.x, at.y, at.z, 8, 0.3, 0.3, 0.3, 0.02);
+		long now = level.getGameTime();
+		this.setCue(HeadCue.GULP);
+		this.afterMealAt = HeadMeal.yummy(this.random.nextDouble()) ? now + HeadMeal.yummyDelay(HeadCue.GULP.clip()) : -1;
+		MarioHead.LOG.debug("[head] meal_eaten id={} mob={} line={}", this.getId(), mob.getType().toShortString(), this.afterMealAt >= 0);
+	}
+
+	private void tickAfterMeal(long now) {
+		if (this.afterMealAt < 0 || now < this.afterMealAt) return;
+		this.afterMealAt = -1;
+		if (this.grace.stage() == StallGrace.Stage.FOLLOW && this.homeStage == HomeStage.NONE) {
+			this.setCue(this.voices.afterMeal(this.random.nextDouble()));
+		}
 	}
 
 	private void advanceDash() {
@@ -1995,6 +2090,12 @@ public class TheHead extends Monster {
 
 	@Override
 	protected void pushEntities() {
+	}
+
+	// a meal leaves nothing behind, a caught player still drops their things
+	@Override
+	public boolean killedEntity(ServerLevel level, LivingEntity entity, DamageSource source) {
+		return !(entity instanceof Mob);
 	}
 
 	@Override

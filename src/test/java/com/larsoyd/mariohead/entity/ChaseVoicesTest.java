@@ -65,4 +65,24 @@ class ChaseVoicesTest {
 			assertNotEquals(HeadCue.TAUNT_100, voices.choose(ChaseVoices.STALLS, i / 100.0));
 		}
 	}
+
+	@Test
+	void yummyComesFirstThenLasagnaIsInThePool() {
+		ChaseVoices voices = new ChaseVoices();
+		for (double random : new double[] { 0, 0.5, 0.999 }) {
+			assertEquals(HeadCue.YUMMY, voices.afterMeal(random));
+		}
+		voices.played(HeadCue.YUMMY);
+		assertEquals(HeadCue.LASAGNA, voices.afterMeal(0));
+		voices.played(HeadCue.LASAGNA);
+		assertEquals(HeadCue.YUMMY, voices.afterMeal(0));
+	}
+
+	@Test
+	void otherLinesDoNotUnlockLasagna() {
+		ChaseVoices voices = new ChaseVoices();
+		voices.played(HeadCue.TAUNT_100);
+		voices.played(HeadCue.GULP);
+		assertEquals(HeadCue.YUMMY, voices.afterMeal(0.999));
+	}
 }

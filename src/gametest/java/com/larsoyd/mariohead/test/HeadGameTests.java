@@ -26,6 +26,8 @@ import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.network.CommonListenerCookie;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
@@ -3780,6 +3782,460 @@ public class HeadGameTests {
 		return head;
 	}
 
+	private static final double MEAL_FLOOR = 220;
+
+	private static <T extends Mob> T mealMob(GameTestHelper helper, EntityType<T> type, double x, double y, double z) {
+		T mob = helper.spawn(type, new Vec3(x, y, z));
+		mob.setNoAi(true);
+		mob.setPersistenceRequired();
+		return mob;
+	}
+
+	private static void runAway(ServerPlayer target) {
+		target.setPos(target.position().add(-0.28, 0, 0));
+	}
+
+	private static List<net.minecraft.world.entity.Entity> leftovers(GameTestHelper helper, Vec3 at) {
+		AABB around = new AABB(at, at).inflate(24);
+		List<net.minecraft.world.entity.Entity> left = new ArrayList<>(helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, around));
+		left.addAll(helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.ExperienceOrb.class, around));
+		return left;
+	}
+
+	private static boolean hums(TheHead head) {
+		return head.cue().clip() != null && !head.cue().spoken();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealCutsTheHumKillsWithoutDropsAndKeepsStalling(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		var grace = graceOf(head);
+		long[] humAt = { -1 };
+		long[] gulpAt = { -1 };
+		HeadCue[] hum = { HeadCue.NONE };
+		double[] fastest = { 0 };
+		double[] nearest = { Double.MAX_VALUE };
+		Vec3[] was = { null };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			long tick = helper.getTick();
+			if (was[0] != null && gulpAt[0] < 0) fastest[0] = Math.max(fastest[0], head.position().distanceTo(was[0]));
+			was[0] = head.position();
+			nearest[0] = Math.min(nearest[0], head.centre().distanceTo(target.getEyePosition()));
+			if (humAt[0] < 0 && hums(head)) { humAt[0] = tick; hum[0] = head.cue(); }
+			if (gulpAt[0] < 0 && head.cue() == HeadCue.GULP) {
+				gulpAt[0] = tick;
+				helper.assertTrue(mob.isRemoved(), "gulp left the mob standing");
+				helper.assertTrue(humAt[0] >= 0 && tick - humAt[0] > 2, "gulp without a hum first hum=" + humAt[0] + " gulp=" + tick);
+				helper.assertTrue(tick - humAt[0] < hum[0].clip().millis() / 50, "gulp did not cut the hum, took " + (tick - humAt[0]));
+				helper.assertTrue(fastest[0] > 0.5, "no dash, fastest step " + fastest[0]);
+			}
+			helper.assertTrue(gulpAt[0] >= 0 || !mob.isRemoved(), "mob gone before the gulp");
+			helper.assertFalse(target.isDeadOrDying(), "meal dash caught the player");
+			if (gulpAt[0] < 0) return;
+			helper.assertTrue(leftovers(helper, head.position()).isEmpty(), "meal left " + leftovers(helper, head.position()));
+			helper.assertTrue(grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.FOLLOW, "meal ended the stall stage=" + grace.stage());
+			if (tick > gulpAt[0] + 30 && hums(head)) {
+				helper.assertTrue(nearest[0] >= 5.5, "meal dash came within " + nearest[0]);
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	private void mealThenVoice(GameTestHelper helper, double roll, HeadCue line, boolean yummySaid) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		var random = net.minecraft.world.entity.Entity.class.getDeclaredField("random"); random.setAccessible(true);
+		random.set(head, new net.minecraft.world.level.levelgen.LegacyRandomSource(1) {
+			@Override
+			public double nextDouble() {
+				return roll;
+			}
+		});
+		if (yummySaid) {
+			var voices = TheHead.class.getDeclaredField("voices"); voices.setAccessible(true);
+			((com.larsoyd.mariohead.entity.ChaseVoices) voices.get(head)).played(HeadCue.YUMMY);
+		}
+		var grace = graceOf(head);
+		long[] gulpAt = { -1 };
+		long[] lineAt = { -1 };
+		HeadCue[] said = { HeadCue.NONE };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			long tick = helper.getTick();
+			if (gulpAt[0] < 0 && head.cue() == HeadCue.GULP) gulpAt[0] = tick;
+			if (lineAt[0] < 0 && head.cue().meal() && head.cue() != HeadCue.GULP) { lineAt[0] = tick; said[0] = head.cue(); }
+			if (gulpAt[0] >= 0 && tick == gulpAt[0] + 60) {
+				if (line == HeadCue.NONE) helper.assertTrue(lineAt[0] < 0, "line played without its roll: " + said[0]);
+				else {
+					helper.assertTrue(said[0] == line, "after the gulp he said " + said[0] + " wanted " + line);
+					helper.assertTrue(lineAt[0] - gulpAt[0] == 18, "line came " + (lineAt[0] - gulpAt[0]) + " ticks after the gulp began, wanted 18");
+				}
+				helper.assertTrue(grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.FOLLOW, "stall did not continue after the meal");
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealYummyPlaysPointThreeSecondsAfterTheGulp(GameTestHelper helper) throws ReflectiveOperationException {
+		mealThenVoice(helper, 0.39, HeadCue.YUMMY, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealLasagnaFollowsOnceYummyWasSaid(GameTestHelper helper) throws ReflectiveOperationException {
+		mealThenVoice(helper, 0.39, HeadCue.LASAGNA, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealWithoutTheRollStaysQuietAfterTheGulp(GameTestHelper helper) throws ReflectiveOperationException {
+		mealThenVoice(helper, 0.41, HeadCue.NONE, false);
+	}
+
+	private void mealEaten(GameTestHelper helper, Mob mob, ServerPlayer target, TheHead head) {
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			helper.assertTrue(leftovers(helper, head.position()).isEmpty(), "eaten " + mob + " left " + leftovers(helper, head.position()));
+			if (head.cue() == HeadCue.GULP && head.cueSeconds(0) >= 0.3) {
+				helper.assertTrue(mob.isRemoved(), "mob survived the gulp " + mob);
+				AABB around = new AABB(mob.position(), mob.position()).inflate(8);
+				var slimes = helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.monster.cubemob.Slime.class, around);
+				helper.assertTrue(slimes.isEmpty(), "eaten slime split " + slimes + " eaten=" + mob + " health=" + mob.getHealth());
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void stallMealZombieDropsNothingEvenItsSword(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.ZOMBIE, 21.5, MEAL_FLOOR, 10.5);
+		mob.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND_SWORD));
+		mob.setGuaranteedDrop(net.minecraft.world.entity.EquipmentSlot.MAINHAND);
+		mealEaten(helper, mob, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void stallMealSmallMobUnderHisChinIsStillEaten(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealEaten(helper, mealMob(helper, net.minecraft.world.entity.EntityTypes.CHICKEN, 21.5, MEAL_FLOOR, 10.5), target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void stallMealSlimeDoesNotSplit(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.SLIME, 21.5, MEAL_FLOOR, 10.5);
+		mob.setSize(2, true);
+		mealEaten(helper, mob, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void stallMealTakesTheNearestMobFirst(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var near = mealMob(helper, net.minecraft.world.entity.EntityTypes.PIG, 24.5, MEAL_FLOOR, 10.5);
+		var far = mealMob(helper, net.minecraft.world.entity.EntityTypes.PIG, 19.5, MEAL_FLOOR, 10.5);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			if (head.cue() == HeadCue.GULP) {
+				helper.assertTrue(near.isRemoved() && !far.isRemoved(), "ate the wrong mob near=" + near.isRemoved() + " far=" + far.isRemoved());
+				head.discard(); far.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	// a hum proves he reached a beat, and a still player only ends the stall at tick 140
+	private void mealRefused(GameTestHelper helper, ServerPlayer target, TheHead head, Mob mob) {
+		boolean[] hummed = { false };
+		Vec3[] was = { null };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			hummed[0] |= hums(head);
+			helper.assertFalse(head.cue() == HeadCue.GULP || mob.isRemoved(), "ate a refused mob at tick " + helper.getTick() + " cue=" + head.cue());
+			if (was[0] != null) helper.assertTrue(head.position().distanceTo(was[0]) < 0.5, "dashed at a refused mob, step " + head.position().distanceTo(was[0]));
+			was[0] = head.position();
+			if (helper.getTick() == 135) {
+				helper.assertTrue(hummed[0], "no beat reached, the refusal proved nothing");
+				head.discard(); mob.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealRefusesAMobBehindHim(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealRefused(helper, target, head, mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 38.5, MEAL_FLOOR, 10.5));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealRefusesAMobOffToTheSide(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealRefused(helper, target, head, mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 26.5, MEAL_FLOOR, 14.5));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealRefusesAMobBesideThePlayer(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealRefused(helper, target, head, mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 15.5, MEAL_FLOOR, 10.5));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealRefusesAMobPastThePlayer(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealRefused(helper, target, head, mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 6.5, MEAL_FLOOR, 10.5));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealRefusesAMobBehindAWall(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		fill(helper, 23, 220, 5, 23, 226, 15, Blocks.STONE.defaultBlockState());
+		mealRefused(helper, target, head, mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 20.5, MEAL_FLOOR, 10.5));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealRefusesAMobTooBigToSwallow(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealRefused(helper, target, head, mealMob(helper, net.minecraft.world.entity.EntityTypes.GHAST, 21.5, MEAL_FLOOR, 10.5));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealRefusesAnInvulnerableMob(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		var invulnerable = net.minecraft.world.entity.Entity.class.getDeclaredField("permanentlyInvulnerable"); invulnerable.setAccessible(true); invulnerable.setBoolean(mob, true);
+		mealRefused(helper, target, head, mob);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealRefusesAnotherHead(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealRefused(helper, target, head, mealMob(helper, HeadEntities.THE_HEAD, 21.5, MEAL_FLOOR, 10.5));
+	}
+
+	private void mealEarshot(GameTestHelper helper, double headX, boolean eaten) throws ReflectiveOperationException {
+		fill(helper, 60, 219, 5, 90, 219, 15, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, headX);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, headX - 7, MEAL_FLOOR, 10.5);
+		boolean[] hummed = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			hummed[0] |= hums(head);
+			if (!eaten) helper.assertTrue(head.cue() != HeadCue.GULP, "ate out of earshot gap=" + head.centre().distanceTo(target.getEyePosition()));
+			if (eaten ? head.cue() == HeadCue.GULP : hummed[0] && helper.getTick() == 135) {
+				helper.assertTrue(mob.isRemoved() == eaten, "earshot " + eaten + " removed=" + mob.isRemoved());
+				head.discard(); mob.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void stallMealHappensInEarshot(GameTestHelper helper) throws ReflectiveOperationException {
+		mealEarshot(helper, 52.5, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void stallMealRefusedOutOfEarshot(GameTestHelper helper) throws ReflectiveOperationException {
+		mealEarshot(helper, 70.5, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealNeverWhileWithdrawing(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		var grace = graceOf(head);
+		boolean[] hummed = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) {
+				beginLiveGrace(helper, head, HeadCue.INHALE);
+				grace.start(helper.getLevel().getGameTime() - 500, 0.5, 0, 0);
+			}
+			hummed[0] |= hums(head);
+			helper.assertFalse(mob.isRemoved(), "ate while withdrawing");
+			if (helper.getTick() == 135) {
+				helper.assertTrue(hummed[0] && grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.WITHDRAW, "fixture never withdrew stage=" + grace.stage() + " hummed=" + hummed[0]);
+				head.discard(); mob.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	private void mealAfterStall(GameTestHelper helper, boolean disabled) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		var grace = graceOf(head);
+		if (disabled) disableEarlyStalls(helper, head, target);
+		boolean[] hummed = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) { beginLiveGrace(helper, head, HeadCue.INHALE); grace.finish(); }
+			runAway(target);
+			hummed[0] |= hums(head);
+			helper.assertFalse(head.cue() == HeadCue.GULP || mob.isRemoved(), "ate after the stall was over");
+			if (helper.getTick() == 135) {
+				helper.assertTrue(hummed[0] && grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.NONE, "fixture never dashed stage=" + grace.stage());
+				head.discard(); mob.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealNeverOnceStallsAreOver(GameTestHelper helper) throws ReflectiveOperationException {
+		mealAfterStall(helper, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealNeverBetweenStalls(GameTestHelper helper) throws ReflectiveOperationException {
+		mealAfterStall(helper, false);
+	}
+
+	// starts the dash, then breaks it the first tick he is really moving
+	private void mealInterrupted(GameTestHelper helper, double mobX, java.util.function.BiConsumer<ServerPlayer, TheHead> interrupt) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, mobX, MEAL_FLOOR, 10.5);
+		long[] breakAt = { -1 };
+		Vec3[] was = { null };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			if (breakAt[0] < 0) runAway(target);
+			if (breakAt[0] < 0 && was[0] != null && head.position().distanceTo(was[0]) > 0.4) {
+				breakAt[0] = helper.getTick();
+				interrupt.accept(target, head);
+			}
+			double step = was[0] == null ? 0 : head.position().distanceTo(was[0]);
+			was[0] = head.position();
+			if (breakAt[0] < 0) return;
+			helper.assertTrue(helper.getTick() < breakAt[0] + 2 || step < 0.7, "dash kept going, step " + step);
+			helper.assertFalse(head.cue() == HeadCue.GULP, "gulped after the dash was called off");
+			helper.assertFalse(target.isDeadOrDying(), "dash ran on into the player");
+			if (helper.getTick() == breakAt[0] + 30) {
+				helper.assertFalse(mob.isRemoved(), "called off dash still ate the mob");
+				head.discard(); mob.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void stallMealCalledOffWhenThePlayerLeavesEarshot(GameTestHelper helper) throws ReflectiveOperationException {
+		mealInterrupted(helper, 18.5, (target, head) -> target.setPos(target.position().add(-60, 0, 0)));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void stallMealCalledOffWhenThePlayerStepsIntoReach(GameTestHelper helper) throws ReflectiveOperationException {
+		mealInterrupted(helper, 23.5, (target, head) -> target.setPos(head.position().add(-5.5, 0, 0)));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void stallMealCalledOffWhenTheStallEnds(GameTestHelper helper) throws ReflectiveOperationException {
+		mealInterrupted(helper, 18.5, (target, head) -> target.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE)));
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void stallMealPlaysNoGulpForAMobThatDiedFirst(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 18.5, MEAL_FLOOR, 10.5);
+		long[] goneAt = { -1 };
+		Vec3[] was = { null };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			if (goneAt[0] < 0 && was[0] != null && head.position().distanceTo(was[0]) > 0.4) {
+				goneAt[0] = helper.getTick();
+				mob.discard();
+			}
+			was[0] = head.position();
+			helper.assertFalse(head.cue() == HeadCue.GULP, "gulped nothing");
+			if (goneAt[0] >= 0 && helper.getTick() == goneAt[0] + 30) { head.discard(); leave(helper, target); helper.succeed(); }
+		});
+	}
+
+	// a second mob waits in line at every beat, so only the cooldown holds him off
+	private void mealCooldown(GameTestHelper helper, boolean eaten) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var first = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		var second = mealMob(helper, net.minecraft.world.entity.EntityTypes.PIG, 38.5, MEAL_FLOOR, 14.5);
+		var grace = graceOf(head);
+		long[] endedAt = { -1 };
+		long[] nextAt = { -1 };
+		Vec3[] was = { null };
+		double floor = helper.absoluteVec(new Vec3(0, MEAL_FLOOR, 0)).y;
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			long tick = helper.getTick();
+			if (endedAt[0] < 0) {
+				if (eaten ? head.cue() == HeadCue.GULP : was[0] != null && head.position().distanceTo(was[0]) > 0.4) {
+					endedAt[0] = tick;
+					if (!eaten) first.discard();
+				}
+				was[0] = head.position();
+				return;
+			}
+			if (!second.isRemoved() && !hums(head)) second.setPos(head.getX() - 4, floor, head.getZ());
+			helper.assertTrue(tick < endedAt[0] + 150 || nextAt[0] >= 0 || second.isRemoved(), "no second meal head=" + head.position() + " mob=" + second.position()
+				+ " player=" + target.position() + " cue=" + head.cue() + " stage=" + grace.stage());
+			if (second.isRemoved() && nextAt[0] < 0) nextAt[0] = tick;
+			if (nextAt[0] >= 0) {
+				helper.assertTrue(nextAt[0] - endedAt[0] >= 60, "next meal after " + (nextAt[0] - endedAt[0]) + " ticks, wanted 60");
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealWaitsThreeSecondsAfterEating(GameTestHelper helper) throws ReflectiveOperationException {
+		mealCooldown(helper, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealWaitsThreeSecondsAfterADroppedDash(GameTestHelper helper) throws ReflectiveOperationException {
+		mealCooldown(helper, false);
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 1000)
 	public void stallGraceLiveHouseRaidEndsGraceAndReturnsToTnt(GameTestHelper helper) throws ReflectiveOperationException {
 		liveHouseRaid(helper, false);
@@ -3809,6 +4265,7 @@ public class HeadGameTests {
 		List<HeadCue> cues = new ArrayList<>();
 		boolean[] ending = { false };
 		Vec3[] resumed = { null };
+		Mob[] snack = { null };
 		helper.onEachTick(() -> {
 			head.getRandom().setSeed(12345);
 			HeadCue cue = head.cue();
@@ -3818,7 +4275,11 @@ public class HeadGameTests {
 				target.setPos(helper.absoluteVec(new Vec3(42.5, y, 9.5)));
 			}
 			if (cues.contains(HeadCue.HOME_RETURN)) {
-				target.setPos(head.getX() + 12, helper.absoluteVec(new Vec3(0, y, 0)).y, head.getZ());
+				double floor = helper.absoluteVec(new Vec3(0, y, 0)).y;
+				target.setPos(head.getX() + 12, floor, head.getZ());
+				if (snack[0] == null) snack[0] = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 0.5, y, 9.5);
+				snack[0].setPos(head.getX() + 6, floor, head.getZ());
+				helper.assertFalse(snack[0].isRemoved() || cues.contains(HeadCue.GULP), "TNT pursuit ate a mob " + cues);
 				if (grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.NONE) {
 					helper.assertTrue(ending[0] && cues.stream().anyMatch(c -> java.util.List.of(com.larsoyd.mariohead.entity.ChaseVoices.CUTOFF).contains(c)),
 						"house transition lost required grace cutoff: " + cues);
@@ -3830,7 +4291,7 @@ public class HeadGameTests {
 						helper.assertFalse((boolean) roll.invoke(head, target, 0), "post-house dash reentered grace");
 					} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
 					if (resumed[0] == null) resumed[0] = head.position();
-					if (cue.digHum() && head.position().distanceTo(resumed[0]) > 1) { head.discard(); helper.succeed(); }
+					if (cue.digHum() && head.position().distanceTo(resumed[0]) > 1) { snack[0].discard(); head.discard(); helper.succeed(); }
 				}
 			}
 			helper.assertFalse(target.isDeadOrDying(), "house grace scenario caught owner before return");

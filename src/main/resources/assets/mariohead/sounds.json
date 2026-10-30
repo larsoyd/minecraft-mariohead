@@ -266,5 +266,17 @@
 	"entity.the_head.variety_drowning": {
 		"subtitle": "subtitles.mariohead.the_head.variety_drowning",
 		"sounds": ["mariohead:the_head/variety_drowning"]
+	},
+	"entity.the_head.meal_gulp": {
+		"subtitle": "subtitles.mariohead.the_head.meal_gulp",
+		"sounds": ["mariohead:the_head/meal_gulp"]
+	},
+	"entity.the_head.meal_yummy": {
+		"subtitle": "subtitles.mariohead.the_head.meal_yummy",
+		"sounds": ["mariohead:the_head/meal_yummy"]
+	},
+	"entity.the_head.meal_lasagna": {
+		"subtitle": "subtitles.mariohead.the_head.meal_lasagna",
+		"sounds": ["mariohead:the_head/meal_lasagna"]
 	}
 }

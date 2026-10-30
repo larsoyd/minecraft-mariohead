@@ -1,0 +1,27 @@
+[
+  {
+    "id": "gulp",
+    "source": "ogg/gulp.ogg",
+    "source_sha256": "44d62581bbe4a07e86fc95cc26f9e833e85273edd9bc01016793872d2aff9759",
+    "sha256": "44d62581bbe4a07e86fc95cc26f9e833e85273edd9bc01016793872d2aff9759",
+    "millis": 606,
+    "text": "Floating Mario Head gulps"
+  },
+  {
+    "id": "yummy",
+    "source": "wav/yummy.wav",
+    "source_sha256": "50d6d7b9264f160d7448af54e20e1ccb4f7fc106b7726030ad67a6b6c6bcfaee",
+    "sha256": "74894262c3cdead3f8b2569322485ae1df818935679d8f2400389151af47ce65",
+    "millis": 467,
+    "text": "Yummy!"
+  },
+  {
+    "id": "lasagna",
+    "source": "wav/lasagna.wav",
+    "source_sha256": "c7500b937f507a8c95728c2b8400e3c0d3ccafeba00822a6de2637669b754fa0",
+    "sha256": "f602efb97d7e1929497f4d45c1e1b4a1b350dca99743b900817b30834c1f2d91",
+    "gain_db": 13,
+    "millis": 1184,
+    "text": "Lasagna!"
+  }
+]

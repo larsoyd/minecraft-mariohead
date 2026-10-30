@@ -21,7 +21,7 @@ public final class HeadSounds {
 	}
 
 	public static SoundEvent of(HeadCue cue) {
-		if (cue.taunt() || cue.chatter() || cue.digHum() || cue.home() || cue.prank() || cue.variety()) {
+		if (cue.taunt() || cue.chatter() || cue.digHum() || cue.home() || cue.prank() || cue.variety() || cue.meal()) {
 			return TAUNTS.get(cue);
 		}
 		return switch (cue) {
@@ -55,7 +55,7 @@ public final class HeadSounds {
 	private static java.util.Map<HeadCue, SoundEvent> registerTaunts() {
 		var sounds = new java.util.EnumMap<HeadCue, SoundEvent>(HeadCue.class);
 		for (HeadCue cue : HeadCue.values()) {
-			if (cue.taunt() || cue.chatter() || cue.digHum() || cue.home() || cue.prank() || cue.variety()) {
+			if (cue.taunt() || cue.chatter() || cue.digHum() || cue.home() || cue.prank() || cue.variety() || cue.meal()) {
 				sounds.put(cue, register("entity.the_head." + cue.clip().name()));
 			}
 		}
