@@ -193,4 +193,58 @@ class StallGraceTest {
 		assertEquals(ENDING, grace.stage());
 		assertFalse(grace.retreating());
 	}
+
+	@Test
+	void standingStillNearHimEndsFollowAfterTwoSeconds() {
+		StallGrace grace = new StallGrace();
+		grace.start(0, 0.4, 1, 0);
+		grace.standing(15, 0, 64, 0);
+		for (int tick = 1; tick < 40; tick++) assertFalse(grace.standing(15, 0, 64, 0), "ended early at " + tick);
+		assertTrue(grace.standing(15, 0, 64, 0));
+	}
+
+	@Test
+	void standingStillFarFromHimNeverCounts() {
+		StallGrace grace = new StallGrace();
+		grace.start(0, 0.4, 1, 0);
+		for (int tick = 0; tick < 500; tick++) assertFalse(grace.standing(24, 0, 64, 0));
+		for (int tick = 0; tick < 39; tick++) assertFalse(grace.standing(23.9, 0, 64, 0), "counted far ticks at " + tick);
+		assertTrue(grace.standing(23.9, 0, 64, 0));
+	}
+
+	@Test
+	void shufflingWhileChoppingStillCountsAsStanding() {
+		StallGrace grace = new StallGrace();
+		grace.start(0, 0.4, 1, 0);
+		boolean ended = false;
+		for (int tick = 0; tick <= 40; tick++) ended = grace.standing(15, tick % 2 * 0.8, 64 + (tick % 4 == 0 ? 1.2 : 0), 0.5);
+		assertTrue(ended);
+	}
+
+	@Test
+	void aPauseOnTheRunRestartsTheCount() {
+		StallGrace grace = new StallGrace();
+		grace.start(0, 0.4, 1, 0);
+		for (int tick = 0; tick < 39; tick++) assertFalse(grace.standing(15, 0, 64, 0));
+		assertFalse(grace.standing(15, 1.6, 64, 0));
+		for (int tick = 0; tick < 39; tick++) assertFalse(grace.standing(15, 1.6, 64, 0));
+		assertTrue(grace.standing(15, 1.6, 64, 0));
+	}
+
+	@Test
+	void standingThroughTheStallLineEndsFollowOnceItBegins() {
+		StallGrace grace = new StallGrace();
+		for (int tick = 0; tick < 60; tick++) assertFalse(grace.standing(5, 0, 64, 0));
+		grace.start(60, 0.4, 1, 0);
+		assertTrue(grace.standing(5, 0, 64, 0));
+	}
+
+	@Test
+	void standingNeverCutsAWithdrawalShort() {
+		StallGrace grace = new StallGrace();
+		grace.start(0, 0.4, 0, 0);
+		grace.tick(400);
+		assertEquals(WITHDRAW, grace.stage());
+		for (int tick = 0; tick < 200; tick++) assertFalse(grace.standing(15, 0, 64, 0));
+	}
 }

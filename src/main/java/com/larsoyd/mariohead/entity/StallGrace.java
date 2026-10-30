@@ -8,6 +8,10 @@ public final class StallGrace {
 	private long withdrawAt;
 	private double personality;
 	private double closed;
+	private double stoodX;
+	private double stoodY;
+	private double stoodZ;
+	private int stood;
 	private boolean retreat;
 	private int starts;
 	private boolean completed;
@@ -56,6 +60,19 @@ public final class StallGrace {
 	public boolean approached(double gap, double towardSpeed) {
 		this.closed = gap < 24 ? Math.max(0, this.closed * 0.99 + towardSpeed) : 0;
 		return (this.stage == Stage.FOLLOW || this.stage == Stage.WITHDRAW) && this.closed >= 4;
+	}
+
+	// the anchor lets someone shuffle while chopping, and ticks far from him never count
+	public boolean standing(double gap, double x, double y, double z) {
+		if (gap >= 24 || Math.sqrt(Math.pow(x - this.stoodX, 2) + Math.pow(y - this.stoodY, 2) + Math.pow(z - this.stoodZ, 2)) > 1.5) {
+			this.stoodX = x;
+			this.stoodY = y;
+			this.stoodZ = z;
+			this.stood = 0;
+		} else {
+			this.stood++;
+		}
+		return this.stage == Stage.FOLLOW && this.stood >= 40;
 	}
 
 	public double gap(long now) {

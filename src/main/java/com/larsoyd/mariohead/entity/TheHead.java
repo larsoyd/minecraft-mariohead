@@ -428,6 +428,7 @@ public class TheHead extends Monster {
 		double toward = playerStep.length() < PACE_TELEPORT
 			? playerStep.dot(this.centre().subtract(target.position()).multiply(1, 0, 1).normalize()) : 0;
 		if (this.grace.approached(this.centre().distanceTo(target.getEyePosition()), toward)) this.endGrace(true);
+		if (this.grace.standing(this.centre().distanceTo(target.getEyePosition()), target.getX(), target.getY(), target.getZ())) this.endGrace(false);
 		if (this.grace.tick(now)) this.resumeAfterGrace();
 		this.updateDive(target);
 		boolean mock = this.tickStall(level.getGameTime());
@@ -1243,10 +1244,15 @@ public class TheHead extends Monster {
 		return !target.isPassenger() && !target.isInWater() && !target.isFallFlying();
 	}
 
+	// lasting states only, a crouch or a bite of food must not end the stalls for good
+	private boolean canSprint(Player target) {
+		return !target.isMobilityRestricted() && (target.isPassenger() || target.getFoodData().hasEnoughFood());
+	}
+
 	private void updateStalls(Player target) {
 		if (this.stalls == null) this.stalls = new EarlyStall(this.random.nextDouble());
 		boolean wasActive = this.stalls.active(this.phaseTicks - 1);
-		this.stallEscalated |= this.digging || this.burrowing || this.prankDigging || this.prankBurrowing
+		this.stallEscalated |= this.digging || this.burrowing || this.prankDigging || this.prankBurrowing || !this.canSprint(target)
 			|| target.isFallFlying() || this.centre().distanceTo(target.getEyePosition()) > 64 && !this.onFoot(target);
 		var inventory = target.getInventory();
 		for (int slot = 0; !this.stallEscalated && slot < inventory.getContainerSize(); slot++) {
@@ -1267,9 +1273,9 @@ public class TheHead extends Monster {
 		this.cutoffPending |= this.stalls.expire(this.phaseTicks, this.stallEscalated,
 			VoiceCurve.volume(this.centre().distanceTo(target.getEyePosition())) > 0);
 		if (wasActive && !this.stalls.active(this.phaseTicks)) {
-			MarioHead.LOG.debug("[head] stall_disabled id={} age={} cutoff={} escalated={} gap={} digging={} flying={} passenger={}",
+			MarioHead.LOG.debug("[head] stall_disabled id={} age={} cutoff={} escalated={} gap={} digging={} flying={} passenger={} sprint={}",
 				this.getId(), this.phaseTicks, this.stalls.cutoff(), this.stallEscalated, this.centre().distanceTo(target.getEyePosition()),
-				this.digging || this.burrowing || this.prankDigging || this.prankBurrowing, target.isFallFlying(), target.isPassenger());
+				this.digging || this.burrowing || this.prankDigging || this.prankBurrowing, target.isFallFlying(), target.isPassenger(), this.canSprint(target));
 		}
 		if (!this.stalls.active(this.phaseTicks) && this.grace.stage() != StallGrace.Stage.NONE
 			&& this.grace.stage() != StallGrace.Stage.ENDING) this.endGrace(false);
