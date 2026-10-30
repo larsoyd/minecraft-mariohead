@@ -3708,9 +3708,12 @@ public class HeadGameTests {
 		TheHead head = graceHead(helper, target);
 		var charge = TheHead.class.getDeclaredMethod("charge", ServerLevel.class, net.minecraft.world.entity.player.Player.class); charge.setAccessible(true);
 		var graceField = TheHead.class.getDeclaredField("grace"); graceField.setAccessible(true);
-		target.setPos(target.position().add(0.28, 0, 0));
 		double before = head.getX();
-		charge.invoke(head, helper.getLevel(), target);
+		for (int tick = 0; tick < 16; tick++) {
+			target.setPos(target.position().add(0.28, 0, 0));
+			before = head.getX();
+			charge.invoke(head, helper.getLevel(), target);
+		}
 		helper.assertTrue(((com.larsoyd.mariohead.entity.StallGrace) graceField.get(head)).stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.ENDING,
 			"approaching player retained grace");
 		helper.assertTrue(head.getX() > before, "approaching player did not make head back up");
@@ -3834,12 +3837,42 @@ public class HeadGameTests {
 		liveGraceCutoff(helper, false);
 	}
 
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void stallGraceLiveLookBacksKeepFollowingARunner(GameTestHelper helper) throws ReflectiveOperationException {
+		fill(helper, -120, 219, 5, 40, 219, 15, Blocks.STONE.defaultBlockState());
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		target.setNoGravity(true);
+		TheHead head = graceHead(helper, target);
+		head.setPos(helper.absoluteVec(new Vec3(29.5, 220.5, 10.5)));
+		var graceField = TheHead.class.getDeclaredField("grace"); graceField.setAccessible(true);
+		var grace = (com.larsoyd.mariohead.entity.StallGrace) graceField.get(head);
+		var pending = TheHead.class.getDeclaredField("cutoffPending"); pending.setAccessible(true);
+		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class); cue.setAccessible(true);
+		helper.onEachTick(() -> {
+			helper.getLevel().getChunkSource().addTicketWithRadius(HeadEntities.CHASE_TICKET, head.chunkPosition(), 4);
+			try { Thread.sleep(2); } catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new AssertionError(e); }
+			if (helper.getTick() < 100) return;
+			try {
+				if (helper.getTick() == 100) {
+					cue.invoke(head, HeadCue.MMM3);
+					grace.start(helper.getLevel().getGameTime(), 0.5, 1, 0);
+					head.setNoAi(false);
+				}
+				target.setPos(target.position().add((helper.getTick() - 100) % 32 < 8 ? 0.2 : -0.28, 0, 0));
+				helper.assertFalse(pending.getBoolean(head), "look back queued cutoff at tick " + helper.getTick());
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			helper.assertTrue(grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.FOLLOW,
+				"look back left follow stage=" + grace.stage() + " tick=" + helper.getTick() + " gap=" + head.position().distanceTo(target.position()));
+			if (helper.getTick() == 260) { head.discard(); helper.succeed(); }
+		});
+	}
+
 	private void liveGraceCutoff(GameTestHelper helper, boolean reverse) throws ReflectiveOperationException {
 		fill(helper, -120, 219, 5, 40, 219, 15, Blocks.STONE.defaultBlockState());
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), -90);
 		target.setNoGravity(true);
 		TheHead head = graceHead(helper, target);
-		head.setPos(helper.absoluteVec(new Vec3(reverse ? 24.5 : 32.5, 220.5, 10.5)));
+		head.setPos(helper.absoluteVec(new Vec3(reverse ? 28.5 : 36.5, 220.5, 10.5)));
 		var graceField = TheHead.class.getDeclaredField("grace"); graceField.setAccessible(true);
 		var grace = (com.larsoyd.mariohead.entity.StallGrace) graceField.get(head);
 		var cue = TheHead.class.getDeclaredMethod("setCue", HeadCue.class); cue.setAccessible(true);
@@ -3854,6 +3887,8 @@ public class HeadGameTests {
 				try { cue.invoke(head, HeadCue.MMM3); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
 				grace.start(helper.getLevel().getGameTime(), 0.5, 1, 0);
 				head.setNoAi(false);
+			}
+			if (helper.getTick() < 116) {
 				target.setPos(target.position().add(0.28, 0, 0));
 			} else if (reverse) {
 				target.setPos(target.position().add(-0.28, 0, 0));

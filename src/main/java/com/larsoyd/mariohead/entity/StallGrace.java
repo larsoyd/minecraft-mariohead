@@ -7,6 +7,7 @@ public final class StallGrace {
 	private long until;
 	private long withdrawAt;
 	private double personality;
+	private double closed;
 	private boolean retreat;
 	private int starts;
 	private boolean completed;
@@ -24,6 +25,7 @@ public final class StallGrace {
 		this.withdrawAt = stalkChance < 0.1 ? now + 400 + (int) (delay * (duration - 899)) : Long.MAX_VALUE;
 		this.personality = personality;
 		this.retreat = false;
+		this.closed = 0;
 	}
 
 	public boolean tick(long now) {
@@ -50,8 +52,10 @@ public final class StallGrace {
 		this.retreat = false;
 	}
 
+	// net blocks walked at him, so a look back while running never counts as coming for him
 	public boolean approached(double gap, double towardSpeed) {
-		return (this.stage == Stage.FOLLOW || this.stage == Stage.WITHDRAW) && gap < 24 && towardSpeed > 0.06;
+		this.closed = gap < 24 ? Math.max(0, this.closed * 0.99 + towardSpeed) : 0;
+		return (this.stage == Stage.FOLLOW || this.stage == Stage.WITHDRAW) && this.closed >= 4;
 	}
 
 	public double gap(long now) {

@@ -101,7 +101,9 @@ class StallGraceTest {
 		grace.start(0, 0, 1, 0);
 		assertFalse(grace.approached(15, -0.3));
 		assertFalse(grace.approached(40, 0.3));
-		assertTrue(grace.approached(15, 0.3));
+		boolean approached = false;
+		for (int tick = 0; tick < 16; tick++) approached = grace.approached(15, 0.28);
+		assertTrue(approached, "sprinting straight at him for 0.8 s did not count");
 		grace.end(true);
 		assertEquals(ENDING, grace.stage());
 		assertTrue(grace.retreating());
@@ -110,6 +112,52 @@ class StallGraceTest {
 		assertEquals(ENDING, grace.stage());
 		grace.finish();
 		assertEquals(NONE, grace.stage());
+	}
+
+	@Test
+	void lookingBackMidRunNeverEndsGrace() {
+		StallGrace grace = new StallGrace();
+		grace.start(0, 0, 1, 0);
+		for (int look = 0; look < 40; look++) {
+			for (int tick = 0; tick < 12; tick++) assertFalse(grace.approached(15, 0.2), "look back ended grace look=" + look);
+			for (int tick = 0; tick < 20; tick++) assertFalse(grace.approached(15, -0.28), "fleeing ended grace look=" + look);
+		}
+	}
+
+	@Test
+	void walkingAtHimEndsGraceButSneakingInBurstsDoesNot() {
+		StallGrace walker = new StallGrace();
+		walker.start(0, 0, 1, 0);
+		boolean reached = false;
+		for (int tick = 0; tick < 24 && !reached; tick++) reached = walker.approached(15, 0.216);
+		assertTrue(reached, "walking at him for 1.2 s did not count");
+		StallGrace pauser = new StallGrace();
+		pauser.start(0, 0, 1, 0);
+		for (int burst = 0; burst < 20; burst++) {
+			for (int tick = 0; tick < 8; tick++) assertFalse(pauser.approached(15, 0.2), "short steps added up burst=" + burst);
+			for (int tick = 0; tick < 200; tick++) assertFalse(pauser.approached(15, 0));
+		}
+	}
+
+	@Test
+	void runningAwayFirstBanksNoCreditAgainstARealApproach() {
+		StallGrace grace = new StallGrace();
+		grace.start(0, 0, 1, 0);
+		for (int tick = 0; tick < 1000; tick++) assertFalse(grace.approached(15, -0.28));
+		boolean approached = false;
+		for (int tick = 0; tick < 16; tick++) approached = grace.approached(15, 0.28);
+		assertTrue(approached, "long flight excused a real approach");
+	}
+
+	@Test
+	void closingOutsideRangeAndBeforeARestartIsForgotten() {
+		StallGrace grace = new StallGrace();
+		grace.start(0, 0, 1, 0);
+		for (int tick = 0; tick < 12; tick++) grace.approached(15, 0.28);
+		assertFalse(grace.approached(30, 0.28));
+		for (int tick = 0; tick < 12; tick++) assertFalse(grace.approached(15, 0.28), "distant closing was kept");
+		grace.start(100, 0, 1, 0);
+		for (int tick = 0; tick < 12; tick++) assertFalse(grace.approached(15, 0.28), "restart kept old closing");
 	}
 
 	@Test
