@@ -53,8 +53,8 @@ class HeadSongTest {
 
 		HeadSong slow = chosen(0);
 		assertTrue(slow.approaching(100, true));
-		assertTrue(slow.approaching(299, true));
-		assertFalse(slow.approaching(300, true));
+		assertTrue(slow.approaching(499, true));
+		assertFalse(slow.approaching(500, true));
 		assertSame(HeadSong.Stage.WAITING, slow.stage());
 	}
 

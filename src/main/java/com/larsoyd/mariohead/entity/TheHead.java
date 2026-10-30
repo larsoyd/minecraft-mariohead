@@ -646,7 +646,10 @@ public class TheHead extends Monster {
 		}
 		double gap = this.centre().distanceTo(target.getEyePosition());
 		boolean open = this.grace.stage() == StallGrace.Stage.FOLLOW && VoiceCurve.volume(gap) > 0;
-		if (!this.song.approaching(now, open) || gap > HeadSong.REACH || !this.clearLine(this.centre(), target.getEyePosition())
+		boolean coming = this.song.stage() == HeadSong.Stage.APPROACH;
+		boolean approaching = this.song.approaching(now, open);
+		if (approaching != coming) MarioHead.LOG.debug("[head] song_approach id={} on={} gap={} open={} pace={} speed={}", this.getId(), approaching, gap, open, this.pace, this.moveSpeed);
+		if (!approaching || gap > HeadSong.REACH || !this.clearLine(this.centre(), target.getEyePosition())
 			|| this.pendingVoice != HeadCue.NONE || this.voices.waiting()) return false;
 		if (!this.speech.canStart(HeadCue.VARIETY_037, now)) return true;
 		this.song.begin(now);

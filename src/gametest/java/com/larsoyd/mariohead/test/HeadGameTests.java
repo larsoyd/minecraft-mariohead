@@ -7177,4 +7177,18 @@ public class HeadGameTests {
 	public void stallMealLeavesASilentMobSilent(GameTestHelper helper) throws ReflectiveOperationException {
 		eatenMobSound(helper, true);
 	}
+
+	@GameTest(structure = ARENA, maxTicks = 700)
+	public void songCatchesUpWithASprintJumper(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, 220, 10.5), 90);
+		TheHead head = songHead(helper, target);
+		head.setPos(helper.absoluteVec(new Vec3(33.5, 220.5, 10.5)));
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			try { if (helper.getTick() == 100) beginSongStall(helper, head); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			target.setPos(target.position().add(-0.36, 0, 0));
+			if (head.cue() == HeadCue.SONG_ASK) { head.discard(); leave(helper, target); helper.succeed(); }
+		});
+	}
 }

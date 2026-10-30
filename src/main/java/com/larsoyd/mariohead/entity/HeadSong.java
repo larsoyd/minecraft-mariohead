@@ -11,7 +11,7 @@ public final class HeadSong {
 	private static final double CHANCE = 0.25;
 	private static final int EARLIEST_TICKS = 100;
 	private static final int WINDOW_TICKS = 600;
-	private static final int APPROACH_TICKS = 200;
+	private static final int APPROACH_TICKS = 400;
 	private Stage stage = Stage.WAITING;
 	private boolean rolled;
 	private boolean chosen;
