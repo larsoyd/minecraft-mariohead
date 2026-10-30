@@ -1,4 +1,4 @@
-* Sonic from Super Smash Bros. Brawl
+* Sonic line/easter egg from Super Smash Bros. Brawl
 * Tape sounds from FNAF: Sister Location
 * Applause from Neighbours From Hell
 * Gulp sound from Plant vs. Zombies
