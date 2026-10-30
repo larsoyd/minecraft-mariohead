@@ -5,6 +5,7 @@ A Fabric mod for Minecraft 26.3 that brings in the Floating Mario Head from Mari
 He swells into view a few blocks in front of you with a puff of smoke, glances about, says
 "Hello, I'm going to fly for you", and then comes at you. Each "Mmmmm" snaps him forward and he sags
 between them, a little faster every time, until he outruns a sprint and starts matching your pace.
+
 He does not give up. If he touches you, you die.
 
 ---
