@@ -107,6 +107,7 @@ public class TheHead extends Monster {
 	private long mealUntil;
 	private long mealReadyAt;
 	private long afterMealAt = -1;
+	private final HeadAlarm alarm = new HeadAlarm();
 	private final DiveTaunt diveTaunt = new DiveTaunt();
 	private @Nullable BlockPos waterEntry;
 	private boolean wasInWater;
@@ -248,6 +249,10 @@ public class TheHead extends Monster {
 
 	public HeadCue cue() {
 		return HeadCue.cueOf(this.entityData.get(DATA_CUE));
+	}
+
+	HeadAlarm alarm() {
+		return this.alarm;
 	}
 
 	public int revs() {

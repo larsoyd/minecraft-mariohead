@@ -4634,7 +4634,7 @@ public class HeadGameTests {
 			if (helper.getTick() == 5) golem.setTarget(target);
 			if (helper.getTick() == 6) helper.assertTrue(golem.getTarget() == target, "golem dropped its target near him");
 			if (helper.getTick() == 30) {
-				helper.assertTrue(golem.position().distanceTo(start) < 8 && golem.getTarget() == target, "golem fled " + golem.position().distanceTo(start));
+				helper.assertTrue(golem.position().distanceTo(start) < 3, "golem fled " + golem.position().distanceTo(start));
 				head.discard(); golem.discard(); leave(helper, target); helper.succeed();
 			}
 		});
@@ -4711,6 +4711,151 @@ public class HeadGameTests {
 			public double nextDouble() {
 				return roll;
 			}
+		});
+	}
+
+	private static void stalkingScene(GameTestHelper helper, TheHead head, ServerPlayer target, Mob mob, boolean prank) throws ReflectiveOperationException {
+		var grace = graceOf(head);
+		var prankField = TheHead.class.getDeclaredField("prank"); prankField.setAccessible(true);
+		var behind = (com.larsoyd.mariohead.entity.BehindPrank) prankField.get(head);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) {
+				beginLiveGrace(helper, head, HeadCue.INHALE);
+				if (prank) { grace.finish(); behind.begin(helper.getLevel().getGameTime()); }
+				else grace.stalk();
+			}
+			helper.assertFalse(head.cue() == HeadCue.GULP || mob.isRemoved(), "ate during a stalk");
+			if (helper.getTick() == 135) { head.discard(); mob.discard(); leave(helper, target); helper.succeed(); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealNeverDuringAStallStalk(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		stalkingScene(helper, head, target, mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5), false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 200)
+	public void stallMealNeverDuringAPrankStalk(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		stalkingScene(helper, head, target, mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5), true);
+	}
+
+	private static final net.minecraft.world.entity.ai.memory.MemoryModuleType<Long> BELL = net.minecraft.world.entity.ai.memory.MemoryModuleType.HEARD_BELL_TIME;
+
+	private static boolean heard(net.minecraft.world.entity.npc.villager.Villager villager) {
+		return villager.getBrain().hasMemoryValue(BELL);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void villagersWithNoBellHideAtOnce(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 295);
+		var villager = helper.spawn(net.minecraft.world.entity.EntityTypes.VILLAGER, new Vec3(13.5, 295, 5.5));
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() == 10) {
+				helper.assertTrue(heard(villager) && villager.getBrain().isActive(net.minecraft.world.entity.schedule.Activity.HIDE), "villager did not hide");
+				head.discard(); villager.discard(); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void aScaredVillagerRunsToItsBed(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 310);
+		BlockPos bed = new BlockPos(14, 310, 12);
+		helper.setBlock(bed, Blocks.BED.red().defaultBlockState().setValue(net.minecraft.world.level.block.BedBlock.PART, net.minecraft.world.level.block.state.properties.BedPart.HEAD));
+		var villager = helper.spawn(net.minecraft.world.entity.EntityTypes.VILLAGER, new Vec3(13.5, 310, 5.5));
+		Vec3 home = helper.absoluteVec(Vec3.atCenterOf(bed));
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (villager.position().distanceTo(home) <= 3.5) { head.discard(); villager.discard(); helper.succeed(); }
+			if (helper.getTick() == 300) helper.fail("villager never reached its bed, at " + helper.relativeVec(villager.position()));
+		});
+	}
+
+	private static net.minecraft.world.entity.npc.villager.Villager townsfolk(GameTestHelper helper, BlockPos bell, double x, double y, double z) {
+		var villager = helper.spawn(net.minecraft.world.entity.EntityTypes.VILLAGER, new Vec3(x, y, z));
+		villager.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.MEETING_POINT,
+			net.minecraft.core.GlobalPos.of(helper.getLevel().dimension(), helper.absolutePos(bell)));
+		return villager;
+	}
+
+	private static boolean ringing(GameTestHelper helper, BlockPos bell) {
+		return helper.getLevel().getBlockEntity(helper.absolutePos(bell)) instanceof net.minecraft.world.level.block.entity.BellBlockEntity entity && entity.shaking;
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void theVillagerNearestTheBellRingsItBeforeAnyoneHides(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 258);
+		BlockPos bell = new BlockPos(24, 258, 5);
+		helper.setBlock(bell, Blocks.BELL.defaultBlockState());
+		var ringer = townsfolk(helper, bell, 14.5, 258, 5.5);
+		var other = townsfolk(helper, bell, 12.5, 258, 7.5);
+		long[] heardAt = { -1 };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (heardAt[0] < 0 && (heard(other) || heard(ringer))) {
+				heardAt[0] = helper.getTick();
+				helper.assertTrue(ringer.position().distanceTo(Vec3.atCenterOf(helper.absolutePos(bell))) < 4, "hid before the bell rang, ringer at " + helper.relativeVec(ringer.position()));
+			}
+			if (ringing(helper, bell) && heardAt[0] >= 0 && helper.getTick() >= heardAt[0] + 3) {
+				helper.assertTrue(heard(other), "the ring did not reach the village");
+				head.discard(); ringer.discard(); other.discard(); helper.succeed();
+			}
+			if (helper.getTick() == 300) helper.fail("bell never rang, ringer at " + helper.relativeVec(ringer.position()));
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void theLoneRingerFinishesTheRunOutOfHisReach(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 245);
+		BlockPos bell = new BlockPos(40, 245, 5);
+		helper.setBlock(bell, Blocks.BELL.defaultBlockState());
+		var ringer = townsfolk(helper, bell, 18.5, 245, 5.5);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (ringing(helper, bell)) { head.discard(); ringer.discard(); helper.succeed(); }
+			if (helper.getTick() == 300) helper.fail("bell never rang, ringer at " + helper.relativeVec(ringer.position()));
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void aNewRingerTakesOverWhenTheFirstIsEaten(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 270);
+		BlockPos bell = new BlockPos(24, 270, 5);
+		helper.setBlock(bell, Blocks.BELL.defaultBlockState());
+		var first = townsfolk(helper, bell, 14.5, 270, 5.5);
+		var second = townsfolk(helper, bell, 12.5, 270, 7.5);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() == 10) first.discard();
+			if (ringing(helper, bell)) {
+				helper.assertTrue(first.isRemoved(), "fixture rang too soon");
+				head.discard(); second.discard(); helper.succeed();
+			}
+			if (helper.getTick() == 300) helper.fail("nobody took over, at " + helper.relativeVec(second.position()));
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void aBellNobodyCanReachStillSendsThemIndoors(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 232);
+		BlockPos bell = new BlockPos(24, 232, 5);
+		fill(helper, 18, 232, 0, 30, 238, 11, Blocks.STONE.defaultBlockState());
+		helper.setBlock(bell, Blocks.BELL.defaultBlockState());
+		var villager = townsfolk(helper, bell, 14.5, 232, 5.5);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (heard(villager)) {
+				helper.assertTrue(helper.getTick() >= 100, "gave up on the bell at once");
+				head.discard(); villager.discard(); helper.succeed();
+			}
+			if (helper.getTick() == 300) helper.fail("stuck ringer never gave up");
 		});
 	}
 

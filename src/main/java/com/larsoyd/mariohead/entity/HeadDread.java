@@ -1,6 +1,8 @@
 package com.larsoyd.mariohead.entity;
 
 import com.larsoyd.mariohead.mixin.CubeMoveAccess;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Mob;
@@ -13,6 +15,8 @@ import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.entity.animal.golem.IronGolem;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.monster.cubemob.AbstractCubeMob;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
@@ -40,12 +44,18 @@ public final class HeadDread {
 
 	static void spread(ServerLevel level, TheHead head) {
 		Vec3 from = head.centre();
+		List<Villager> scared = new ArrayList<>();
 		for (Mob mob : level.getEntitiesOfClass(Mob.class, head.getBoundingBox().inflate(REACH, REACH_UP, REACH), mob -> !brave(mob) && !mob.isNoAi())) {
 			calm(mob);
+			if (mob instanceof Villager villager) {
+				if (!villager.getBrain().hasMemoryValue(MemoryModuleType.HEARD_BELL_TIME)) scared.add(villager);
+				if (head.alarm().ringing(villager) || villager.getBrain().hasMemoryValue(MemoryModuleType.HIDING_PLACE)) continue;
+			}
 			int tick = mob.tickCount + mob.getId();
 			if (mob.hasPassenger(rider -> rider instanceof Player)) mob.getNavigation().stop();
-			else if (!(mob instanceof PathfinderMob) || tick % RETHINK_TICKS == 0 && !fleeing(mob, from) || tick % REPLAN_TICKS == 0) flee(mob, from);
+			else if (!(mob instanceof PathfinderMob) || mob instanceof AbstractCubeMob || tick % RETHINK_TICKS == 0 && !fleeing(mob, from) || tick % REPLAN_TICKS == 0) flee(mob, from);
 		}
+		head.alarm().tick(level, scared);
 	}
 
 	// a path that leads away is left alone, so a herd does not replan all at once
@@ -69,13 +79,13 @@ public final class HeadDread {
 		Vec3 flat = mob.position().subtract(from).multiply(1, 0, 1).normalize();
 		Vec3 away = mob instanceof PathfinderMob walker ? DefaultRandomPos.getPosAway(walker, FLEE_BLOCKS, FLEE_RISE, from) : null;
 		if (away == null) away = mob.position().add(flat.scale(FLEE_BLOCKS));
-		if (mob.getBrain().checkMemory(MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED)) {
+		if (mob.getMoveControl() instanceof CubeMoveAccess cube) {
+			cube.mariohead$setDirection((float) Math.toDegrees(Math.atan2(flat.z, flat.x)) - 90.0f, false);
+			cube.mariohead$setWantedMovement(FLEE_SPEED);
+		} else if (mob.getBrain().checkMemory(MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED)) {
 			mob.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(away, BRAIN_FLEE_SPEED, 0));
 		} else if (mob instanceof PathfinderMob) {
 			mob.getNavigation().moveTo(away.x, away.y, away.z, FLEE_SPEED);
-		} else if (mob.getMoveControl() instanceof CubeMoveAccess cube) {
-			cube.mariohead$setDirection((float) Math.toDegrees(Math.atan2(flat.z, flat.x)) - 90.0f, false);
-			cube.mariohead$setWantedMovement(FLEE_SPEED);
 		} else {
 			mob.getMoveControl().setWantedPosition(away.x, mob.getY(), away.z, FLEE_SPEED);
 		}
