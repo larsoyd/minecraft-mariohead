@@ -14,7 +14,8 @@ ENTRIES = json.loads(Path(__file__).with_name('meal-lines.json').read_text())
 
 class MealVoiceTests(unittest.TestCase):
     def test_exactly_the_requested_clips(self):
-        self.assertEqual([e['id'] for e in ENTRIES], ['gulp', 'yummy', 'lasagna'])
+        self.assertEqual([e['id'] for e in ENTRIES], ['gulp', 'yummy', 'lasagna', 'yummy2', 'spaghetti', 'ravioli', 'maccaroni',
+                          'vermachelli', 'bologna', 'fetticini', 'cappilini', 'cappilini2', 'hossili'])
 
     def test_sources_stay_pinned(self):
         for entry in ENTRIES:

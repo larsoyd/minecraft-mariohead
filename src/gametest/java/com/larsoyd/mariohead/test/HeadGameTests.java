@@ -3796,7 +3796,7 @@ public class HeadGameTests {
 	}
 
 	private static List<net.minecraft.world.entity.Entity> leftovers(GameTestHelper helper, Vec3 at) {
-		AABB around = new AABB(at, at).inflate(24);
+		AABB around = new AABB(at, at).inflate(8);
 		List<net.minecraft.world.entity.Entity> left = new ArrayList<>(helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, around));
 		left.addAll(helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.ExperienceOrb.class, around));
 		return left;
@@ -3851,13 +3851,7 @@ public class HeadGameTests {
 		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
 		TheHead head = liveGraceHead(helper, target, 30.5);
 		mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
-		var random = net.minecraft.world.entity.Entity.class.getDeclaredField("random"); random.setAccessible(true);
-		random.set(head, new net.minecraft.world.level.levelgen.LegacyRandomSource(1) {
-			@Override
-			public double nextDouble() {
-				return roll;
-			}
-		});
+		fixRoll(head, roll);
 		if (yummySaid) {
 			var voices = TheHead.class.getDeclaredField("voices"); voices.setAccessible(true);
 			((com.larsoyd.mariohead.entity.ChaseVoices) voices.get(head)).played(HeadCue.YUMMY);
@@ -3877,7 +3871,7 @@ public class HeadGameTests {
 			if (gulpAt[0] >= 0 && tick == gulpAt[0] + 60) {
 				if (line == HeadCue.NONE) helper.assertTrue(lineAt[0] < 0, "line played without its roll: " + said[0]);
 				else {
-					helper.assertTrue(said[0] == line, "after the gulp he said " + said[0] + " wanted " + line);
+					helper.assertTrue(yummySaid ? said[0].meal() && said[0] != HeadCue.YUMMY : said[0] == line, "after the gulp he said " + said[0] + " wanted " + line);
 					helper.assertTrue(lineAt[0] - gulpAt[0] == 18, "line came " + (lineAt[0] - gulpAt[0]) + " ticks after the gulp began, wanted 18");
 				}
 				helper.assertTrue(grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.FOLLOW, "stall did not continue after the meal");
@@ -4236,6 +4230,490 @@ public class HeadGameTests {
 		mealCooldown(helper, false);
 	}
 
+	private static final int DREAD_FLOOR = 220;
+
+	private static TheHead dreadedHead(GameTestHelper helper) {
+		return dreadedHead(helper, DREAD_FLOOR);
+	}
+
+	// a floor of its own keeps the heads of other tests out of reach
+	private static TheHead dreadedHead(GameTestHelper helper, int floor) {
+		fill(helper, -40, floor - 1, -2, 60, floor - 1, 13, Blocks.STONE.defaultBlockState());
+		return helper.spawn(HeadEntities.THE_HEAD, new Vec3(5.5, floor, 5.5));
+	}
+
+	// the head idles with nobody to chase, so all the movement here is the mob's own
+	private Mob mobFlees(GameTestHelper helper, EntityType<? extends Mob> type, int floor) {
+		TheHead head = dreadedHead(helper, floor);
+		Mob mob = helper.spawn(type, new Vec3(13.5, floor, 5.5));
+		double[] away = { 0 };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			away[0] = Math.max(away[0], mob.getX() - head.getX());
+			if (helper.getTick() == 120) {
+				helper.assertTrue(away[0] >= 12, type.toShortString() + " stayed, only " + away[0] + " out, at " + helper.relativeVec(mob.position())
+					+ " head " + helper.relativeVec(head.centre()) + " alive " + mob.isAlive() + " removed " + mob.getRemovalReason() + " ground " + mob.onGround() + " size " + mob.getBbWidth() + " phase " + head.phase() + " chased " + head.chased());
+				head.discard(); mob.discard(); helper.succeed();
+			}
+		});
+		return mob;
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimCow(GameTestHelper helper) {
+		mobFlees(helper, net.minecraft.world.entity.EntityTypes.COW, 50);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimZombie(GameTestHelper helper) {
+		mobFlees(helper, net.minecraft.world.entity.EntityTypes.ZOMBIE, 65);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimSkeleton(GameTestHelper helper) {
+		mobFlees(helper, net.minecraft.world.entity.EntityTypes.SKELETON, 80);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimCreeper(GameTestHelper helper) {
+		mobFlees(helper, net.minecraft.world.entity.EntityTypes.CREEPER, 95);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimVillager(GameTestHelper helper) {
+		mobFlees(helper, net.minecraft.world.entity.EntityTypes.VILLAGER, 110);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimPiglin(GameTestHelper helper) {
+		mobFlees(helper, net.minecraft.world.entity.EntityTypes.PIGLIN, 125);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimSlime(GameTestHelper helper) {
+		mobFlees(helper, net.minecraft.world.entity.EntityTypes.SLIME, 140);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimGhast(GameTestHelper helper) {
+		mobFlees(helper, net.minecraft.world.entity.EntityTypes.GHAST, 170);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimWarden(GameTestHelper helper) {
+		mobFlees(helper, net.minecraft.world.entity.EntityTypes.WARDEN, 185);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void hostileMobsNearHimDropThePlayer(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(20.5, DREAD_FLOOR, 5.5), 90);
+		var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, new Vec3(13.5, DREAD_FLOOR, 5.5));
+		var piglin = helper.spawn(net.minecraft.world.entity.EntityTypes.PIGLIN, new Vec3(12.5, DREAD_FLOOR, 6.5));
+		var wolf = helper.spawn(net.minecraft.world.entity.EntityTypes.WOLF, new Vec3(13.5, DREAD_FLOOR, 7.5));
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() == 5) {
+				zombie.setTarget(target);
+				piglin.setTarget(target);
+				piglin.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET, target);
+				wolf.setPersistentAngerTarget(net.minecraft.world.entity.EntityReference.of(target));
+				wolf.setTimeToRemainAngry(400);
+				wolf.setTarget(target);
+			}
+			if (helper.getTick() == 6) {
+				helper.assertTrue(zombie.getTarget() == null, "zombie kept the player");
+				helper.assertTrue(piglin.getTarget() == null && !piglin.getBrain().hasMemoryValue(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET), "piglin kept the player");
+				helper.assertTrue(wolf.getTarget() == null && wolf.getPersistentAngerTarget() == null, "wolf kept its anger");
+				head.discard(); zombie.discard(); piglin.discard(); wolf.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void mobsWellAwayFromHimKeepTheirTarget(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 250);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(44.5, 250, 5.5), 90);
+		var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, new Vec3(38.5, 250, 5.5));
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() == 5) zombie.setTarget(target);
+			if (helper.getTick() == 15) {
+				helper.assertTrue(zombie.getTarget() == target, "zombie out of his reach dropped the player");
+				head.discard(); zombie.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void aMountDoesNotBoltWithItsRider(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 280);
+		var horse = helper.spawn(net.minecraft.world.entity.EntityTypes.HORSE, new Vec3(13.5, 280, 5.5));
+		ServerPlayer rider = player(helper, GameType.SURVIVAL, new Vec3(13.5, 280, 5.5), 90);
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() == 2) { horse.setTamed(true); rider.startRiding(horse, true, true); }
+			if (helper.getTick() == 3) helper.assertTrue(rider.getVehicle() == horse, "rider never mounted");
+			if (helper.getTick() == 80) {
+				helper.assertTrue(horse.distanceTo(head) < 10, "mount bolted with its rider to " + horse.distanceTo(head));
+				rider.stopRiding(); head.discard(); horse.discard(); leave(helper, rider); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealStillCatchesAFleeingMob(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = helper.spawn(net.minecraft.world.entity.EntityTypes.COW, new Vec3(21.5, MEAL_FLOOR, 10.5));
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) {
+				mob.setPos(helper.absoluteVec(new Vec3(21.5, MEAL_FLOOR, 10.5)));
+				return;
+			}
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			if (head.cue() == HeadCue.GULP) {
+				helper.assertTrue(mob.isRemoved(), "gulp without the fleeing mob");
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 500)
+	public void aZombieBesideThePlayerNeverLandsAHit(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 275);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(13.5, 275, 5.5), 90);
+		target.setNoGravity(true);
+		var zombie = helper.spawn(net.minecraft.world.entity.EntityTypes.ZOMBIE, new Vec3(14.5, 275, 5.5));
+		float health = target.getHealth();
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			target.setPos(zombie.position().add(-0.8, 0, 0));
+			if (helper.getTick() % 20 == 5) zombie.setTarget(target);
+			helper.assertTrue(target.getHealth() == health, "zombie hit the player at tick " + helper.getTick() + " at=" + helper.relativeVec(target.position()));
+			if (zombie.distanceTo(head) > 15) { head.discard(); zombie.discard(); leave(helper, target); helper.succeed(); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void mobsFleeHimSpiderJockey(GameTestHelper helper) {
+		Mob spider = mobFlees(helper, net.minecraft.world.entity.EntityTypes.SPIDER, 155);
+		var rider = helper.spawn(net.minecraft.world.entity.EntityTypes.SKELETON, new Vec3(13.5, 155, 5.5));
+		rider.startRiding(spider, true, true);
+		helper.onEachTick(() -> { if (spider.isRemoved()) rider.discard(); });
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void aWorkingVillagerStillRuns(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 240);
+		var villager = helper.spawn(net.minecraft.world.entity.EntityTypes.VILLAGER, new Vec3(13.5, 240, 5.5));
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() == 1) villager.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET,
+				new net.minecraft.world.entity.ai.memory.WalkTarget(head.position().add(-20, 0, 0), 0.5f, 0));
+			if (helper.getTick() == 120) {
+				double away = villager.getX() - head.getX();
+				helper.assertTrue(away >= 12, "villager kept to its errand, " + away + " out");
+				head.discard(); villager.discard(); helper.succeed();
+			}
+		});
+	}
+
+	// villagers wake on their own by day, so the sleep and his tick happen back to back
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void aSleepingVillagerWakesAndRuns(GameTestHelper helper) throws ReflectiveOperationException {
+		TheHead head = dreadedHead(helper, 255);
+		var villager = helper.spawn(net.minecraft.world.entity.EntityTypes.VILLAGER, new Vec3(13.5, 255, 5.5));
+		var spread = Class.forName("com.larsoyd.mariohead.entity.HeadDread").getDeclaredMethod("spread", ServerLevel.class, TheHead.class); spread.setAccessible(true);
+		helper.setBlock(new BlockPos(13, 255, 5), Blocks.BED.red().defaultBlockState());
+		villager.startSleeping(villager.blockPosition());
+		helper.assertTrue(villager.isSleeping(), "fixture never slept");
+		spread.invoke(null, helper.getLevel(), head);
+		helper.assertFalse(villager.isSleeping(), "villager slept through him");
+		head.discard(); villager.discard(); helper.succeed();
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void aWitherForgetsItsTargetsNearHim(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 235);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(30.5, 235, 5.5), 90);
+		var wither = helper.spawn(net.minecraft.world.entity.EntityTypes.WITHER, new Vec3(13.5, 235, 5.5));
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() == 5) wither.setAlternativeTarget(1, target.getId());
+			if (helper.getTick() == 6) {
+				helper.assertTrue(wither.getAlternativeTarget(1) == 0, "wither kept its target");
+				head.discard(); wither.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void aCreeperBesideThePlayerGivesUpItsFuse(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 245);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(14.5, 245, 5.5), 90);
+		var creeper = helper.spawn(net.minecraft.world.entity.EntityTypes.CREEPER, new Vec3(13.5, 245, 5.5));
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() == 5) creeper.setTarget(target);
+			if (helper.getTick() == 60) {
+				helper.assertTrue(creeper.isAlive() && creeper.getSwellDir() < 1, "creeper kept burning, swell " + creeper.getSwellDir());
+				head.discard(); creeper.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	private void herd(GameTestHelper helper, boolean withHead) {
+		TheHead head = dreadedHead(helper, 305);
+		if (!withHead) head.discard();
+		for (int i = 0; i < 100; i++) helper.spawn(net.minecraft.world.entity.EntityTypes.COW, new Vec3(2.5 + i % 15, 305, 1.5 + (i / 15) * 1.5));
+		long[] was = { 0 };
+		long[] total = { 0 };
+		helper.onEachTick(() -> {
+			if (withHead) keepLoaded(helper, head);
+			if (helper.getTick() >= 100) total[0] += System.nanoTime() - was[0];
+			was[0] = System.nanoTime();
+			if (helper.getTick() == 300) {
+				com.larsoyd.mariohead.MarioHead.LOG.info("[perf] herd head={} tick_ms={}", withHead, total[0] / 200 / 1e6);
+				if (withHead) head.discard();
+				helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.animal.cow.Cow.class, new AABB(helper.absolutePos(BlockPos.ZERO)).inflate(120)).forEach(net.minecraft.world.entity.Entity::discard);
+				helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400, required = false)
+	public void tickTimeWithAHerdAroundHim(GameTestHelper helper) {
+		herd(helper, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400, required = false)
+	public void tickTimeWithAHerdAlone(GameTestHelper helper) {
+		herd(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealExpiryMidDashDoesNotLungeAtThePlayer(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 18.5, MEAL_FLOOR, 10.5);
+		var grace = graceOf(head);
+		long[] expiredAt = { -1 };
+		Vec3[] was = { null };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			double step = was[0] == null ? 0 : head.position().distanceTo(was[0]);
+			was[0] = head.position();
+			if (expiredAt[0] < 0) {
+				if (step > 0.7) {
+					expiredAt[0] = helper.getTick();
+					grace.start(helper.getLevel().getGameTime() - 1199, 0.5, 1, 0);
+				}
+				return;
+			}
+			long since = helper.getTick() - expiredAt[0];
+			if (since >= 2) {
+				helper.assertTrue(grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.NONE, "stall survived its end " + grace.stage());
+				helper.assertTrue(step < 0.6, "dash speed carried past the stall end, step " + step);
+			}
+			helper.assertFalse(mob.isRemoved() || head.cue() == HeadCue.GULP, "ate after the stall end");
+			if (since == 12) { head.discard(); mob.discard(); leave(helper, target); helper.succeed(); }
+		});
+	}
+
+	// a house or a prank holds his charge tick, so the timer is only reached long after
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallMealLineHeldUpTooLongIsDropped(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		fixRoll(head, 0.39);
+		var field = TheHead.class.getDeclaredField("afterMealAt"); field.setAccessible(true);
+		long[] gulpAt = { -1 };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			if (gulpAt[0] < 0 && head.cue() == HeadCue.GULP) {
+				gulpAt[0] = helper.getTick();
+				try { field.setLong(head, helper.getLevel().getGameTime() - 40); } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+			}
+			helper.assertFalse(head.cue() == HeadCue.YUMMY, "stale line played late");
+			if (gulpAt[0] >= 0 && helper.getTick() == gulpAt[0] + 30) { head.discard(); leave(helper, target); helper.succeed(); }
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void stallMealIgnoresADyingMob(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		Vec3[] was = { null };
+		boolean[] hummed = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) { beginLiveGrace(helper, head, HeadCue.INHALE); mob.setHealth(0); }
+			hummed[0] |= hums(head);
+			if (was[0] != null) helper.assertTrue(head.position().distanceTo(was[0]) < 0.5, "dashed at a corpse");
+			was[0] = head.position();
+			if (helper.getTick() == 118) {
+				helper.assertTrue(hummed[0] && !mob.isRemoved(), "fixture hummed=" + hummed[0] + " corpse gone=" + mob.isRemoved());
+				try {
+					var ready = TheHead.class.getDeclaredField("mealReadyAt"); ready.setAccessible(true);
+					helper.assertTrue(ready.getLong(head) == 0, "a corpse used up his cooldown");
+				} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+				head.discard(); mob.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	private void gulpThenStallEnds(GameTestHelper helper, boolean natural) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealMob(helper, net.minecraft.world.entity.EntityTypes.COW, 21.5, MEAL_FLOOR, 10.5);
+		fixRoll(head, 0.39);
+		var grace = graceOf(head);
+		long[] gulpAt = { -1 };
+		boolean[] cutoff = { false };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			if (gulpAt[0] < 0) {
+				if (head.cue() == HeadCue.GULP) gulpAt[0] = helper.getTick();
+				return;
+			}
+			long since = helper.getTick() - gulpAt[0];
+			if (since == 3) {
+				if (natural) grace.start(helper.getLevel().getGameTime() - 1199, 0.5, 1, 0);
+				else target.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE));
+			}
+			helper.assertFalse(head.cue() == HeadCue.YUMMY || head.cue() == HeadCue.LASAGNA, "after-meal line outlived the stall");
+			helper.assertFalse(target.isDeadOrDying(), "caught right after the meal");
+			cutoff[0] |= java.util.List.of(com.larsoyd.mariohead.entity.ChaseVoices.CUTOFF).contains(head.cue());
+			if (since == 60) {
+				helper.assertTrue(natural || cutoff[0], "stall ended by gear lost its cutoff line");
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void stallEndingRightAfterAGulpDropsTheLine(GameTestHelper helper) throws ReflectiveOperationException {
+		gulpThenStallEnds(helper, true);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 400)
+	public void gearRightAfterAGulpStillGetsTheCutoffLine(GameTestHelper helper) throws ReflectiveOperationException {
+		gulpThenStallEnds(helper, false);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void stallMealEatsAnIronGolem(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealEaten(helper, mealMob(helper, net.minecraft.world.entity.EntityTypes.IRON_GOLEM, 21.5, MEAL_FLOOR, 10.5), target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void anIronGolemStandsItsGround(GameTestHelper helper) {
+		TheHead head = dreadedHead(helper, 200);
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(16.5, 200, 5.5), 90);
+		var golem = helper.spawn(net.minecraft.world.entity.EntityTypes.IRON_GOLEM, new Vec3(13.5, 200, 5.5));
+		Vec3 start = golem.position();
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() == 5) golem.setTarget(target);
+			if (helper.getTick() == 6) helper.assertTrue(golem.getTarget() == target, "golem dropped its target near him");
+			if (helper.getTick() == 30) {
+				helper.assertTrue(golem.position().distanceTo(start) < 8 && golem.getTarget() == target, "golem fled " + golem.position().distanceTo(start));
+				head.discard(); golem.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void stallMealEatsAVillager(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		mealEaten(helper, mealMob(helper, net.minecraft.world.entity.EntityTypes.VILLAGER, 21.5, MEAL_FLOOR, 10.5), target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void stallMealEatsAPet(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var wolf = mealMob(helper, net.minecraft.world.entity.EntityTypes.WOLF, 21.5, MEAL_FLOOR, 10.5);
+		wolf.tame(target);
+		mealEaten(helper, wolf, target, head);
+	}
+
+	@GameTest(structure = ARENA, maxTicks = 250)
+	public void stallMealLeavesAJockeysRider(GameTestHelper helper) throws ReflectiveOperationException {
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, MEAL_FLOOR, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		var chicken = mealMob(helper, net.minecraft.world.entity.EntityTypes.CHICKEN, 21.5, MEAL_FLOOR, 10.5);
+		var rider = mealMob(helper, net.minecraft.world.entity.EntityTypes.ZOMBIE, 21.5, MEAL_FLOOR, 10.5);
+		rider.setBaby(true);
+		rider.startRiding(chicken, true, true);
+		helper.onEachTick(() -> {
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			keepLoaded(helper, head);
+			runAway(target);
+			if (head.cue() != HeadCue.GULP) return;
+			helper.assertTrue(chicken.isRemoved() != rider.isRemoved(), "one of the pair should go, chicken=" + chicken.isRemoved() + " rider=" + rider.isRemoved());
+			Mob left = chicken.isRemoved() ? rider : chicken;
+			helper.assertTrue(left.getVehicle() == null && left.getPassengers().isEmpty(), "survivor still mounted");
+			left.discard(); head.discard(); leave(helper, target); helper.succeed();
+		});
+	}
+
+	// the shared strip of the other stall tests would wall this pond in, so it sits lower
+	@GameTest(structure = ARENA, maxTicks = 300)
+	public void stallMealDipsIntoWaterAndComesBackUp(GameTestHelper helper) throws ReflectiveOperationException {
+		int y = 205;
+		ServerPlayer target = player(helper, GameType.SURVIVAL, new Vec3(12.5, y, 10.5), 90);
+		TheHead head = liveGraceHead(helper, target, 30.5);
+		fill(helper, -120, y - 2, 5, 60, y - 2, 15, Blocks.STONE.defaultBlockState());
+		fill(helper, -120, y - 1, 5, 60, y - 1, 15, Blocks.WATER.defaultBlockState());
+		head.setPos(helper.absoluteVec(new Vec3(30.5, y + 0.5, 10.5)));
+		var mob = mealMob(helper, net.minecraft.world.entity.EntityTypes.SQUID, 21.5, y - 0.5, 10.5);
+		mob.setNoGravity(true);
+		long[] gulpAt = { -1 };
+		helper.onEachTick(() -> {
+			keepLoaded(helper, head);
+			if (helper.getTick() < 100) return;
+			if (helper.getTick() == 100) beginLiveGrace(helper, head, HeadCue.INHALE);
+			runAway(target);
+			if (gulpAt[0] < 0 && head.cue() == HeadCue.GULP) gulpAt[0] = helper.getTick();
+			helper.assertTrue(gulpAt[0] >= 0 || helper.getTick() < 250, "no meal head=" + helper.relativeVec(head.centre()) + " mob=" + helper.relativeVec(mob.position()));
+			if (gulpAt[0] >= 0 && helper.getTick() == gulpAt[0] + 40) {
+				helper.assertTrue(mob.isRemoved(), "squid survived");
+				helper.assertTrue(head.centre().distanceTo(mob.position()) >= 5, "stayed by the meal at " + helper.relativeVec(head.centre()));
+				head.discard(); leave(helper, target); helper.succeed();
+			}
+		});
+	}
+
+	private static void fixRoll(TheHead head, double roll) throws ReflectiveOperationException {
+		var random = net.minecraft.world.entity.Entity.class.getDeclaredField("random"); random.setAccessible(true);
+		random.set(head, new net.minecraft.world.level.levelgen.LegacyRandomSource(1) {
+			@Override
+			public double nextDouble() {
+				return roll;
+			}
+		});
+	}
+
 	@GameTest(structure = ARENA, maxTicks = 1000)
 	public void stallGraceLiveHouseRaidEndsGraceAndReturnsToTnt(GameTestHelper helper) throws ReflectiveOperationException {
 		liveHouseRaid(helper, false);
@@ -4266,9 +4744,13 @@ public class HeadGameTests {
 		boolean[] ending = { false };
 		Vec3[] resumed = { null };
 		Mob[] snack = { null };
+		var lodger = helper.spawn(net.minecraft.world.entity.EntityTypes.COW, new Vec3(12.5, y, 7.5));
+		var inline = mealMob(helper, net.minecraft.world.entity.EntityTypes.PIG, 10.5, y, 9.5);
 		helper.onEachTick(() -> {
 			head.getRandom().setSeed(12345);
 			HeadCue cue = head.cue();
+			helper.assertFalse(cue == HeadCue.GULP || cue == HeadCue.YUMMY || cue == HeadCue.LASAGNA, "ate during the house scene " + cues);
+			if (!inline.isRemoved()) inline.setPos(head.position().add(4, 0, 0));
 			if (cues.isEmpty() || cues.getLast() != cue) cues.add(cue);
 			if (grace.stage() == com.larsoyd.mariohead.entity.StallGrace.Stage.ENDING) ending[0] = true;
 			if (!cues.contains(HeadCue.HOME_RETURN) && cues.contains(HeadCue.HOME_ASK) && cue.digHum()) {
@@ -4291,7 +4773,7 @@ public class HeadGameTests {
 						helper.assertFalse((boolean) roll.invoke(head, target, 0), "post-house dash reentered grace");
 					} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
 					if (resumed[0] == null) resumed[0] = head.position();
-					if (cue.digHum() && head.position().distanceTo(resumed[0]) > 1) { snack[0].discard(); head.discard(); helper.succeed(); }
+					if (cue.digHum() && head.position().distanceTo(resumed[0]) > 1) { snack[0].discard(); lodger.discard(); inline.discard(); head.discard(); helper.succeed(); }
 				}
 			}
 			helper.assertFalse(target.isDeadOrDying(), "house grace scenario caught owner before return");

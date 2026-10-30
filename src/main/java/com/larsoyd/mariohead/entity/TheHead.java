@@ -346,6 +346,7 @@ public class TheHead extends Monster {
 	protected void customServerAiStep(ServerLevel level) {
 		this.phaseTicks++;
 		this.cueTicks++;
+		HeadDread.spread(level, this);
 		Player target = this.validTarget(level);
 		if (target != null) {
 			boolean grounded = this.onFoot(target)
@@ -537,7 +538,7 @@ public class TheHead extends Monster {
 	}
 
 	private boolean edible(Mob mob, Player target) {
-		if (mob instanceof TheHead || mob.isInvulnerable() || mob.getBbWidth() > this.getBbWidth() || mob.getBbHeight() > this.getBbHeight()
+		if (mob instanceof TheHead || !mob.isAlive() || mob.isInvulnerable() || mob.getBbWidth() > this.getBbWidth() || mob.getBbHeight() > this.getBbHeight()
 			|| !HeadMeal.inLine(this.centre(), target.position(), mob.position())) return false;
 		Vec3 c = this.centre();
 		Vec3 contact = HeadContact.firstContact(c, this.mealAim(mob), this.getYRot(), this.getXRot(), this.roll, this.squeeze(), mob.getBoundingBox(), HeadMeal.BITE);
@@ -566,8 +567,7 @@ public class TheHead extends Monster {
 			|| !HeadMeal.closes(before, target.position(), mob.position())) {
 			MarioHead.LOG.debug("[head] meal_dropped id={} alive={} gap={} grace={} late={}", this.getId(), mob.isAlive(),
 				before.distanceTo(target.getEyePosition()), this.grace.stage(), level.getGameTime() >= this.mealUntil);
-			this.meal = null;
-			this.mealReadyAt = level.getGameTime() + HeadMeal.COOLDOWN_TICKS;
+			this.endMeal(level);
 			return false;
 		}
 		Vec3 way = this.mealAim(mob).subtract(before);
@@ -582,16 +582,24 @@ public class TheHead extends Monster {
 		return true;
 	}
 
-	private void eat(ServerLevel level, Mob mob) {
-		Vec3 at = mob.getBoundingBox().getCenter();
+	// the dash speed must not outlive the dash, only a stall holds him under the pace he chases at
+	private void endMeal(ServerLevel level) {
 		this.meal = null;
 		this.mealReadyAt = level.getGameTime() + HeadMeal.COOLDOWN_TICKS;
+		this.moveSpeed = Math.min(this.moveSpeed, this.chargeSpeed);
+	}
+
+	private void eat(ServerLevel level, Mob mob) {
+		Vec3 at = mob.getBoundingBox().getCenter();
+		this.endMeal(level);
+		boolean silent = mob.isSilent();
 		mob.setSilent(true);
 		// a cube this size leaves nothing to split into
 		if (mob instanceof AbstractCubeMob cube) cube.setSize(1, false);
-		boolean killed = mob.hurtServer(level, this.damageSources().source(HeadEntities.CAUGHT, this), Float.MAX_VALUE);
-		mob.setSilent(false);
-		if (!killed) return;
+		mob.hurtServer(level, this.damageSources().source(HeadEntities.CAUGHT, this), Float.MAX_VALUE);
+		mob.setSilent(silent);
+		// a squid reports a killing blow as a miss, so only the mob itself can say
+		if (!mob.isDeadOrDying()) return;
 		mob.discard();
 		level.sendParticles(ParticleTypes.POOF, at.x, at.y, at.z, 8, 0.3, 0.3, 0.3, 0.02);
 		long now = level.getGameTime();
@@ -602,8 +610,10 @@ public class TheHead extends Monster {
 
 	private void tickAfterMeal(long now) {
 		if (this.afterMealAt < 0 || now < this.afterMealAt) return;
+		// a house or a prank holds this tick back, by then the moment has passed
+		boolean onTime = now == this.afterMealAt;
 		this.afterMealAt = -1;
-		if (this.grace.stage() == StallGrace.Stage.FOLLOW && this.homeStage == HomeStage.NONE) {
+		if (onTime && this.grace.stage() == StallGrace.Stage.FOLLOW && this.homeStage == HomeStage.NONE) {
 			this.setCue(this.voices.afterMeal(this.random.nextDouble()));
 		}
 	}

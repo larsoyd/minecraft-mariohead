@@ -8,7 +8,9 @@
 		"PlayerFallMixin",
 		"PlayerDrowningMixin",
 		"ChunkMapAccess",
-		"TrackedEntityAccess"
+		"TrackedEntityAccess",
+		"CubeMoveAccess",
+		"MobDreadMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

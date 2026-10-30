@@ -278,5 +278,45 @@
 	"entity.the_head.meal_lasagna": {
 		"subtitle": "subtitles.mariohead.the_head.meal_lasagna",
 		"sounds": ["mariohead:the_head/meal_lasagna"]
+	},
+	"entity.the_head.meal_yummy2": {
+		"subtitle": "subtitles.mariohead.the_head.meal_yummy2",
+		"sounds": ["mariohead:the_head/meal_yummy2"]
+	},
+	"entity.the_head.meal_spaghetti": {
+		"subtitle": "subtitles.mariohead.the_head.meal_spaghetti",
+		"sounds": ["mariohead:the_head/meal_spaghetti"]
+	},
+	"entity.the_head.meal_ravioli": {
+		"subtitle": "subtitles.mariohead.the_head.meal_ravioli",
+		"sounds": ["mariohead:the_head/meal_ravioli"]
+	},
+	"entity.the_head.meal_maccaroni": {
+		"subtitle": "subtitles.mariohead.the_head.meal_maccaroni",
+		"sounds": ["mariohead:the_head/meal_maccaroni"]
+	},
+	"entity.the_head.meal_vermachelli": {
+		"subtitle": "subtitles.mariohead.the_head.meal_vermachelli",
+		"sounds": ["mariohead:the_head/meal_vermachelli"]
+	},
+	"entity.the_head.meal_bologna": {
+		"subtitle": "subtitles.mariohead.the_head.meal_bologna",
+		"sounds": ["mariohead:the_head/meal_bologna"]
+	},
+	"entity.the_head.meal_fetticini": {
+		"subtitle": "subtitles.mariohead.the_head.meal_fetticini",
+		"sounds": ["mariohead:the_head/meal_fetticini"]
+	},
+	"entity.the_head.meal_cappilini": {
+		"subtitle": "subtitles.mariohead.the_head.meal_cappilini",
+		"sounds": ["mariohead:the_head/meal_cappilini"]
+	},
+	"entity.the_head.meal_cappilini2": {
+		"subtitle": "subtitles.mariohead.the_head.meal_cappilini2",
+		"sounds": ["mariohead:the_head/meal_cappilini2"]
+	},
+	"entity.the_head.meal_hossili": {
+		"subtitle": "subtitles.mariohead.the_head.meal_hossili",
+		"sounds": ["mariohead:the_head/meal_hossili"]
 	}
 }

@@ -14,7 +14,7 @@ public final class ChaseVoices {
 		HeadCue.VARIETY_036, HeadCue.TAUNT_106, HeadCue.TAUNT_105, HeadCue.VARIETY_081, HeadCue.VARIETY_074
 	};
 	public static final HeadCue[] WATER = { HeadCue.VARIETY_071, HeadCue.VARIETY_085 };
-	private static final HeadCue[] AFTER_MEAL = { HeadCue.YUMMY, HeadCue.LASAGNA };
+	private static final HeadCue[] AFTER_MEAL = java.util.Arrays.stream(HeadCue.values()).filter(cue -> cue.meal() && cue != HeadCue.GULP).toArray(HeadCue[]::new);
 	private static final HeadCue[] CUES = HeadCue.values();
 	private final VoiceSelection lines = new VoiceSelection(CUES.length);
 	private final VoiceSelection laughs = new VoiceSelection(5);

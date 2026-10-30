@@ -67,15 +67,32 @@ class ChaseVoicesTest {
 	}
 
 	@Test
-	void yummyComesFirstThenLasagnaIsInThePool() {
+	void yummyComesFirstThenEveryAltPlaysBeforeARepeat() {
 		ChaseVoices voices = new ChaseVoices();
 		for (double random : new double[] { 0, 0.5, 0.999 }) {
 			assertEquals(HeadCue.YUMMY, voices.afterMeal(random));
 		}
 		voices.played(HeadCue.YUMMY);
-		assertEquals(HeadCue.LASAGNA, voices.afterMeal(0));
-		voices.played(HeadCue.LASAGNA);
-		assertEquals(HeadCue.YUMMY, voices.afterMeal(0));
+		java.util.Set<HeadCue> said = new java.util.HashSet<>(java.util.Set.of(HeadCue.YUMMY));
+		for (int i = 0; i < 11; i++) {
+			HeadCue line = voices.afterMeal(i * 0.09);
+			assertTrue(line.meal() && line != HeadCue.GULP && said.add(line), "repeat or wrong line " + line);
+			voices.played(line);
+		}
+		assertEquals(12, said.size());
+	}
+
+	@Test
+	void afterMealLinesNeverComeTwiceInARow() {
+		ChaseVoices voices = new ChaseVoices();
+		HeadCue last = HeadCue.YUMMY;
+		voices.played(last);
+		for (int i = 0; i < 200; i++) {
+			HeadCue line = voices.afterMeal(i % 7 / 7.0);
+			assertTrue(line != last, "repeated " + line);
+			voices.played(line);
+			last = line;
+		}
 	}
 
 	@Test

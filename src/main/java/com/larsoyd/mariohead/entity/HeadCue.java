@@ -48,6 +48,16 @@ public enum HeadCue {
 	GULP,
 	YUMMY,
 	LASAGNA,
+	YUMMY2,
+	SPAGHETTI,
+	RAVIOLI,
+	MACCARONI,
+	VERMACHELLI,
+	BOLOGNA,
+	FETTICINI,
+	CAPPILINI,
+	CAPPILINI2,
+	HOSSILI,
 	VARIETY_017,
 	VARIETY_036,
 	VARIETY_037,
@@ -85,7 +95,7 @@ public enum HeadCue {
 		if (this.variety()) return VarietyVoice.CLIPS[this.ordinal() - VARIETY_017.ordinal()];
 		return switch (this) {
 			case FALL_019 -> FallVoice.CLIPS[0];
-			case GULP, YUMMY, LASAGNA -> MealVoice.CLIPS[this.ordinal() - GULP.ordinal()];
+			case GULP, YUMMY, LASAGNA, YUMMY2, SPAGHETTI, RAVIOLI, MACCARONI, VERMACHELLI, BOLOGNA, FETTICINI, CAPPILINI, CAPPILINI2, HOSSILI -> MealVoice.CLIPS[this.ordinal() - GULP.ordinal()];
 			case PRANK_WARNING, PRANK_RESPONSE -> PrankVoice.CLIPS[this.ordinal() - PRANK_WARNING.ordinal()];
 			case HOME_NICE, HOME_ASK, HOME_HUNGRY, HOME_THIRSTY, HOME_RETURN -> HomeVoice.CLIPS[this.ordinal() - HOME_NICE.ordinal()];
 			case HELLO -> HeadVoice.HELLO;
@@ -130,7 +140,7 @@ public enum HeadCue {
 	}
 
 	public boolean meal() {
-		return this == GULP || this == YUMMY || this == LASAGNA;
+		return this.ordinal() >= GULP.ordinal() && this.ordinal() <= HOSSILI.ordinal();
 	}
 
 	public boolean digHum() {
