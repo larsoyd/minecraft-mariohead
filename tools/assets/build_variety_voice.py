@@ -36,6 +36,7 @@ def build(source, threat_mix):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path, help='directory containing ogg and wav source folders')
-    parser.add_argument('--threat-mix', type=Path, required=True, help='approved line 036 OGG')
+    parser.add_argument('--threat-mix', type=Path, default=Path(__file__).resolve().parents[2] / 'voice-lines/ogg/036_threat_mix.ogg',
+                        help='approved line 036 OGG')
     args = parser.parse_args()
     build(args.source, args.threat_mix)

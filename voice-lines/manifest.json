@@ -1,5 +1,5 @@
 {
-  "source": "/home/lars/Videos/All Cutscenes & Voice Lines of the Floating Mario Head (Mario Teaches Typing).mkv",
+  "source": "All Cutscenes & Voice Lines of the Floating Mario Head (Mario Teaches Typing).mkv",
   "source_sha256": "2dbb3f892b2a44c23d4d81da496768d13cad4c5247df48b49e2fdc7bcba19cab",
   "model": "FilmCraft whisper-small",
   "transcript_status": "Machine transcripts with evidence-backed research corrections where review_resolution is present. Raw recognition passes are retained. Nonverbal cues are classified separately. No human listening verification.",

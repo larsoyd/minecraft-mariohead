@@ -4,8 +4,7 @@
 model: the blend and its PNGs -> the mesh, cap, iris and skin textures
 voice: the voice clip, the full voice track and the underground line -> eight OGG clips and HeadVoice.java
 
-Sources are pinned by SHA-256 in sources.json. Their paths come from local.properties at the
-repository root (head.blend, head.voice, head.track, head.underground) or from the command line.
+Sources are tracked next to this script and pinned by SHA-256 in sources.json.
 """
 
 import argparse
@@ -30,6 +29,8 @@ JAVA_DIR = os.path.join(ROOT, "src", "main", "java", "com", "larsoyd", "mariohea
 VOICE_JAVA = os.path.join(JAVA_DIR, "HeadVoice.java")
 SHAPE_JAVA = os.path.join(JAVA_DIR, "HeadShape.java")
 SOURCES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sources.json")
+SOURCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sources")
+UNDERGROUND_LINE = os.path.join(ROOT, "voice-lines", "ogg", "022_01m16s_finally_i_m_gonna_get_to_move_underground.ogg")
 
 BLOCKS_PER_UNIT = 1.275     # blend units to blocks: the head is 1.75 units tall and 2.23 blocks
 LODS = (2, 1)               # subdivision level of each LOD, nearest first
@@ -70,20 +71,6 @@ MOUTH_CLOSE_RATE = 0.30
 
 def log(tag, **fields):
     print(f"[{tag}] " + " ".join(f"{k}={v}" for k, v in fields.items()), flush=True)
-
-
-def local_properties():
-    path = os.path.join(ROOT, "local.properties")
-    props = {}
-    if os.path.exists(path):
-        with open(path, encoding="utf-8") as f:
-            lines = f.read().splitlines()
-        for line in lines:
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key, value = line.split("=", 1)
-                props[key.strip()] = os.path.expanduser(value.strip())
-    return props
 
 
 def verified(path, key):
@@ -438,14 +425,13 @@ def build_voice(voice, track, underground):
 
 
 def main():
-    props = local_properties()
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("what", choices=("model", "voice", "all"))
-    parser.add_argument("--blend", default=props.get("head.blend"))
-    parser.add_argument("--voice", default=props.get("head.voice"))
-    parser.add_argument("--track", default=props.get("head.track"))
-    parser.add_argument("--underground", default=props.get("head.underground"))
+    parser.add_argument("--blend", default=os.path.join(SOURCE_DIR, "mario_head.blend"))
+    parser.add_argument("--voice", default=os.path.join(SOURCE_DIR, "voice1.wav"))
+    parser.add_argument("--track", default=os.path.join(SOURCE_DIR, "voice_track.mp3"))
+    parser.add_argument("--underground", default=UNDERGROUND_LINE)
     args = parser.parse_args()
     if args.what in ("model", "all"):
         build_model(verified(args.blend, "blend"))
