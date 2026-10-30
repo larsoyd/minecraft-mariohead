@@ -120,7 +120,7 @@ Copy `build/libs/mariohead-x.x.x-dev.jar` into your Minecraft instance's `mods` 
 - Head model: the high quality Mario head Blender model (`mario_head.blend`) with its cap, iris
   and swatch textures is based on the original Floating Mario Head model from Mario Teaches Typing by Surreal Bot on Donut Team.
 - The Floating Mario Head Spawn Egg item graphic drawn by me.
-- Voice: clips of the Floating Mario Head from Mario Teaches Typing 2. VA clips of Mario from Super Mario Galaxy, and Super Mario Odyssey. Charles Martinet.
+- Voice: Mario clips from Mario Teaches Typing 2, Super Mario Galaxy, and Super Mario Odyssey are included and performed by Charles Martinet. Other voice credits [here.](CREDITS.md)
 - His arrival sound is Minecraft's own illusioner mirror move sound, lowered in pitch.
 
 #### LLM/AI Policy & Disclosure
